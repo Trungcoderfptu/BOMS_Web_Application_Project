@@ -1,0 +1,223 @@
+/* ====== TOÀN CỤC (GLOBAL) +++++++ */
+/* ===== Biến Màu (CSS Variables) ===== */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f4f4f4;
+    --bg-tertiary: #dddddd;
+    --text-primary: #000000;
+    --border-main: #000000;
+    --border-light: #cccccc;
+    --color-danger: red;
+    --color-success: green;
+}
+
+body.dark-theme {
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-tertiary: #333333;
+    --text-primary: #ffffff;
+    --border-main: #555555;
+    --border-light: #444444;
+    --color-danger: #ff5252;
+    --color-success: #4caf50;
+}
+
+/* ===== Cấu Trúc Lõi (Base Tags) ===== */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+ul.no-bullet {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* ===== Bố Cục Chung (Global Layout) ===== */
+.main-content {
+    min-height: 400px;
+    padding: 20px;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flex-align-center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.gap-20 { gap: 20px; }
+.gap-30 { gap: 30px; }
+.flex-grow-1 { flex-grow: 1; }
+
+/* ===== Thông Báo Lỗi & Thành Công ===== */
+.msg-error {
+    color: var(--color-danger);
+    font-weight: bold;
+}
+
+.msg-success {
+    color: var(--color-success);
+    font-weight: bold;
+}
+
+.text-danger {
+    color: var(--color-danger);
+}
+
+
+/* ====== HEADER & FOOTER +++++++ */
+/* ===== Khung Header & Footer ===== */
+.app-header {
+    border-bottom: 2px solid var(--border-main);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.app-footer {
+    border-top: 2px solid var(--border-main);
+    padding-top: 10px;
+    text-align: center;
+}
+
+/* ===== Menu & Navigation ===== */
+#btnHamburger {
+    font-size: 20px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+}
+
+#btnDongMenuDoc {
+    margin-bottom: 20px;
+    cursor: pointer;
+}
+
+#menuDoc {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 200px;
+    height: 100%;
+    border-right: 2px solid var(--border-main);
+    background: var(--bg-secondary);
+    padding: 15px;
+    z-index: 1001;
+}
+
+#menuDoc li {
+    margin-bottom: 10px;
+}
+
+.dropdown-wrapper {
+    position: relative;
+}
+
+/* ===== Nút & Avatar (Header) ===== */
+.btn-login {
+    padding: 8px 15px;
+    border: 1px solid var(--border-main);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+#btnAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-main);
+    color: var(--text-primary);
+}
+
+#menuTaiKhoan {
+    display: none;
+    position: absolute;
+    right: 0;
+    border: 1px solid var(--border-main);
+    background: var(--bg-primary);
+    padding: 10px;
+    width: 150px;
+    z-index: 1000;
+}
+
+
+/* ====== TRANG SETTINGS +++++++ */
+/* ===== Giao diện Sidebar ===== */
+.settings-sidebar {
+    width: 200px;
+    border-right: 2px solid var(--border-main);
+    padding-right: 10px;
+}
+
+.btn-menu-tab {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+
+/* ====== TRANG PROFILE +++++++ */
+/* ===== Giao diện Avatar ===== */
+.profile-avatar-col {
+    width: 250px;
+    text-align: center;
+    border: 1px solid var(--border-light);
+    padding: 20px;
+}
+
+.profile-avatar-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    margin: 0 auto;
+    line-height: 150px;
+    font-weight: bold;
+    font-size: 40px;
+    color: var(--text-primary);
+}
+
+.input-full-width {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* ===== Giao diện Bảng Thông Tin ===== */
+.profile-detail-col {
+    border: 1px solid var(--border-light);
+    padding: 20px;
+}
+
+.profile-table {
+    width: 100%;
+    line-height: 2.5;
+}
+
+.profile-table td:first-child {
+    width: 30%;
+}

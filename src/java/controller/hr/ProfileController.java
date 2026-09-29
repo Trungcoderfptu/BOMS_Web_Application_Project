@@ -32,11 +32,7 @@ public class ProfileController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute(Constants.USER_SESSION) == null) {
-            response.sendRedirect("login.jsp");
-            return;
-        }
+        HttpSession session = request.getSession();
         Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
         String username = loginUser.get("username");
         try {

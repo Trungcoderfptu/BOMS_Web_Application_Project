@@ -12,7 +12,7 @@
 }
 
 body.dark-theme {
-    --bg-primary: #121212;
+    --bg-primary: #0f172a;
     --bg-secondary: #1e1e1e;
     --bg-tertiary: #333333;
     --text-primary: #ffffff;
@@ -64,9 +64,15 @@ ul.no-bullet {
     gap: 10px;
 }
 
-.gap-20 { gap: 20px; }
-.gap-30 { gap: 30px; }
-.flex-grow-1 { flex-grow: 1; }
+.gap-20 {
+    gap: 20px;
+}
+.gap-30 {
+    gap: 30px;
+}
+.flex-grow-1 {
+    flex-grow: 1;
+}
 
 /* ===== Thông Báo Lỗi & Thành Công ===== */
 .msg-error {
@@ -178,6 +184,10 @@ ul.no-bullet {
     margin-bottom: 10px;
     padding: 5px;
     cursor: pointer;
+}
+
+.d-none {
+    display: none !important;
 }
 
 

@@ -24,21 +24,14 @@ public class SettingsController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute(Constants.USER_SESSION) == null) {
-            response.sendRedirect("login.jsp");
-            return;
-        }
-
         try {
+            HttpSession session = request.getSession();
             Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
             Map<String, String> profile = userService.getUserProfile(loginUser.get("username"));
-
             request.setAttribute(Constants.USER_PROFILE, profile);
             request.getRequestDispatcher("settings.jsp").forward(request, response);
-
         } catch (ValidationException e) {
-            response.sendRedirect("login.jsp");
+            response.sendRedirect("dashboard.jsp");
         }
     }
 
@@ -49,12 +42,7 @@ public class SettingsController extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         response.setContentType("text/html;charset=UTF-8");
 
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute(Constants.USER_SESSION) == null) {
-            response.sendRedirect("login.jsp");
-            return;
-        }
-
+        HttpSession session = request.getSession();
         Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
         String username = loginUser.get("username");
 
@@ -79,6 +67,17 @@ public class SettingsController extends HttpServlet {
 
                     userService.changePassword(username, oldPass, newPass, confirmPass);
                     request.setAttribute(Constants.SUCCESS_MESSAGE, "Đổi mật khẩu thành công!");
+                    break;
+                case "changeLanguage":
+                    String lang = request.getParameter("lang");
+                    if (lang != null) {
+                        session.setAttribute("LANG", lang);
+                        jakarta.servlet.http.Cookie langCookie = new jakarta.servlet.http.Cookie("LANG", lang);
+                        langCookie.setMaxAge(60 * 60 * 24 * 30);
+                        langCookie.setPath("/");
+                        response.addCookie(langCookie);
+                    }
+                    request.setAttribute(Constants.SUCCESS_MESSAGE, "Cập nhật ngôn ngữ thành công!");
                     break;
 
                 default:

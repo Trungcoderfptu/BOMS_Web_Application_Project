@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
 <fmt:setBundle basename="resources.messages" />
 <!DOCTYPE html>
 <html>
@@ -35,6 +36,6 @@
 
         <br>
         <a href="register.jsp"><fmt:message key="login.link.register" /></a>
-
+        <script src="${pageContext.request.contextPath}/js/main.js"></script>
     </body>
 </html>

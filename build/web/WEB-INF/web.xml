@@ -16,6 +16,10 @@
         <servlet-name>SettingsController</servlet-name>
         <servlet-class>controller.SettingsController</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>LanguageController</servlet-name>
+        <servlet-class>controller.LanguageController</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>LoginController</servlet-name>
         <url-pattern>/LoginController</url-pattern>
@@ -32,4 +36,11 @@
         <servlet-name>SettingsController</servlet-name>
         <url-pattern>/SettingsController</url-pattern>
     </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>LanguageController</servlet-name>
+        <url-pattern>/LanguageController</url-pattern>
+    </servlet-mapping>
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
 </web-app>

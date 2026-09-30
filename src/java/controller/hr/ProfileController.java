@@ -42,7 +42,7 @@ public class ProfileController extends HttpServlet {
             request.getRequestDispatcher("profile.jsp").forward(request, response);
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
-            request.getRequestDispatcher("dashboard.jsp").forward(request, response);
+            request.getRequestDispatcher("index.jsp").forward(request, response);
         }
     }
 

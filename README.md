@@ -6,23 +6,25 @@
 * ** Cài đặt:** Thêm khung thiết lập cơ bản bao gồm đổi mật khẩu và thay đổi ngôn ngữ. `(@Trung)`
 * **Giao diện:** Tích hợp giao diện chế độ tối (Dark Mode). `(@Trung)`
 
-### 🐛 Fixed 
+### Fixed 
 * None
 
 ### Notes
 * None
 
 ---
+## [v0.0.2] - 2026-09-30.
+### Added
+* **Cài đặt:**Đa loại bỏ tab thay đổi nogno ngữ khỏi cài đặt và đưa ra ngoài màn hình chính.`(@Trung)`
+ **Filter:** Đã thêm filter cho việc kiểm soát phiên đăng nhập, filter cho việc encoding toàn bộ dự án về UTF 8 `(@Trung)`
+* **Giao diện:** Đã xóa daskboard.jsp thay vào đó là index.jsp 1 trang chủ cho tát cả có thể vào mà không cần đăng nhập. có thê vào bằng cách bấm vào mục home trên menu thả xuống của header. `(@Trung)`
+* **Giao diện:** Đã thêm giao diện đăng ký đã được thiết lập nhưng chưa có backend. `(@Trung)`
 
-## 🚀 [vX.X.X] - YYYY-MM-DD
-**Tóm tắt:** [Ghi một câu ngắn gọn mô tả mục đích của bản cập nhật này]
 
-### ✨ Added (Thêm mới)
-* **[Phân hệ/Module]:** [Mô tả chi tiết tính năng vừa làm]. `(@Tên_Người_Làm)`
-* **[Phân hệ/Module]:** [Mô tả chi tiết tính năng vừa làm]. `(@Tên_Người_Làm)`
+### Fixed 
+* Lỗi mã hóa phông cho biểu tượng mặt trang mặt trời của nút darkmode đã được khắc phục trong main.js(các icon phải sử dụng mã hóa chuẩn utf 8 để tránh lỗi hiển thị).
+* đã khắc phục lỗi filter khi truy cập vào trang web bằng link mặc định và bị điều hướng vè logic.jsp. giờ đây link mặc định sẽ dẫn vào index.jsp
 
-### 🐛 Fixed (Sửa lỗi)
-* **[Tên lỗi/Khu vực]:** [Mô tả lỗi đã được khắc phục]. `(@Tên_Người_Làm)`
-
-### 📝 Notes (Ghi chú)
-* [Các lưu ý quan trọng cho nhóm: ví dụ như cập nhật lại database, thay đổi thư viện, hoặc nhắc nhở cấu hình...]
+### Notes
+* Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
+---

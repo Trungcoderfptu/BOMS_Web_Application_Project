@@ -17,17 +17,17 @@
         <form action="LoginController" method="POST">
 
             <label><fmt:message key="login.label.username" /></label><br>
-            <input type="text" name="txtUsername" required /><br><br>
+            <input type="text" name="txtUsername" value="${param.txtUsername}" required /><br><br>
 
             <label><fmt:message key="login.label.password" /></label><br>
             <input type="password" name="txtPassword" required /><br><br>
 
             <label><fmt:message key="login.label.role" /></label><br>
             <select name="ddlRole">
-                <option value="Admin">Admin</option>
-                <option value="Manager">Manager</option>
-                <option value="Staff">Staff</option>
-                <option value="Shipper">Shipper</option>
+                <option value="Admin" ${param.ddlRole == 'Admin' ? 'selected' : ''}>Admin</option>
+                <option value="Manager" ${param.ddlRole == 'Manager' ? 'selected' : ''}>Manager</option>
+                <option value="Staff" ${param.ddlRole == 'Staff' ? 'selected' : ''}>Staff</option>
+                <option value="Shipper" ${param.ddlRole == 'Shipper' ? 'selected' : ''}>Shipper</option>
             </select><br><br>
 
             <input type="submit" value="<fmt:message key='login.btn.submit' />" />

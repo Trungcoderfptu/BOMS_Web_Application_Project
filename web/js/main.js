@@ -31,11 +31,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // ================= XỬ LÝ TAB TRANG CÀI ĐẶT =================
     const btnMenuProfile = document.getElementById('btnMenuProfile');
     const btnMenuPassword = document.getElementById('btnMenuPassword');
-    const btnMenuLanguage = document.getElementById('btnMenuLanguage');
 
     const tabProfile = document.getElementById('tabProfile');
     const tabPassword = document.getElementById('tabPassword');
-    const tabLanguage = document.getElementById('tabLanguage');
 
     function showTab(activeTab) {
         // Gắn class d-none để ẩn tất cả các tab
@@ -43,8 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tabProfile.classList.add('d-none');
         if (tabPassword)
             tabPassword.classList.add('d-none');
-        if (tabLanguage)
-            tabLanguage.classList.add('d-none');
+
 
         // Gỡ class d-none ra khỏi tab đang được click để hiện lên
         if (activeTab)
@@ -60,12 +57,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (btnMenuPassword) {
         btnMenuPassword.addEventListener('click', function () {
             showTab(tabPassword);
-        });
-    }
-
-    if (btnMenuLanguage) {
-        btnMenuLanguage.addEventListener('click', function () {
-            showTab(tabLanguage);
         });
     }
     // ==================== XỬ LÝ DARK MODE TOÀN CỤC ====================
@@ -103,9 +94,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // 2. Khởi tạo trạng thái ban đầu từ localStorage
         if (localStorage.getItem('theme') === 'dark') {
             body.classList.add('dark-theme');
-            btnDarkMode.innerHTML = '☀️';
+            btnDarkMode.innerHTML = '\u2600\uFE0F'; // Mã Unicode của ☀️
         } else {
-            btnDarkMode.innerHTML = '🌙';
+            btnDarkMode.innerHTML = '\uD83C\uDF19'; // Mã Unicode của 🌙
         }
 
         // 3. Xử lý sự kiện click
@@ -113,11 +104,27 @@ document.addEventListener("DOMContentLoaded", function () {
             body.classList.toggle('dark-theme');
             if (body.classList.contains('dark-theme')) {
                 localStorage.setItem('theme', 'dark');
-                btnDarkMode.innerHTML = '☀️';
+                btnDarkMode.innerHTML = '\u2600\uFE0F';
             } else {
                 localStorage.setItem('theme', 'light');
-                btnDarkMode.innerHTML = '🌙';
+                btnDarkMode.innerHTML = '\uD83C\uDF19';
             }
         });
     })();
+    // ================= XỬ LÝ DROPDOWN NGÔN NGỮ =================
+    const btnLangToggle = document.getElementById('btnLangToggle');
+    const langDropdown = document.getElementById('langDropdown');
+
+    if (btnLangToggle && langDropdown) {
+        btnLangToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            langDropdown.classList.toggle('d-none');
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!btnLangToggle.contains(e.target) && !langDropdown.contains(e.target)) {
+                langDropdown.classList.add('d-none');
+            }
+        });
+    }
 });

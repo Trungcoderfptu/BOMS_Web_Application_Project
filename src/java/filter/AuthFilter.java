@@ -15,27 +15,39 @@ import utility.Constants;
 
 @WebFilter(filterName = "AuthFilter", urlPatterns = {"/*"})
 public class AuthFilter implements Filter {
+
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {}
+    public void init(FilterConfig filterConfig) throws ServletException {
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        
+
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
-        
+
         String uri = req.getRequestURI();
-        
+        String contextPath = req.getContextPath();
         //Whitelist
-        boolean isStaticResource = uri.endsWith(".css") || uri.endsWith(".js") || uri.endsWith(".svg") || uri.endsWith(".png");
-        boolean isAuthPage = uri.endsWith("login.jsp") || uri.endsWith("register.jsp") || uri.endsWith("LoginController")||uri.endsWith("dashboard.jsp");
-        
+        boolean isStaticResource = uri.endsWith(".css")
+                || uri.endsWith(".js") || uri.endsWith(".svg")
+                || uri.endsWith(".png");
+        boolean isAuthPage = uri.endsWith("login.jsp")
+                || uri.endsWith("register.jsp")
+                || uri.endsWith("LoginController")
+                || uri.endsWith("index.jsp")
+                || uri.endsWith("register.jsp")
+                || uri.endsWith("RegisterController")
+                || uri.endsWith("LanguageController")
+                || uri.equals(contextPath)
+                || uri.equals(contextPath + "/");
+
         if (isStaticResource || isAuthPage) {
             chain.doFilter(request, response);
             return;
         }
-        
+
         // Check Session
         HttpSession session = req.getSession(false);
         if (session != null && session.getAttribute(Constants.USER_SESSION) != null) {
@@ -46,5 +58,6 @@ public class AuthFilter implements Filter {
     }
 
     @Override
-    public void destroy() {}
+    public void destroy() {
+    }
 }

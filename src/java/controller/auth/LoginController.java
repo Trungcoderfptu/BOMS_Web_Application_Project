@@ -51,7 +51,7 @@ public class LoginController extends HttpServlet {
             HttpSession session = request.getSession();
             session.setAttribute(Constants.USER_SESSION, loginUser);
 
-            response.sendRedirect("dashboard.jsp");
+            response.sendRedirect("index.jsp");
 
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());

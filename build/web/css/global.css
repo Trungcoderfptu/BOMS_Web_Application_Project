@@ -231,3 +231,122 @@ ul.no-bullet {
 .profile-table td:first-child {
     width: 30%;
 }
+
+
+/* ===== Giao diện trang đăng ký ===== */
+.register-wrapper {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.register-title {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.register-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+.register-layout input[type="text"],
+.register-layout input[type="password"],
+.register-layout input[type="email"],
+.register-select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid var(--border-main);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-register-action {
+    background-color: #28a745;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 15px;
+    transition: background-color 0.3s;
+}
+
+.btn-register-action:hover {
+    background-color: #218838;
+}
+
+.register-nav-link {
+    display: block;
+    text-align: center;
+    margin-top: 15px;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.register-nav-link:hover {
+    text-decoration: underline;
+}
+/* ===== COMPONENT NGÔN NGỮ (LANGUAGE SWITCHER) ===== */
+.lang-switcher-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.floating-lang {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.lang-btn {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-main);
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.lang-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-main);
+    list-style: none;
+    padding: 0;
+    margin: 5px 0 0 0;
+    width: 140px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.lang-dropdown-menu li {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.lang-dropdown-menu li:last-child {
+    border-bottom: none;
+}
+
+.lang-dropdown-menu a {
+    display: block;
+    padding: 10px;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.lang-dropdown-menu a:hover {
+    background-color: var(--bg-tertiary);
+}

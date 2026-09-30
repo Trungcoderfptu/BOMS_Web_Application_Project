@@ -25,7 +25,7 @@ public class LogoutController extends HttpServlet {
         if (session != null) {
             session.invalidate();
         }
-        response.sendRedirect("dashboard.jsp");
+        response.sendRedirect("index.jsp");
     }
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)

@@ -31,7 +31,7 @@ public class SettingsController extends HttpServlet {
             request.setAttribute(Constants.USER_PROFILE, profile);
             request.getRequestDispatcher("settings.jsp").forward(request, response);
         } catch (ValidationException e) {
-            response.sendRedirect("dashboard.jsp");
+            response.sendRedirect("index.jsp");
         }
     }
 
@@ -68,18 +68,6 @@ public class SettingsController extends HttpServlet {
                     userService.changePassword(username, oldPass, newPass, confirmPass);
                     request.setAttribute(Constants.SUCCESS_MESSAGE, "Đổi mật khẩu thành công!");
                     break;
-                case "changeLanguage":
-                    String lang = request.getParameter("lang");
-                    if (lang != null) {
-                        session.setAttribute("LANG", lang);
-                        jakarta.servlet.http.Cookie langCookie = new jakarta.servlet.http.Cookie("LANG", lang);
-                        langCookie.setMaxAge(60 * 60 * 24 * 30);
-                        langCookie.setPath("/");
-                        response.addCookie(langCookie);
-                    }
-                    request.setAttribute(Constants.SUCCESS_MESSAGE, "Cập nhật ngôn ngữ thành công!");
-                    break;
-
                 default:
                     throw new ValidationException("Hành động không hợp lệ!");
             }

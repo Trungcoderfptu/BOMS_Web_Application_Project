@@ -25,6 +25,7 @@
                     <div>
                         <input type="text" placeholder="<fmt:message key='header.search.placeholder' />">
                         <button><fmt:message key="header.search.button" /></button>
+                        <jsp:include page="components/language_switcher.jsp" />
                     </div>
                     <div class="dropdown-wrapper">
                         <c:choose>
@@ -54,7 +55,7 @@
         <aside id="menuDoc">
             <button id="btnDongMenuDoc">✖ <fmt:message key="header.sidebar.close" /></button>
             <ul class="no-bullet">
-                <li><a href="#"><fmt:message key="header.sidebar.deshbard" /></a></li>
+                <li><a href="${pageContext.request.contextPath}/index.jsp"><fmt:message key="header.sidebar.deshbard" /></a></li>
                 <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
                 <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
                 <li><a href="#"><fmt:message key="header.sidebar.reports" /></a></li>

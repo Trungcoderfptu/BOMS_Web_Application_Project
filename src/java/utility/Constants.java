@@ -13,24 +13,63 @@ public class Constants {
     private Constants() {
 
     }
-    // INT CONSTANTS:
-    public static final int minLeng = 3;
+    //Chưa xếp
+    public static final String ERROR_LOCK_ACC = "E0016";
 
-    // STRING CONSTAINS:
+    // INT CONSTANTS:
+    public static final int MIN_PASSWORD_LENG = 3;
+    public static final int MIN_USER_LENG = 5;
+
     //CONSTANS Dùng chung cơ bản
     public static final String USER_SESSION = "USER_SESSION";
     public static final String ERROR_MESSAGE = "ERROR_MESSAGE";
     public static final String USER_PROFILE = "USER_PROFILE";
     public static final String SUCCESS_MESSAGE = "SUCCESS_MESSAGE";
-    //EXCEPTION
-    public static final String ERROR_MESSAGE_PROFILE = "Không tìm thấy thông tin tài khoản!";
-    public static final String ERROR_MESSAGE_USERNAME = "Tên đăng nhập không hợp lệ! kiểm tra lại tên đăng nhập: không được bỏ trống; không được chứa kí tự đặc biệt";
-    public static final String ERROR_MESSAGE_PASSWORD = "Mật khẩu không hợp lệ! Không được bỏ trống hoạc ít nhất dài " + minLeng + " ký tự.";
-    public static final String ERROR_MESSAGE_ROLE = "Vai trò không hợp lệ.";
-    public static final String ERROR_MESSAGE_LOGIN_FALL = "Tên đăng nhập hoạc mật khẩu chưa đúng, vui lòng kiểm tra lại.\n"
-            + "Nếu vẫn không được có thể tài khoản đã bị khóa hãy liên hệ với quản trị viên để biết thêm chi tiết.";
-    public static final String ERROR_MESSAGE_LOGIN_FAIL_ROLE = "Tài khoản này không có quyền truy cập vào vai trò này.";
-    public static final String ERROR_MESSAGE_PASSWORD_CHANGE_FALL_OLD_PASS = "Mật khẩu cũ không chính xác!";
-    public static final String ERROR_MESSAGE_PASSWORD_CHANGE_FALL_NEW_PASS = "Mật khẩu xác nhận không khớp!";
+    public static final String ACTIVE_TAB = "ACTIVE_TAB";
+    //SUCCESFULL MSG
+    //=================SUCCESSFULL MSG====================
+    // Dải S000X: thành công liên quan đến đăng nhập (Login)
 
+    // Dải S001X: Thành công liên quan đến bảo mật tài khoản (Đổi mật khẩu/Đăng ký)
+    public static final String SUCCESS_PSW_CHANGE = "S0010";
+    public static final String SUCCESS_REGISTER = "S0011";
+    public static final String SUCCESS_GEN_KEY = "S0012";
+    // Dải S9XXX Thành công đối với nghiệp vụ admin
+    public static final String SUCCESS_ACCOUNT_STATE_CHANGE = "S9000";
+
+    // Dải S010X: Thành công liên quan đến hồ sơ (Profile)
+    public static final String SUCCESS_UPDATE_PROFILE = "S0100";
+    //====================================================
+    //EXCEPTION
+    // ================= EXCEPTION CODES =================
+    // Dải E000X: Lỗi liên quan đến đăng nhập (Login)
+    public static final String ERROR_USERNAME = "E0001";
+    public static final String ERROR_PASSWORD = "E0002";
+    public static final String ERROR_ROLE = "E0003";
+    public static final String ERROR_LOGIN_FAIL_ROLE = "E0004";
+    public static final String ERROR_LOGIN_FALL = "E0005";
+
+    // Dải E001X: Lỗi liên quan đến bảo mật tài khoản (Đổi mật khẩu/Đăng ký)
+    public static final String ERROR_WORONG_OPW = "E0010";
+    public static final String ERROR_CONFIRM_PSW = "E0011";
+    public final static String ERROR_NEW_PSW_MATCH_OLD = "E0012";
+    public static final String ERROR_USERNAME_EXIST = "E0013";
+    public static final String ERROR_EMAIL_EXIST = "E0014";
+
+    // Dải E010X: Lỗi liên quan đến hồ sơ (Profile)
+    public static final String ERROR_PROFILE = "E0100";
+    public static final String ERROR_NOT_UPDATED = "IE0101";
+    //Dải E1XXX Lỗi liên quan đến valid fomat dữ liệu
+    public static final String ERROR_USER_LENG = "E1000";
+    public static final String ERROR_INVALID_PSW = "E1001";
+    public static final String ERROR_EMPTY_EMAIL = "E1002";
+    public static final String ERROR_INVALID_EMAIL_FORMAT = "E1003";
+    public static final String ERROR_EMPTY_PHONE = "E1004";
+    public static final String ERROR_INVALID_PHONE_FORMAT = "E1005";
+    public static final String ERROR_EMPTY_ADDRESS = "E1006";
+    public static final String ERROR_INVALID_SECURITY_CODE = "E1007";
+    public static final String ERROR_EMPTY_FULLNAME = "E1008";
+
+    // Dải E9XXXX: Lỗi liên quan đến hệ thống SYSTEM
+    public static final String SERROR_INVALID_SETTING_TAB = "E9000";
 }

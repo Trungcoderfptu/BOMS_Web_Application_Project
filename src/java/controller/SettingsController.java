@@ -27,12 +27,14 @@ public class SettingsController extends HttpServlet {
         try {
             HttpSession session = request.getSession();
             Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
-            Map<String, String> profile = userService.getUserProfile(loginUser.get("username"));
+            int userId = Integer.parseInt(loginUser.get("userId"));
+            Map<String, String> profile = userService.getUserProfile(userId);
             request.setAttribute(Constants.USER_PROFILE, profile);
             request.getRequestDispatcher("settings.jsp").forward(request, response);
         } catch (ValidationException e) {
             response.sendRedirect("index.jsp");
         }
+
     }
 
     @Override
@@ -44,20 +46,20 @@ public class SettingsController extends HttpServlet {
 
         HttpSession session = request.getSession();
         Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
-        String username = loginUser.get("username");
 
         String action = request.getParameter("action");
-        request.setAttribute("ACTIVE_TAB", action);
+        request.setAttribute(Constants.ACTIVE_TAB, action);
 
         try {
+            int userId = Integer.parseInt(loginUser.get("userId"));
             switch (action) {
                 case "updateProfile":
                     String email = request.getParameter("txtEmail");
                     String phone = request.getParameter("txtPhone");
                     String address = request.getParameter("txtAddress");
 
-                    userService.updateProfile(username, email, phone, address);
-                    request.setAttribute(Constants.SUCCESS_MESSAGE, "Cập nhật thông tin thành công!");
+                    userService.updateProfile(userId, email, phone, address);
+                    request.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_PROFILE);
                     break;
 
                 case "changePassword":
@@ -65,11 +67,11 @@ public class SettingsController extends HttpServlet {
                     String newPass = request.getParameter("txtNewPassword");
                     String confirmPass = request.getParameter("txtConfirmPassword");
 
-                    userService.changePassword(username, oldPass, newPass, confirmPass);
-                    request.setAttribute(Constants.SUCCESS_MESSAGE, "Đổi mật khẩu thành công!");
+                    userService.changePassword(userId, oldPass, newPass, confirmPass);
+                    request.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_PSW_CHANGE);
                     break;
                 default:
-                    throw new ValidationException("Hành động không hợp lệ!");
+                    throw new ValidationException(Constants.SERROR_INVALID_SETTING_TAB);
             }
 
             doGet(request, response);

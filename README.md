@@ -28,3 +28,21 @@
 ### Notes
 * Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
 ---
+## [v0.0.3] - 2026-10-07.
+### Added
+* **Admin:**Đa thêm bảng điều khiển cho admin với chức năng khóa tìa khoản và cấp mã bảo mật cho nhân viên mới(Mã bảo mật bao gồm role của nhân viên đó).`(@Trung)`
+ **Đăng ký tài khoản:** Đã thêm Luồng đăng ký tài khoản cần sử dụng mã bảo vệ do admin tạo để đăng ký tài khoản. `(@Trung)`
+* **Giao diện:** Thêm 1 số cái popup lung tung. `(@Trung)`
+* **Giao diện:** Giao diện cho bảng điều khiển admin. `(@Trung)`
+* **Chức năng:** Đã thêm chức năng tạo mã nhân viên mới ở bảng điều khiển admin. `(@Trung)`
+
+
+### Fixed 
+* Các lỗi về trải nghiệm người dùng đã được khắc phục í dụ khi nhập đăng ký mà nhập sai thì dữ liệu vẫn còn không cần nhập lại.
+* Cấu trúc code đã được băm nhỏ nhất có thể ở tầng service thể hiển tính đơn trách nhiệm của từng hàm.
+* Các thông báo chuỗi lỗi do backend đẩy lên đã được đổi thành các mã lỗi để jsp dùng jstl(C:if) phân loại và gán vào hệ thống đa ngôn ngữ để đồng bộ với hệ thống.
+
+### Notes
+* Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
+* Tại phiên bản này gần như bộ khung admin login rigister đã sẵn sàng chuẩn bị cho việc xóa fake database hardcode sẽ tiến hành ở phiên bản 0.0.4
+---

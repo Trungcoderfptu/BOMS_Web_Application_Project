@@ -26,37 +26,73 @@ public class UserDAO {
         return userList;
     }
 
-    public User checkLogin(String username, String password) {
-        for (User u : userList) {
-            if (u.getUsername().equals(username) && u.getPassword().equals(password) && u.isActive()) {
-                return u;
-            }
-        }
-        return null; // Sai tài khoản hoặc đã bị khóa (isActive = false)
-    }
-
     public User getUserByUsername(String username) {
         for (User u : userList) {
-            if (u.getUsername().equals(username) && u.isActive()) {
+            if (u.getUsername().equals(username)) {
                 return u;
             }
         }
         return null;
     }
 
-    public void updateProfile(String username, String email, String phone, String address) {
-        User u = getUserByUsername(username);
+    public User getUserById(int userId) {
+        for (User u : userList) {
+            if (u.getUserID() == userId) {
+                return u;
+            }
+        }
+        return null;
+    }
+
+    public User getUserByEmail(String email) {
+        for (User user : userList) {
+            if (user.getEmail().equalsIgnoreCase(email)) {
+                return user;
+            }
+        }
+        return null;
+    }
+
+    public void updateEmail(int userId, String email) {
+        User u = getUserById(userId);
         if (u != null) {
-            u.setPrimaryEmail(email);
+            u.setEmail(email);
+        }
+    }
+
+    public void updatePhone(int userId, String phone) {
+        User u = getUserById(userId);
+        if (u != null) {
             u.setPrimaryPhone(phone);
+        }
+    }
+
+    public void updateAddress(int userId, String address) {
+        User u = getUserById(userId);
+        if (u != null) {
             u.setAddress(address);
         }
     }
 
-    public void changePassword(String username, String newPassword) {
-        User u = getUserByUsername(username);
+    public void updatePassword(int userId, String newPassword) {
+        User u = getUserById(userId);
         if (u != null) {
             u.setPassword(newPassword);
         }
+    }
+
+    public void updateUserStatus(int userId) {
+        for (User user : userList) {
+            if (user.getUserID() == userId) {
+                user.setIsActive(!user.getActive());
+                break;
+            }
+        }
+    }
+
+    public void insertUser(User user) {
+        int newId = userList.isEmpty() ? 1 : userList.get(userList.size() - 1).getUserID() + 1;
+        user.setUserID(newId);
+        userList.add(user);
     }
 }

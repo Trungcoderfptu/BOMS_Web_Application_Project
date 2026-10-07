@@ -16,7 +16,7 @@ public class User {
     private String username;
     private String password;
     private String fullName;
-    private String primaryEmail;
+    private String Email;
     private String primaryPhone;
     private String role;
     private Date hireDate;
@@ -31,7 +31,7 @@ public class User {
         this.username = username;
         this.password = password;
         this.fullName = fullName;
-        this.primaryEmail = primaryEmail;
+        this.Email = primaryEmail;
         this.primaryPhone = primaryPhone;
         this.role = role;
         this.hireDate = hireDate;
@@ -71,12 +71,12 @@ public class User {
         this.fullName = fullName;
     }
 
-    public String getPrimaryEmail() {
-        return primaryEmail;
+    public String getEmail() {
+        return Email;
     }
 
-    public void setPrimaryEmail(String primaryEmail) {
-        this.primaryEmail = primaryEmail;
+    public void setEmail(String primaryEmail) {
+        this.Email = primaryEmail;
     }
 
     public String getPrimaryPhone() {
@@ -117,6 +117,10 @@ public class User {
 
     public void setIsActive(boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public boolean getActive() {
+        return isActive;
     }
 
 }

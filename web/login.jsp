@@ -1,3 +1,4 @@
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
@@ -8,12 +9,26 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title><fmt:message key="login.title" /></title>
         <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/css/global.css">
+        <jsp:include page="header.jsp" />
+
     </head>
     <body class="main-content">
+
         <h2><fmt:message key="login.heading" /></h2>
-
-        <p class="msg-error">${ERROR_MESSAGE}</p>
-
+        <c:choose>
+            <c:when test="${ERROR_MESSAGE == 'E0016'}">
+                <div id="bannedPopup" class="popup-overlay">
+                    <div class="popup-content">
+                        <h3 class="popup-title"><fmt:message key="login.banned.title" /></h3>
+                        <p><fmt:message key="login.banned.message" /></p>
+                        <button onclick="document.getElementById('bannedPopup').style.display = 'none'" class="btn-register-action" style="margin-top: 15px;"><fmt:message key="header.sidebar.close" /></button>
+                    </div>
+                </div>
+            </c:when>
+            <c:when test="${not empty ERROR_MESSAGE}">
+                <p class="msg-error"><fmt:message key="${ERROR_MESSAGE}" /></p>
+            </c:when>
+        </c:choose>
         <form action="LoginController" method="POST">
 
             <label><fmt:message key="login.label.username" /></label><br>

@@ -1,5 +1,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
 <fmt:setBundle basename="resources.messages" />
@@ -15,24 +16,24 @@
             <div class="flex-between">
                 <div>
                     <button id="btnHamburger">☰</button>
+                    <div class="system-banner">
+                        <span class="banner-text"><fmt:message key="header.title" /></span>
+                    </div>
                 </div>
-                <nav>
-                    <a href="#"><fmt:message key="header.nav.overview" /></a> |
-                    <a href="#"><fmt:message key="header.nav.orders" /></a> |
-                    <a href="#"><fmt:message key="header.nav.inventory" /></a>
-                </nav>
                 <div class="flex-align-center">
                     <div>
-                        <input type="text" placeholder="<fmt:message key='header.search.placeholder' />">
-                        <button><fmt:message key="header.search.button" /></button>
                         <jsp:include page="components/language_switcher.jsp" />
+                        <jsp:include page="components/theme_toggle.jsp" />
                     </div>
                     <div class="dropdown-wrapper">
                         <c:choose>
                             <c:when test="${empty sessionScope.USER_SESSION}">
-                                <a href="${pageContext.request.contextPath}/login.jsp" class="btn-login">
-                                    <fmt:message key="header.btn.login" />
-                                </a>
+                                <%-- Dùng fn:contains để kiểm tra URL. Chỉ hiện nút khi KHÔNG ở trang login hoặc register --%>
+                                <c:if test="${not fn:contains(pageContext.request.requestURI, 'login.jsp') and not fn:contains(pageContext.request.requestURI, 'register.jsp')}">
+                                    <a href="${pageContext.request.contextPath}/login.jsp" class="btn-login">
+                                        <fmt:message key="header.btn.login" />
+                                    </a>
+                                </c:if>
                             </c:when>
                             <c:otherwise>
                                 <button id="btnAvatar">
@@ -56,9 +57,18 @@
             <button id="btnDongMenuDoc">✖ <fmt:message key="header.sidebar.close" /></button>
             <ul class="no-bullet">
                 <li><a href="${pageContext.request.contextPath}/index.jsp"><fmt:message key="header.sidebar.deshbard" /></a></li>
-                <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
-                <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
-                <li><a href="#"><fmt:message key="header.sidebar.reports" /></a></li>
-                <li><a href="#"><fmt:message key="header.sidebar.order" /></a></li>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Admin' or sessionScope.USER_SESSION.role == 'Manager'}">
+                    <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
+                    <li><a href="#"><fmt:message key="header.sidebar.reports" /></a></li>
+                    </c:if>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff'}">
+                    <li><a href="#"><fmt:message key="header.sidebar.order" /></a></li>
+                    </c:if>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Shipper' or sessionScope.USER_SESSION.role == 'Manager'}">
+                    <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
+                    </c:if>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Admin'}">
+                    <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.admin_daskboard" /></a></li>
+                    </c:if>
             </ul>
         </aside>

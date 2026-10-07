@@ -60,46 +60,20 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
     // ==================== XỬ LÝ DARK MODE TOÀN CỤC ====================
-    (function () {
-        // 1. Dùng JS tự động tạo nút nổi (Floating Button)
-        const btnDarkMode = document.createElement('button');
-        btnDarkMode.id = 'btnDarkModeGlobal';
-        btnDarkMode.title = 'Giao diện Tối/Sáng';
+    const btnDarkMode = document.getElementById('btnDarkModeGlobal');
 
-        // Style cho nút nổi luôn nằm ở góc dưới bên phải màn hình
-        btnDarkMode.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        border: 2px solid var(--border-main);
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
-        font-size: 20px;
-        cursor: pointer;
-        z-index: 9999;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    `;
-
-        // Tiêm nút vào thẻ body
-        document.body.appendChild(btnDarkMode);
-
+    if (btnDarkMode) {
         const body = document.body;
 
-        // 2. Khởi tạo trạng thái ban đầu từ localStorage
+        // 1. Khởi tạo trạng thái ban đầu từ localStorage
         if (localStorage.getItem('theme') === 'dark') {
             body.classList.add('dark-theme');
-            btnDarkMode.innerHTML = '\u2600\uFE0F'; // Mã Unicode của ☀️
+            btnDarkMode.innerHTML = '\u2600\uFE0F';
         } else {
-            btnDarkMode.innerHTML = '\uD83C\uDF19'; // Mã Unicode của 🌙
+            btnDarkMode.innerHTML = '\uD83C\uDF19';
         }
 
-        // 3. Xử lý sự kiện click
+        // 2. Xử lý sự kiện click
         btnDarkMode.addEventListener('click', () => {
             body.classList.toggle('dark-theme');
             if (body.classList.contains('dark-theme')) {
@@ -110,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 btnDarkMode.innerHTML = '\uD83C\uDF19';
             }
         });
-    })();
+    }
     // ================= XỬ LÝ DROPDOWN NGÔN NGỮ =================
     const btnLangToggle = document.getElementById('btnLangToggle');
     const langDropdown = document.getElementById('langDropdown');
@@ -127,4 +101,23 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
+
 });
+// Hàm chuyển Tab cho các màn hình Dashboard
+function openTab(evt, tabId) {
+    let tabcontent = document.getElementsByClassName("tab-content");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].classList.add("d-none");
+        tabcontent[i].classList.remove("active");
+    }
+
+    let tablinks = document.getElementsByClassName("tab-btn");
+    for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].classList.remove("active");
+    }
+
+    document.getElementById(tabId).classList.remove("d-none");
+    document.getElementById(tabId).classList.add("active");
+    evt.currentTarget.classList.add("active");
+}

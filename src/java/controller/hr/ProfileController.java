@@ -33,10 +33,11 @@ public class ProfileController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         HttpSession session = request.getSession();
+
         Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
-        String username = loginUser.get("username");
         try {
-            Map<String, String> profile = userService.getUserProfile(username);
+            int userId = Integer.parseInt(loginUser.get("userId"));
+            Map<String, String> profile = userService.getUserProfile(userId);
 
             request.setAttribute(Constants.USER_PROFILE, profile);
             request.getRequestDispatcher("profile.jsp").forward(request, response);

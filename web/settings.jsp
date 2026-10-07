@@ -19,8 +19,12 @@
 
     <div class="flex-grow-1">
 
-        <p class="msg-error">${ERROR_MESSAGE}</p>
-        <p class="msg-success">${SUCCESS_MESSAGE}</p>
+        <c:if test="${not empty ERROR_MESSAGE}">
+            <p class="msg-error"><fmt:message key="${ERROR_MESSAGE}" /></p>
+        </c:if>
+        <c:if test="${not empty SUCCESS_MESSAGE}">
+            <p class="msg-success"><fmt:message key="${SUCCESS_MESSAGE}" /></p>
+        </c:if>
         <div id="tabProfile" class="tabContent ${empty ACTIVE_TAB || ACTIVE_TAB == 'updateProfile' ? '' : 'd-none'}">
             <h2><fmt:message key="settings.profile.heading" /></h2>
             <form action="SettingsController" method="POST">

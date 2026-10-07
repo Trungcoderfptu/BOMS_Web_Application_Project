@@ -27,6 +27,26 @@ public class Validator {
             throw new ValidationException(errorMessage);
         }
     }
+    public static void checkValidPassword(String password, String errorMessage) throws ValidationException {
+        //TODO regax password for future
+        if (password != null && password.contains(" ")) {
+            throw new ValidationException(errorMessage);
+        }
+    }
+
+    public static void checkEmailFormat(String email, String errorMessage) throws ValidationException {
+        String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+        if (email != null && !email.matches(emailRegex)) {
+            throw new ValidationException(errorMessage);
+        }
+    }
+
+    public static void checkPhoneFormat(String phone, String errorMessage) throws ValidationException {
+        String phoneRegex = "^0\\d{9,10}$";
+        if (phone != null && !phone.matches(phoneRegex)) {
+            throw new ValidationException(errorMessage);
+        }
+    }
 
     public static int checkInteger(String value, String errorMessage) throws ValidationException {
         checkEmpty(value, errorMessage);
@@ -36,4 +56,5 @@ public class Validator {
             throw new ValidationException(errorMessage);
         }
     }
+
 }

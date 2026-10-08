@@ -337,6 +337,45 @@ CREATE TABLE Notifications (
 GO
 
 /* =====================================================================
+   9. QUẢN LÝ MÃ BẢO MẬT & TÀI KHOẢN (ACCOUNT MANAGER)
+   ===================================================================== */
+CREATE TABLE AccountManager (
+    KeyID        INT IDENTITY(1,1) PRIMARY KEY,
+    SecurityKey  VARCHAR(50) NOT NULL UNIQUE,
+    Role         VARCHAR(20) NOT NULL,       
+    UserID       INT         NULL,           -- BỎ TỪ KHÓA UNIQUE Ở ĐÂY ĐI
+    IsActive     BIT         NOT NULL DEFAULT 1,
+    CreatedAt    DATETIME    NOT NULL DEFAULT GETDATE(),
+    FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT CK_AccountManager_Role CHECK (Role IN ('Admin', 'Manager', 'Staff', 'Shipper'))
+);
+GO
+
+-- SỬ DỤNG FILTERED INDEX ĐỂ THAY THẾ UNIQUE
+-- (Cho phép vô số giá trị NULL, nhưng các giá trị số UserID phải là duy nhất)
+CREATE UNIQUE NONCLUSTERED INDEX UQ_AccountManager_UserID_Smart
+ON AccountManager(UserID)
+WHERE UserID IS NOT NULL;
+GO
+
+--(Trigger): Tự động đồng bộ khóa mã khi User bị đuổi việc/khóa tài khoản
+CREATE TRIGGER TRG_Sync_AccountManager_Status
+ON Users
+AFTER UPDATE
+AS
+BEGIN
+    -- Chỉ kích hoạt khi cột IsActive của bảng Users bị thay đổi
+    IF UPDATE(IsActive)
+    BEGIN
+        UPDATE am
+        SET am.IsActive = i.IsActive
+        FROM AccountManager am
+        JOIN inserted i ON am.UserID = i.UserID;
+    END
+END;
+GO
+
+/* =====================================================================
    DU LIEU MAU
    ===================================================================== */
 INSERT INTO Users (Username, Password, FullName, PrimaryEmail, PrimaryPhone, Role, HireDate, Address) VALUES

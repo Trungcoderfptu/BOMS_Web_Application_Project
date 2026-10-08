@@ -88,6 +88,14 @@ ul.no-bullet {
 .text-danger {
     color: var(--color-danger);
 }
+.msg-warning {
+    color: #ff9800; /* Màu cam vàng */
+    font-weight: bold;
+}
+
+.text-danger {
+    color: var(--color-danger);
+}
 
 
 /* ====== HEADER & FOOTER +++++++ */

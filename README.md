@@ -46,3 +46,15 @@
 * Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
 * Tại phiên bản này gần như bộ khung admin login rigister đã sẵn sàng chuẩn bị cho việc xóa fake database hardcode sẽ tiến hành ở phiên bản 0.0.4
 ---
+## [v0.0.4] - 2026-10-08.
+### Added
+none
+
+
+### Fixed 
+* đã thêm database thay cho fake database của lồng user admin login register
+
+### Notes
+* Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
+* đây chỉ là 1 bản nhỏ yêu cầu tất cả phải tự thiết lập microsoft sql management và đảm bảo đẫ sẵn sàng để cài jdbc đọc tài liệu dự án để nắm rõ
+---

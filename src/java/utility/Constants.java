@@ -17,6 +17,15 @@ public class Constants {
     public static final String ERROR_DATABASE_GETALL_KEY = "DE0000";
     public static final String ERROR_LOCK_ACC = "E0016";
     public static final String ERROR_DATABASE_INSERT_KEY = "DE0001";
+    public static final String ERROR_DATABASE_GETALL_USER = "DE0002";
+    public static final String ERROR_DATABASE_UPDATE_STATUS = "DE0003";
+    public static final String ERROR_DATABASE_GET_USER_BY_USERNAME = "DE0004";
+    public static final String ERROR_DATABASE_GET_USER_BY_ID = "DE0005";
+    public static final String ERROR_DATABASE_GET_USER_BY_EMAIL = "DE0006";
+    public static final String ERROR_DATABASE_UPDATE_INFO = "DE0007";
+    public static final String ERROR_DATABASE_INSERT_USER = "DE008";
+    public static final String ERROR_DATABASE_TRANSACTION = "DE009";
+    public static final String ERROR_DATABASE_UPDATE_UID_FOR_KEY = "DE0010";
 
     // INT CONSTANTS:
     public static final int MIN_PASSWORD_LENG = 3;

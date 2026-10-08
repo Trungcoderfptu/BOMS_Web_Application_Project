@@ -11,7 +11,6 @@ import java.util.Date;
  * @author AD
  */
 public class AccountManager {
-
     private int keyId;
     private String securityKey;
     private String role;

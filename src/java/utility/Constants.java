@@ -14,7 +14,9 @@ public class Constants {
 
     }
     //Chưa xếp
+    public static final String ERROR_DATABASE_GETALL_KEY = "DE0000";
     public static final String ERROR_LOCK_ACC = "E0016";
+    public static final String ERROR_DATABASE_INSERT_KEY = "DE0001";
 
     // INT CONSTANTS:
     public static final int MIN_PASSWORD_LENG = 3;

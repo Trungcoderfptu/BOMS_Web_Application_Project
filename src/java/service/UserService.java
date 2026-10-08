@@ -146,7 +146,7 @@ public class UserService {
     }
 
     // orther support method
-    private AccountManager findSecurityKey(String securityId) {
+    private AccountManager findSecurityKey(String securityId) throws ValidationException {
         for (AccountManager key : accountDAO.getAllKeys()) {
             if (key.getSecurityKey().equals(securityId)) {
                 return key;

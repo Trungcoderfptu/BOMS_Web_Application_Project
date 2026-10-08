@@ -19,7 +19,7 @@ public class AdminService {
         this.accountDAO = new AccountManagerDAO();
     }
 
-    public List<User> getAllUsers() {
+    public List<User> getAllUsers() throws ValidationException{
         return userDAO.getAllUsers();
     }
 
@@ -34,7 +34,7 @@ public class AdminService {
         accountDAO.insertKey(newKey);
     }
 
-    public void toggleUserStatus(int userId) {
+    public void toggleUserStatus(int userId) throws ValidationException{
         userDAO.updateUserStatus(userId);
     }
 }

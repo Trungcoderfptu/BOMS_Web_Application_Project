@@ -61,4 +61,16 @@ public class AccountManagerDAO extends DBContext {
             throw new ValidationException(Constants.ERROR_DATABASE_INSERT_KEY + e.getMessage());
         }
     }
+
+    public void updateUserIdForKey(String securityKey, int userId) throws ValidationException {
+        String sql = "UPDATE AccountManager SET UserID = ? WHERE SecurityKey = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, userId);
+            st.setString(2, securityKey);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_UID_FOR_KEY);
+        }
+    }
 }

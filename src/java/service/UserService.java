@@ -116,10 +116,10 @@ public class UserService {
         String assignedRole = validKey.getRole();
         User newUser = new User(0, username, password, fullName, email, phone, assignedRole, new java.sql.Date(System.currentTimeMillis()), address, true);
         userDAO.insertUser(newUser);
-        validKey.setUserId(newUser.getUserID());
+        accountDAO.updateUserIdForKey(validKey.getSecurityKey(), newUser.getUserID());
     }
 
-    public void toggleUserStatus(int userId) {
+    public void toggleUserStatus(int userId) throws ValidationException {
         userDAO.updateUserStatus(userId);
     }
     //========== create respon pack to other service==========

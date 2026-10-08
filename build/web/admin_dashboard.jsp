@@ -118,9 +118,23 @@
                                             </c:choose>
                                         </td>
                                         <td>
-                                            <span class="${key.active ? 'msg-success' : 'msg-error'}">
-                                                <fmt:message key="${key.active ? 'admin.dashboard.status.valid' : 'admin.dashboard.status.invalid'}" />
-                                            </span>
+                                            <c:choose>
+                                                <c:when test="${!key.active}">
+                                                    <span class="msg-error">
+                                                        <fmt:message key="admin.dashboard.status.locked_key" />
+                                                    </span>
+                                                </c:when>
+                                                <c:when test="${key.userId != null}">
+                                                    <span class="msg-warning">
+                                                        <fmt:message key="admin.dashboard.status.used_key" />
+                                                    </span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="msg-success">
+                                                        <fmt:message key="admin.dashboard.status.unused_key" />
+                                                    </span>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </td>
                                         <td><fmt:formatDate value="${key.createdAt}" pattern="dd/MM/yyyy HH:mm" /></td>
                                     </tr>

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 import model.AccountManager;
 import model.User;
+import utility.ValidationException;
 
 public class AdminService {
 
@@ -22,15 +23,14 @@ public class AdminService {
         return userDAO.getAllUsers();
     }
 
-    public List<AccountManager> getAllKeys() {
+    public List<AccountManager> getAllKeys() throws ValidationException {
         return accountDAO.getAllKeys();
     }
 
-    public void generateSecurityKey(String role) {
+    public void generateSecurityKey(String role) throws ValidationException {
         String randomPart = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         String securityKey = "BOMS-" + role.toUpperCase().substring(0, 3) + "-" + randomPart;
-
-        AccountManager newKey = new AccountManager(0, securityKey, role, null, true, new Date());
+        AccountManager newKey = new AccountManager(0, securityKey, role, null, true, new java.sql.Date(System.currentTimeMillis()));
         accountDAO.insertKey(newKey);
     }
 

@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import service.AdminService;
 import utility.Constants;
+import utility.ValidationException;
 
 public class GenerateKeyController extends HttpServlet {
 
@@ -24,8 +25,12 @@ public class GenerateKeyController extends HttpServlet {
         String role = request.getParameter("ddlRole");
 
         if (role != null && !role.trim().isEmpty()) {
-            adminService.generateSecurityKey(role);
-            request.getSession().setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_GEN_KEY);
+            try {
+                adminService.generateSecurityKey(role);
+                request.getSession().setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_GEN_KEY);
+            } catch (ValidationException e) {
+                request.getSession().setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+            }
         }
 
         response.sendRedirect("AdminDashboardController?tab=tab-keys");

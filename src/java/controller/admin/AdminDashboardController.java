@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.AccountManager;
 import model.User;
 import service.AdminService;
+import utility.Constants;
+import utility.ValidationException;
 
 public class AdminDashboardController extends HttpServlet {
 
@@ -23,12 +25,14 @@ public class AdminDashboardController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        List<User> userList = adminService.getAllUsers();
-        List<AccountManager> keyList = adminService.getAllKeys();
-
-        request.setAttribute("USER_LIST", userList);
-        request.setAttribute("KEY_LIST", keyList);
-
+        try {
+            List<User> userList = adminService.getAllUsers();
+            List<AccountManager> keyList = adminService.getAllKeys();
+            request.setAttribute("USER_LIST", userList);
+            request.setAttribute("KEY_LIST", keyList);
+        } catch (ValidationException e) {
+            request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        }
         request.getRequestDispatcher("admin_dashboard.jsp").forward(request, response);
     }
 }

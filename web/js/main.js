@@ -1,4 +1,9 @@
-document.addEventListener("DOMContentLoaded", function () {
+function initMainApp() {
+    if (window.__bomsMainInitialized) {
+        return;
+    }
+    window.__bomsMainInitialized = true;
+
     const btnHamburger = document.getElementById('btnHamburger');
     const btnDongMenuDoc = document.getElementById('btnDongMenuDoc');
     const menuDoc = document.getElementById('menuDoc');
@@ -36,14 +41,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const tabPassword = document.getElementById('tabPassword');
 
     function showTab(activeTab) {
-        // Gắn class d-none để ẩn tất cả các tab
         if (tabProfile)
             tabProfile.classList.add('d-none');
         if (tabPassword)
             tabPassword.classList.add('d-none');
 
-
-        // Gỡ class d-none ra khỏi tab đang được click để hiện lên
         if (activeTab)
             activeTab.classList.remove('d-none');
     }
@@ -59,13 +61,13 @@ document.addEventListener("DOMContentLoaded", function () {
             showTab(tabPassword);
         });
     }
+
     // ==================== XỬ LÝ DARK MODE TOÀN CỤC ====================
     const btnDarkMode = document.getElementById('btnDarkModeGlobal');
 
     if (btnDarkMode) {
         const body = document.body;
 
-        // 1. Khởi tạo trạng thái ban đầu từ localStorage
         if (localStorage.getItem('theme') === 'dark') {
             body.classList.add('dark-theme');
             btnDarkMode.innerHTML = '\u2600\uFE0F';
@@ -73,7 +75,6 @@ document.addEventListener("DOMContentLoaded", function () {
             btnDarkMode.innerHTML = '\uD83C\uDF19';
         }
 
-        // 2. Xử lý sự kiện click
         btnDarkMode.addEventListener('click', () => {
             body.classList.toggle('dark-theme');
             if (body.classList.contains('dark-theme')) {
@@ -85,6 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
     // ================= XỬ LÝ DROPDOWN NGÔN NGỮ =================
     const btnLangToggle = document.getElementById('btnLangToggle');
     const langDropdown = document.getElementById('langDropdown');
@@ -101,9 +103,13 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+}
 
-
-});
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMainApp);
+} else {
+    initMainApp();
+}
 // Hàm chuyển Tab cho các màn hình Dashboard
 function openTab(evt, tabId) {
     let tabcontent = document.getElementsByClassName("tab-content");
@@ -119,5 +125,21 @@ function openTab(evt, tabId) {
 
     document.getElementById(tabId).classList.remove("d-none");
     document.getElementById(tabId).classList.add("active");
-    evt.currentTarget.classList.add("active");
+
+    if (evt && evt.currentTarget && evt.currentTarget.classList.contains("tab-btn")) {
+        evt.currentTarget.classList.add("active");
+    } else {
+        let targetBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+        if (targetBtn)
+            targetBtn.classList.add("active");
+    }
+
+    let floatingCart = document.querySelector(".floating-cart");
+    if (floatingCart) {
+        if (tabId === 'tab-cart') {
+            floatingCart.style.display = 'none'; // Ẩn khi vào tab giỏ hàng
+        } else {
+            floatingCart.style.display = 'flex'; // Hiện lại khi sang tab khác
+        }
+    }
 }

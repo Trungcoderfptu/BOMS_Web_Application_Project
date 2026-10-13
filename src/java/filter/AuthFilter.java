@@ -38,8 +38,11 @@ public class AuthFilter implements Filter {
                 || uri.endsWith("LoginController")
                 || uri.endsWith("index.jsp")
                 || uri.endsWith("register.jsp")
+                || uri.endsWith("menu.jsp")
                 || uri.endsWith("RegisterController")
                 || uri.endsWith("LanguageController")
+                || uri.endsWith("MenuController")
+                || uri.endsWith("CartController")
                 || uri.equals(contextPath)
                 || uri.equals(contextPath + "/");
 

@@ -6,8 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import model.AccountManager;
-import model.User;
+import java.util.Map;
 import service.AdminService;
 import utility.Constants;
 import utility.ValidationException;
@@ -26,8 +25,8 @@ public class AdminDashboardController extends HttpServlet {
             throws ServletException, IOException {
 
         try {
-            List<User> userList = adminService.getAllUsers();
-            List<AccountManager> keyList = adminService.getAllKeys();
+            List<Map<String, Object>> userList = adminService.getAllUsersForView();
+            List<Map<String, Object>> keyList = adminService.getAllKeysForView();
             request.setAttribute("USER_LIST", userList);
             request.setAttribute("KEY_LIST", keyList);
         } catch (ValidationException e) {

@@ -26,6 +26,7 @@ public class Constants {
     public static final String ERROR_DATABASE_INSERT_USER = "DE008";
     public static final String ERROR_DATABASE_TRANSACTION = "DE009";
     public static final String ERROR_DATABASE_UPDATE_UID_FOR_KEY = "DE0010";
+    public static final String ERROR_DATABASE_INSERT_ORDER = "DE0011";
 
     // INT CONSTANTS:
     public static final int MIN_PASSWORD_LENG = 3;
@@ -50,6 +51,16 @@ public class Constants {
 
     // Dải S010X: Thành công liên quan đến hồ sơ (Profile)
     public static final String SUCCESS_UPDATE_PROFILE = "S0100";
+
+    // Dải S020X: Thành công liên quan đến Đơn hàng (Order)
+    public static final String SUCCESS_CHECKOUT = "S0200";
+    public static final String SUCCESS_ADD_TO_CART = "S0201";
+    public static final String SUCCESS_UPDATE_CART = "S0202";
+    public static final String SUCCESS_REMOVE_FROM_CART = "S0203";
+    public static final String SUCCESS_CLEAR_CART = "S0204";
+    public static final String SUCCESS_UPDATE_ORDER_STATUS = "S0205";
+    public static final String SUCCESS_CANCEL_ORDER = "S0206";
+    public static final String SUCCESS_CHANGE_DISH = "S0207";
     //====================================================
     //EXCEPTION
     // ================= EXCEPTION CODES =================
@@ -80,6 +91,17 @@ public class Constants {
     public static final String ERROR_EMPTY_ADDRESS = "E1006";
     public static final String ERROR_INVALID_SECURITY_CODE = "E1007";
     public static final String ERROR_EMPTY_FULLNAME = "E1008";
+
+    // Dải E020X: Lỗi liên quan đến Đơn hàng (Order)
+    public static final String ERROR_EMPTY_CART = "E0200";
+    public static final String ERROR_INVALID_TABLE = "E0201";
+    public static final String ERROR_PRODUCT_NOT_AVAILABLE = "E0202";
+    public static final String ERROR_ORDER_NOT_FOUND = "E0203";
+    public static final String ERROR_INVALID_ORDER_STATUS = "E0204";
+    public static final String ERROR_INSUFFICIENT_INGREDIENTS = "E0205";
+    public static final String ERROR_ORDER_ALREADY_COOKING = "E0206";
+    public static final String ERROR_ORDER_CANNOT_BE_CANCELLED = "E0207";
+    public static final String ERROR_INVALID_EXCHANGE_PRODUCT = "E0208";
 
     // Dải E9XXXX: Lỗi liên quan đến hệ thống SYSTEM
     public static final String SERROR_INVALID_SETTING_TAB = "E9000";

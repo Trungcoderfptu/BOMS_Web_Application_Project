@@ -58,3 +58,18 @@ none
 * Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
 * đây chỉ là 1 bản nhỏ yêu cầu tất cả phải tự thiết lập microsoft sql management và đảm bảo đẫ sẵn sàng để cài jdbc đọc tài liệu dự án để nắm rõ
 ---
+# [v0.0.5] - 2026-10-13.
+### Added
+* **Staff:**Đã thêm chức năng quản lí đơn hàng cho staff gồm xem đơn hủy đơn đặt đơn tại quầy và cập nhật trạng thái đơn. đồng thời trừ kho tự động với các thao tác liên quan đến nguyên liệu của nhân viên quầy.`(@Trung)`
+ **Customer:** Đã có giao diện đặt hàng dùng chung với staft khác nhau về cách hiển thị để đặt hàng và chốt đơn sẽ gửi về chỗ staff. `(@Trung)`
+* **Giao diện:** thêm menu, giỏ hàng và màn hình quản lí đơn. `(@Trung)`
+* **database:** update cơ sở dữ liệu cho đăng nhập. `(@Trung)`
+
+
+### Fixed 
+* đã fix các hardcode cũ của jsp
+
+### Notes
+* Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
+* đã thêm các tài liệu mới hãy xem .agent
+---

@@ -57,4 +57,9 @@ public class Validator {
         }
     }
 
+    public static void checkNotNull(Object obj, String errorMessage) throws ValidationException {
+        if (obj == null) {
+            throw new ValidationException(errorMessage);
+        }
+    }
 }

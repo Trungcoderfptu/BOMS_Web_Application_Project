@@ -61,14 +61,17 @@
                     <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
                     <li><a href="#"><fmt:message key="header.sidebar.reports" /></a></li>
                     </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff'}">
-                    <li><a href="#"><fmt:message key="header.sidebar.order" /></a></li>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
+                    <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Shipper' or sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Admin'}">
                     <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.admin_daskboard" /></a></li>
+                    </c:if>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff'}">
+                    <li><a href="${pageContext.request.contextPath}/MenuController"><fmt:message key="header.sidebar.menu" /></a></li>
                     </c:if>
             </ul>
         </aside>

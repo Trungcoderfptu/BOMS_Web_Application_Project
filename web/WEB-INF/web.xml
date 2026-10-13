@@ -36,6 +36,18 @@
         <servlet-name>ToggleUserController</servlet-name>
         <servlet-class>controller.admin.ToggleUserController</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>MenuController</servlet-name>
+        <servlet-class>controller.MenuController</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>CartController</servlet-name>
+        <servlet-class>controller.CartController</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>OrderManagementController</servlet-name>
+        <servlet-class>controller.OrderManagementController</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>LoginController</servlet-name>
         <url-pattern>/LoginController</url-pattern>
@@ -71,6 +83,18 @@
     <servlet-mapping>
         <servlet-name>ToggleUserController</servlet-name>
         <url-pattern>/ToggleUserController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>MenuController</servlet-name>
+        <url-pattern>/MenuController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>CartController</servlet-name>
+        <url-pattern>/CartController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>OrderManagementController</servlet-name>
+        <url-pattern>/OrderManagementController</url-pattern>
     </servlet-mapping>
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>

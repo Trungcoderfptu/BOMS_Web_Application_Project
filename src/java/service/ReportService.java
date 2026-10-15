@@ -7,13 +7,10 @@ package service;
 import dao.NotificationDAO;
 import dao.ReportDAO;
 import jakarta.servlet.http.Part;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -21,12 +18,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import model.AnonymousReport;
 import model.ReportCategory;
 import model.ReportEvidence;
 import utility.Constants;
+import utility.ImageUploadUtility;
 import utility.ValidationException;
 import utility.Validator;
 
@@ -42,13 +39,12 @@ public class ReportService {
     private ReportDAO reportDAO;
     private NotificationDAO notificationDAO;
     private SimpleDateFormat dateTimeFormat;
-    private Path uploadRoot;
+    private final String EVIDENCE_SUB_FOLDER = "reports";
 
     public ReportService() {
         this.reportDAO = new ReportDAO();
         this.notificationDAO = new NotificationDAO();
         this.dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        this.uploadRoot = resolveUploadRoot();
     }
 
     // ==========================================
@@ -77,7 +73,7 @@ public class ReportService {
         validateEvidenceFiles(files);
 
         AnonymousReport report = buildNewReport(categoryId, title, description);
-        List<ReportEvidence> evidences = saveEvidenceFiles(report.getTicketId(), files);
+        List<ReportEvidence> evidences = saveEvidenceFiles(files);
         int reportId = persistReport(report, evidences);
         notifyCategoryManagers(categoryId, reportId, report.getTicketId());
         return report.getTicketId();
@@ -131,26 +127,27 @@ public class ReportService {
     }
 
     /**
-     * 8.2 Download Evidence: kiểm tra quyền và trả về thông tin file để Controller thiết lập Header.
+     * 8.2 Download Evidence: kiểm tra quyền TRƯỚC, sau đó mới lấy file trong vùng riêng tư của
+     * ImageUploadUtility và trả về thông tin để Controller thiết lập Header.
      */
     public Map<String, Object> getEvidenceForDownload(String evidenceIdStr, Map<String, String> userSession) throws ValidationException {
         ReportEvidence evidence = validateAndGetEvidence(evidenceIdStr);
         validateAndGetAccessibleReport(String.valueOf(evidence.getReportId()), userSession);
-        Path file = resolveEvidencePath(evidence.getFilePath());
-        if (!Files.isRegularFile(file)) {
+        File file = ImageUploadUtility.getPrivateFile(evidence.getFilePath());
+        if (file == null || !file.isFile()) {
             throw new ValidationException(Constants.ERROR_EVIDENCE_NOT_FOUND);
         }
         Map<String, Object> map = new HashMap<>();
         map.put("fileName", evidence.getFileName());
-        map.put("contentType", resolveContentType(evidence.getFileType()));
-        map.put("fileSize", evidence.getFileSize());
-        map.put("storedPath", file.toString());
+        map.put("contentType", ImageUploadUtility.getContentType(file.getName()));
+        map.put("fileSize", file.length());
+        map.put("storedPath", file.getPath());
         return map;
     }
 
     public void writeEvidenceTo(Map<String, Object> evidenceInfo, OutputStream out) throws ValidationException {
         try {
-            Files.copy(Paths.get((String) evidenceInfo.get("storedPath")), out);
+            Files.copy(new File((String) evidenceInfo.get("storedPath")).toPath(), out);
         } catch (IOException e) {
             throw new ValidationException(Constants.ERROR_EVIDENCE_NOT_FOUND);
         }
@@ -185,27 +182,10 @@ public class ReportService {
         if (files.size() > Constants.REPORT_MAX_EVIDENCE_FILES) {
             throw new ValidationException(Constants.ERROR_REPORT_TOO_MANY_FILES);
         }
+        // Kiểm tra định dạng / dung lượng của TẤT CẢ file trước khi lưu bất kỳ file nào (tầng 1 - Utility)
         for (Part file : files) {
-            validateSingleEvidence(file);
+            ImageUploadUtility.validateFile(file, ImageUploadUtility.REPORT_EVIDENCE_RULE);
         }
-    }
-
-    private void validateSingleEvidence(Part file) throws ValidationException {
-        if (!isAllowedFileType(extractExtension(extractFileName(file)))) {
-            throw new ValidationException(Constants.ERROR_REPORT_INVALID_FILE_TYPE);
-        }
-        if (file.getSize() <= 0 || file.getSize() > Constants.REPORT_MAX_EVIDENCE_SIZE) {
-            throw new ValidationException(Constants.ERROR_REPORT_FILE_TOO_LARGE);
-        }
-    }
-
-    private boolean isAllowedFileType(String extension) {
-        for (String allowed : Constants.REPORT_ALLOWED_FILE_TYPES) {
-            if (allowed.equals(extension)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     // ==========================================
@@ -231,31 +211,32 @@ public class ReportService {
         return ticketId;
     }
 
-    private List<ReportEvidence> saveEvidenceFiles(String ticketId, List<Part> files) throws ValidationException {
+    /**
+     * Lưu toàn bộ file bằng chứng vào vùng riêng tư của ImageUploadUtility.
+     * Nếu 1 file lỗi thì xóa các file đã lưu trước đó để không để lại file rác.
+     */
+    private List<ReportEvidence> saveEvidenceFiles(List<Part> files) throws ValidationException {
         List<ReportEvidence> evidences = new ArrayList<>();
         try {
-            Path ticketDir = Files.createDirectories(uploadRoot.resolve(ticketId));
             for (Part file : files) {
-                evidences.add(saveSingleEvidence(ticketDir, ticketId, file));
+                evidences.add(saveSingleEvidence(file));
             }
-        } catch (IOException e) {
+        } catch (ValidationException e) {
             deleteEvidenceFiles(evidences);
-            throw new ValidationException(Constants.ERROR_REPORT_UPLOAD_FAILED);
+            throw e;
         }
         return evidences;
     }
 
-    private ReportEvidence saveSingleEvidence(Path ticketDir, String ticketId, Part file) throws IOException {
-        String originalName = extractFileName(file);
-        String extension = extractExtension(originalName);
-        String storedName = UUID.randomUUID().toString() + "." + extension;
-        try (InputStream in = file.getInputStream()) {
-            Files.copy(in, ticketDir.resolve(storedName), StandardCopyOption.REPLACE_EXISTING);
+    private ReportEvidence saveSingleEvidence(Part file) throws ValidationException {
+        String storedPath = ImageUploadUtility.saveFile(file, EVIDENCE_SUB_FOLDER, ImageUploadUtility.REPORT_EVIDENCE_RULE);
+        if (storedPath == null) {
+            throw new ValidationException(Constants.ERROR_REPORT_NO_EVIDENCE);
         }
         ReportEvidence evidence = new ReportEvidence();
-        evidence.setFileName(originalName);
-        evidence.setFilePath(ticketId + "/" + storedName);
-        evidence.setFileType(extension);
+        evidence.setFileName(extractFileName(file));
+        evidence.setFilePath(storedPath);
+        evidence.setFileType(extractExtension(storedPath));
         evidence.setFileSize(file.getSize());
         return evidence;
     }
@@ -271,11 +252,7 @@ public class ReportService {
 
     private void deleteEvidenceFiles(List<ReportEvidence> evidences) {
         for (ReportEvidence evidence : evidences) {
-            try {
-                Files.deleteIfExists(resolveEvidencePath(evidence.getFilePath()));
-            } catch (IOException | ValidationException ignored) {
-                // File rác không ảnh hưởng dữ liệu, bỏ qua
-            }
+            ImageUploadUtility.deleteFile(evidence.getFilePath());
         }
     }
 
@@ -473,51 +450,5 @@ public class ReportService {
     private String extractExtension(String fileName) {
         int dot = fileName.lastIndexOf('.');
         return dot < 0 ? "" : fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
-    }
-
-    private String resolveContentType(String fileType) {
-        switch (fileType) {
-            case "jpg":
-            case "jpeg":
-                return "image/jpeg";
-            case "png":
-                return "image/png";
-            case "mp4":
-                return "video/mp4";
-            case "pdf":
-                return "application/pdf";
-            case "docx":
-                return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            default:
-                return "application/octet-stream";
-        }
-    }
-
-    /**
-     * Chặn đường dẫn kiểu "../" để không đọc được file ngoài thư mục upload.
-     */
-    private Path resolveEvidencePath(String relativePath) throws ValidationException {
-        Path resolved = uploadRoot.resolve(relativePath).normalize();
-        if (!resolved.startsWith(uploadRoot)) {
-            throw new ValidationException(Constants.ERROR_EVIDENCE_NOT_FOUND);
-        }
-        return resolved;
-    }
-
-    /**
-     * Đọc thư mục lưu bằng chứng từ WEB-INF/Upload.properties (nằm ngoài dự án để không bị xóa khi Clean and Build).
-     */
-    private Path resolveUploadRoot() {
-        String dir = Constants.DEFAULT_UPLOAD_DIR;
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream(Constants.UPLOAD_CONFIG_FILE)) {
-            if (in != null) {
-                Properties properties = new Properties();
-                properties.load(in);
-                dir = properties.getProperty(Constants.UPLOAD_CONFIG_KEY, Constants.DEFAULT_UPLOAD_DIR).trim();
-            }
-        } catch (IOException e) {
-            dir = Constants.DEFAULT_UPLOAD_DIR;
-        }
-        return Paths.get(dir).toAbsolutePath().normalize();
     }
 }

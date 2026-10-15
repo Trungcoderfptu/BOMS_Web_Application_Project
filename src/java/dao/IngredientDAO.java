@@ -1,115 +1,239 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package dao;
 
+import dal.DBContext;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import model.Ingredient;
 import model.ProductIngredient;
+import utility.Constants;
 import utility.ValidationException;
 
 /**
- * Data Access Object quản lý kho nguyên liệu và công thức định lượng (In-Memory Mock)
+ * Data Access Object quản lý kho nguyên liệu và công thức định lượng kết nối MS SQL Server
  * @author AD
  */
-public class IngredientDAO {
-
-    private static List<Ingredient> mockIngredients = new ArrayList<>();
-    private static List<ProductIngredient> mockProductIngredients = new ArrayList<>();
-
-    static {
-        // Mock nguyên liệu kho (Ingredients)
-        mockIngredients.add(new Ingredient(1, 1, "Sữa tươi & Sữa đặc", "Lít", 20.0, 5.0, true));
-        mockIngredients.add(new Ingredient(2, 1, "Trân châu đen", "Kg", 10.0, 2.0, true));
-        mockIngredients.add(new Ingredient(3, 1, "Vỏ kem ốc quế", "Cái", 30.0, 5.0, true));
-        mockIngredients.add(new Ingredient(4, 2, "Trà xanh & Rau má", "Kg", 15.0, 3.0, true));
-        mockIngredients.add(new Ingredient(5, 2, "Đường nước & Mật mía", "Lít", 25.0, 5.0, true));
-        mockIngredients.add(new Ingredient(6, 2, "Vải ngâm đóng hộp", "Hộp", 8.0, 2.0, true));
-
-        // Mock công thức sản phẩm (ProductIngredients)
-        // Món 1: Bá mía đè tem (Kem trân châu)
-        mockProductIngredients.add(new ProductIngredient(1, 1, 0.1)); // 0.1 Lít sữa
-        mockProductIngredients.add(new ProductIngredient(1, 2, 0.05)); // 0.05 Kg trân châu
-
-        // Món 2: Khô gà loại 2 (Kem ốc quế)
-        mockProductIngredients.add(new ProductIngredient(2, 1, 0.1)); // 0.1 Lít sữa
-        mockProductIngredients.add(new ProductIngredient(2, 3, 1.0)); // 1 Cái ốc quế
-
-        // Món 3: Nước rau má (Trà sữa đường đen)
-        mockProductIngredients.add(new ProductIngredient(3, 4, 0.05)); // 0.05 Kg rau má
-        mockProductIngredients.add(new ProductIngredient(3, 5, 0.03)); // 0.03 Lít đường
-
-        // Món 4: Độ MIXI (Trà ô long vải)
-        mockProductIngredients.add(new ProductIngredient(4, 4, 0.04)); // 0.04 Kg trà
-        mockProductIngredients.add(new ProductIngredient(4, 5, 0.02)); // 0.02 Lít đường
-        mockProductIngredients.add(new ProductIngredient(4, 6, 0.1));  // 0.1 Hộp vải
-    }
+public class IngredientDAO extends DBContext {
 
     public List<Ingredient> getAllIngredients() throws ValidationException {
-        return mockIngredients;
+        List<Ingredient> list = new ArrayList<>();
+        String sql = "SELECT IngredientID, CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive "
+                + "FROM Ingredients ORDER BY IngredientID ASC";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                list.add(mapResultSetToIngredient(rs));
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
+        }
+        return list;
     }
 
-    public Ingredient getIngredientById(int ingredientId) {
-        for (Ingredient ing : mockIngredients) {
-            if (ing.getIngredientId() == ingredientId) {
-                return ing;
+    public Ingredient getIngredientById(int ingredientId) throws ValidationException {
+        String sql = "SELECT IngredientID, CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive "
+                + "FROM Ingredients WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, ingredientId);
+            ResultSet rs = st.executeQuery();
+            if (rs.next()) {
+                return mapResultSetToIngredient(rs);
             }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
         }
         return null;
     }
 
-    public List<ProductIngredient> getIngredientsByProductId(int productId) {
+    public List<ProductIngredient> getIngredientsByProductId(int productId) throws ValidationException {
         List<ProductIngredient> result = new ArrayList<>();
-        for (ProductIngredient pi : mockProductIngredients) {
-            if (pi.getProductId() == productId) {
+        String sql = "SELECT ProductID, IngredientID, QuantityUsed FROM ProductIngredients WHERE ProductID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, productId);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                ProductIngredient pi = new ProductIngredient(
+                        rs.getInt("ProductID"),
+                        rs.getInt("IngredientID"),
+                        rs.getDouble("QuantityUsed")
+                );
                 result.add(pi);
             }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
         }
         return result;
     }
 
-    public List<Integer> getProductIdsUsingIngredient(int ingredientId) {
+    public List<Integer> getProductIdsUsingIngredient(int ingredientId) throws ValidationException {
         List<Integer> productIds = new ArrayList<>();
-        for (ProductIngredient pi : mockProductIngredients) {
-            if (pi.getIngredientId() == ingredientId && !productIds.contains(pi.getProductId())) {
-                productIds.add(pi.getProductId());
+        String sql = "SELECT DISTINCT ProductID FROM ProductIngredients WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, ingredientId);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                productIds.add(rs.getInt("ProductID"));
             }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
         }
         return productIds;
     }
 
-    public synchronized void deductStock(int ingredientId, double amount) {
-        Ingredient ing = getIngredientById(ingredientId);
-        if (ing != null) {
-            double currentStock = ing.getQuantity();
-            ing.setQuantity(Math.max(0, currentStock - amount));
+    public void deductStock(int ingredientId, double amount) throws ValidationException {
+        String sql = "UPDATE Ingredients SET Quantity = CASE WHEN Quantity - ? < 0 THEN 0 ELSE Quantity - ? END WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setDouble(1, amount);
+            st.setDouble(2, amount);
+            st.setInt(3, ingredientId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
         }
     }
 
-    public synchronized void updateIngredientQuantity(int ingredientId, double newQuantity) {
-        Ingredient ing = getIngredientById(ingredientId);
-        if (ing != null) {
-            ing.setQuantity(newQuantity);
+    public void updateIngredientQuantity(int ingredientId, double newQuantity) throws ValidationException {
+        String sql = "UPDATE Ingredients SET Quantity = ? WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setDouble(1, newQuantity);
+            st.setInt(2, ingredientId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
         }
     }
 
-    public synchronized void restoreStock(int ingredientId, double amount) {
-        Ingredient ing = getIngredientById(ingredientId);
-        if (ing != null) {
-            ing.setQuantity(ing.getQuantity() + amount);
+    public void restoreStock(int ingredientId, double amount) throws ValidationException {
+        String sql = "UPDATE Ingredients SET Quantity = Quantity + ? WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setDouble(1, amount);
+            st.setInt(2, ingredientId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
         }
     }
 
-    public boolean hasSufficientStockForProduct(int productId, int quantity) {
-        List<ProductIngredient> recipes = getIngredientsByProductId(productId);
-        for (ProductIngredient pi : recipes) {
-            Ingredient ing = getIngredientById(pi.getIngredientId());
-            if (ing == null || ing.getQuantity() < (pi.getQuantityUsed() * quantity)) {
-                return false;
+    public boolean hasSufficientStockForProduct(int productId, int quantity) throws ValidationException {
+        // Kiểm tra xem có bất kỳ nguyên liệu nào trong công thức của sản phẩm bị thiếu không
+        String sql = "SELECT COUNT(*) AS LackingCount "
+                + "FROM ProductIngredients pi "
+                + "JOIN Ingredients i ON pi.IngredientID = i.IngredientID "
+                + "WHERE pi.ProductID = ? AND i.Quantity < (pi.QuantityUsed * ?)";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, productId);
+            st.setInt(2, quantity);
+            ResultSet rs = st.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("LackingCount") == 0;
             }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
         }
-        return true;
+        return false;
+    }
+
+    public void insertIngredient(Ingredient ing) throws ValidationException {
+        String sql = "INSERT INTO Ingredients (CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            st.setInt(1, ing.getCategoryId());
+            st.setString(2, ing.getIngredientName());
+            st.setString(3, ing.getUnit());
+            st.setDouble(4, ing.getQuantity());
+            st.setDouble(5, ing.getPrice());
+            st.setString(6, ing.getStorageLocation());
+            st.setDouble(7, ing.getWarningThreshold());
+            st.setBoolean(8, ing.isActive());
+            st.executeUpdate();
+            ResultSet rs = st.getGeneratedKeys();
+            if (rs.next()) {
+                ing.setIngredientId(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
+        }
+    }
+
+    public void updateIngredient(Ingredient ing) throws ValidationException {
+        String sql = "UPDATE Ingredients SET CategoryID = ?, IngredientName = ?, Unit = ?, Quantity = ?, Price = ?, "
+                + "StorageLocation = ?, WarningThreshold = ?, IsActive = ? WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, ing.getCategoryId());
+            st.setString(2, ing.getIngredientName());
+            st.setString(3, ing.getUnit());
+            st.setDouble(4, ing.getQuantity());
+            st.setDouble(5, ing.getPrice());
+            st.setString(6, ing.getStorageLocation());
+            st.setDouble(7, ing.getWarningThreshold());
+            st.setBoolean(8, ing.isActive());
+            st.setInt(9, ing.getIngredientId());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
+        }
+    }
+
+    public void deleteIngredient(int ingredientId) throws ValidationException {
+        // Xóa mềm: Chuyển IsActive = false
+        String sql = "UPDATE Ingredients SET IsActive = 0 WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, ingredientId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
+        }
+    }
+
+    public void insertProductIngredient(ProductIngredient pi) throws ValidationException {
+        String sql = "INSERT INTO ProductIngredients (ProductID, IngredientID, QuantityUsed) VALUES (?, ?, ?)";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, pi.getProductId());
+            st.setInt(2, pi.getIngredientId());
+            st.setDouble(3, pi.getQuantityUsed());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
+        }
+    }
+
+    public void deleteProductIngredientsByProductId(int productId) throws ValidationException {
+        String sql = "DELETE FROM ProductIngredients WHERE ProductID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, productId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
+        }
+    }
+
+    private Ingredient mapResultSetToIngredient(ResultSet rs) throws SQLException {
+        Ingredient ing = new Ingredient();
+        ing.setIngredientId(rs.getInt("IngredientID"));
+        ing.setCategoryId(rs.getInt("CategoryID"));
+        ing.setIngredientName(rs.getString("IngredientName"));
+        ing.setUnit(rs.getString("Unit"));
+        ing.setQuantity(rs.getDouble("Quantity"));
+        ing.setPrice(rs.getDouble("Price"));
+        ing.setStorageLocation(rs.getString("StorageLocation"));
+        ing.setWarningThreshold(rs.getDouble("WarningThreshold"));
+        ing.setIsActive(rs.getBoolean("IsActive"));
+        return ing;
     }
 }

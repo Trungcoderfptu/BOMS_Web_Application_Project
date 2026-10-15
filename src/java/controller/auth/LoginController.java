@@ -49,6 +49,9 @@ public class LoginController extends HttpServlet {
             Map<String, String> loginUser = userService.login(username, password, role);
 
             HttpSession session = request.getSession();
+            // Dọn dẹp phiên khách vãng lai cũ nếu có (bàn và giỏ hàng)
+            session.removeAttribute("CURRENT_TABLE");
+            session.removeAttribute("CURRENT_CART");
             session.setAttribute(Constants.USER_SESSION, loginUser);
 
             response.sendRedirect("index.jsp");

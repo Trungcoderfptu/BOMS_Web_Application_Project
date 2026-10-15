@@ -46,11 +46,74 @@ public class OrderService {
         return convertOrdersToViewList(orders);
     }
 
+    public List<Map<String, Object>> getOrdersForTableView(String tableIdStr) throws ValidationException {
+        return getOrdersForTableView(tableIdStr, null);
+    }
+
+    public List<Map<String, Object>> getOrdersForTableView(String tableIdStr, List<Integer> orderIds) throws ValidationException {
+        if (tableIdStr == null || tableIdStr.trim().isEmpty() || orderIds == null || orderIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        int tableId;
+        try {
+            tableId = Integer.parseInt(tableIdStr.replaceAll("\\D+", ""));
+        } catch (NumberFormatException e) {
+            return new ArrayList<>();
+        }
+        List<Order> orders = orderDAO.getOrdersByTableId(tableId);
+        List<Map<String, Object>> result = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        long tenMinutesMillis = 10 * 60 * 1000;
+
+        for (Order o : orders) {
+            // Chỉ hiển thị các đơn thuộc phiên của khách hiện tại đã đặt trên thiết bị này
+            if (!orderIds.contains(o.getOrderId())) {
+                continue;
+            }
+            // Ẩn đơn đã hủy khỏi giao diện của bàn khách
+            if ("Cancelled".equalsIgnoreCase(o.getStatus())) {
+                continue;
+            }
+            // Tự động ẩn các đơn đã hoàn thành hoặc đã thanh toán khỏi màn hình khách sau 10 phút
+            if ("Delivered".equalsIgnoreCase(o.getStatus()) || "Completed".equalsIgnoreCase(o.getStatus()) || "Paid".equalsIgnoreCase(o.getStatus())) {
+                if (o.getCreatedAt() != null && (now - o.getCreatedAt().getTime() > tenMinutesMillis)) {
+                    continue;
+                }
+            }
+            result.add(convertOrderToMap(o));
+        }
+        return result;
+    }
+
     public void updateOrderStatus(int orderId, String newStatus) throws ValidationException {
         validateStatusParam(orderId, newStatus);
+        Order currentOrder = orderDAO.getOrderById(orderId);
+        if (currentOrder == null) {
+            throw new ValidationException(Constants.ERROR_ORDER_NOT_FOUND);
+        }
+
+        // Kiểm tra điều kiện khóa 5 phút nếu đơn đang ở trạng thái Cancelled
+        if ("Cancelled".equalsIgnoreCase(currentOrder.getStatus())) {
+            validateCancelModificationWindow(currentOrder);
+            if (!"Cancelled".equalsIgnoreCase(newStatus)) {
+                // Hoàn tác hủy -> kiểm tra tồn kho và trừ lại nguyên liệu
+                validateOrderIngredientsForRestoration(currentOrder);
+                deductOrderIngredients(currentOrder);
+            }
+        } else if ("Cancelled".equalsIgnoreCase(newStatus)) {
+            // Chuyển sang Cancelled -> hoàn trả kho nguyên liệu
+            restoreOrderIngredients(currentOrder);
+        }
+
         boolean updated = orderDAO.updateOrderStatus(orderId, newStatus);
         if (!updated) {
             throw new ValidationException(Constants.ERROR_ORDER_NOT_FOUND);
+        }
+
+        if ("Cancelled".equalsIgnoreCase(newStatus)) {
+            utility.OrderRuntimeCache.recordCancelTime(orderId);
+        } else {
+            utility.OrderRuntimeCache.clearCancelTime(orderId);
         }
     }
 
@@ -61,6 +124,7 @@ public class OrderService {
         if (!cancelled) {
             throw new ValidationException(Constants.ERROR_ORDER_NOT_FOUND);
         }
+        utility.OrderRuntimeCache.recordCancelTime(orderId);
     }
 
     public double exchangeDish(int orderId, int oldProductId, int newProductId, int newQuantity) throws ValidationException {
@@ -145,6 +209,31 @@ public class OrderService {
                 && !"Delivered".equalsIgnoreCase(order.getStatus())
                 && !"Paid".equalsIgnoreCase(order.getStatus());
         map.put("canChangeOrder", canChange);
+        map.put("canCancelOrder", canChange);
+
+        boolean isCancelled = "Cancelled".equalsIgnoreCase(order.getStatus());
+        boolean isCancelLocked = false;
+        long remainingCancelSeconds = 0;
+        if (isCancelled) {
+            Long cancelTime = utility.OrderRuntimeCache.getCancelTime(order.getOrderId());
+            if (cancelTime != null) {
+                long elapsed = System.currentTimeMillis() - cancelTime;
+                long remaining = 300 - (elapsed / 1000);
+                if (remaining <= 0) {
+                    isCancelLocked = true;
+                    remainingCancelSeconds = 0;
+                } else {
+                    remainingCancelSeconds = remaining;
+                }
+            } else {
+                isCancelLocked = true;
+                remainingCancelSeconds = 0;
+            }
+        }
+        map.put("isCancelled", isCancelled);
+        map.put("isCancelLocked", isCancelLocked);
+        map.put("remainingCancelSeconds", remainingCancelSeconds);
+
         map.put("details", convertOrderDetailsToMapList(order.getOrderDetails()));
         return map;
     }
@@ -225,7 +314,7 @@ public class OrderService {
         return null;
     }
 
-    private void restoreOrderIngredients(Order order) {
+    private void restoreOrderIngredients(Order order) throws ValidationException {
         if (order.getOrderDetails() != null) {
             for (OrderDetail d : order.getOrderDetails()) {
                 restoreItemIngredients(d.getProductId(), d.getQuantity());
@@ -233,7 +322,7 @@ public class OrderService {
         }
     }
 
-    private void restoreItemIngredients(int productId, int quantity) {
+    private void restoreItemIngredients(int productId, int quantity) throws ValidationException {
         List<ProductIngredient> recipes = ingredientDAO.getIngredientsByProductId(productId);
         for (ProductIngredient pi : recipes) {
             ingredientDAO.restoreStock(pi.getIngredientId(), pi.getQuantityUsed() * quantity);
@@ -241,18 +330,47 @@ public class OrderService {
         }
     }
 
-    private void deductItemIngredients(int productId, int quantity) {
+    private void deductItemIngredients(int productId, int quantity) throws ValidationException {
         List<ProductIngredient> recipes = ingredientDAO.getIngredientsByProductId(productId);
         for (ProductIngredient pi : recipes) {
             ingredientDAO.deductStock(pi.getIngredientId(), pi.getQuantityUsed() * quantity);
         }
     }
 
-    private void recheckProductAvailabilityAfterStockRestore(int ingredientId) {
+    private void recheckProductAvailabilityAfterStockRestore(int ingredientId) throws ValidationException {
         List<Integer> productIds = ingredientDAO.getProductIdsUsingIngredient(ingredientId);
         for (Integer pid : productIds) {
             if (ingredientDAO.hasSufficientStockForProduct(pid, 1)) {
                 productDAO.updateProductAvailability(pid, true);
+            }
+        }
+    }
+
+    private void validateCancelModificationWindow(Order order) throws ValidationException {
+        Long cancelTime = utility.OrderRuntimeCache.getCancelTime(order.getOrderId());
+        if (cancelTime == null) {
+            throw new ValidationException(Constants.ERROR_CANCELLED_ORDER_LOCKED);
+        }
+        long elapsed = System.currentTimeMillis() - cancelTime;
+        if (elapsed > 5 * 60 * 1000) {
+            throw new ValidationException(Constants.ERROR_CANCELLED_ORDER_LOCKED);
+        }
+    }
+
+    private void validateOrderIngredientsForRestoration(Order order) throws ValidationException {
+        if (order.getOrderDetails() != null) {
+            for (OrderDetail d : order.getOrderDetails()) {
+                if (!ingredientDAO.hasSufficientStockForProduct(d.getProductId(), d.getQuantity())) {
+                    throw new ValidationException(Constants.ERROR_INSUFFICIENT_INGREDIENTS);
+                }
+            }
+        }
+    }
+
+    private void deductOrderIngredients(Order order) throws ValidationException {
+        if (order.getOrderDetails() != null) {
+            for (OrderDetail d : order.getOrderDetails()) {
+                deductItemIngredients(d.getProductId(), d.getQuantity());
             }
         }
     }

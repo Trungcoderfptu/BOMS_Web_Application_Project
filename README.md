@@ -73,7 +73,26 @@ none
 * Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
 * đã thêm các tài liệu mới hãy xem .agent
 ---
-# [v0.0.6] - 2026-10-15.
+# [v0.0.6] - 2026-10-13.
+### Added
+* **Staff and manager:**Đã thêm chức năng quản lí thực đơn giúp thêm món, cập nhật món, xóa món.`(@Trung)`
+ **Chức năng:** Đã bổ xung upload ảnh vào dự án, ảnh lưu ở C/User/Tên máy bạn/. `(@Trung)`
+* **Giao diện:** Thêm màn hình điều khiển quản lí thực đơn cho staff và manager. `(@Trung)`
+* **DATABASE:** update cơ sở dữ liệu JSTL cho toàn bộ luồng use case 1 và 2 cùng với tự động trừ kho và các hàm hỗ trợ cho tác vụ nghiệp vụ của đơn hàng phải tương tác với dữ liệu nguyên liệu. `(@Trung)
+`
+
+
+### Fixed 
+* đã fix các hardcode cũ của jsp
+* các chuỗi mã còn thiếu và lỗi mã hóa đã được fix
+
+### Notes
+Phải chạy lại file .sql trong thư mục DATABASE mỗi khi update dự án
+Các chuỗ trong file đa ngôn ngữ .prototies đặc biệt bản việt phải dùng bộ mã hóa encode unicode utf8 từ jdk 9 trở lên
+xem file .agent/learning.md để nắm rõ thay đổi chi tiết
+thêm file QR code.md để lưu các link QR truy cập nhanh
+---
+# [v0.0.7] - 2026-10-16.
 ### Added
 * **Báo cáo ẩn danh (UC-07):** Nhân viên gửi báo cáo ẩn danh kèm bằng chứng (JPG, PNG, MP4, PDF, DOCX; tối đa 5 file, 20 MB/file). Hệ thống không lưu danh tính người gửi, trả về Ticket ID để tra cứu phản hồi và gửi thông báo cho Manager phụ trách loại báo cáo. `(@Duong)`
 * **Quản lý báo cáo (UC-08):** Manager/Admin xem danh sách (lọc theo Trạng thái, Ngày, Loại), xem chi tiết, tải bằng chứng, cập nhật trạng thái In Progress / Resolved / Rejected kèm phản hồi. Bắt buộc nhập lý do khi từ chối. `(@Duong)`

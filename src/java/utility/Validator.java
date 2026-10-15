@@ -62,4 +62,23 @@ public class Validator {
             throw new ValidationException(errorMessage);
         }
     }
+
+    public static double checkPositiveDouble(String value, String errorMessage) throws ValidationException {
+        checkEmpty(value, errorMessage);
+        try {
+            double num = Double.parseDouble(value.trim());
+            if (num <= 0) {
+                throw new ValidationException(errorMessage);
+            }
+            return num;
+        } catch (NumberFormatException e) {
+            throw new ValidationException(errorMessage);
+        }
+    }
+
+    public static void checkMaxLength(String value, int maxLength, String errorMessage) throws ValidationException {
+        if (value != null && value.trim().length() > maxLength) {
+            throw new ValidationException(errorMessage);
+        }
+    }
 }

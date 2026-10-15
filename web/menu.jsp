@@ -14,6 +14,17 @@
     </head>
     <body class="main-content">
         <c:choose>
+            <c:when test="${not empty sessionScope.USER_SESSION}">
+                <jsp:include page="header.jsp" />
+                <c:choose>
+                    <c:when test="${not empty CURRENT_TABLE}">
+                        <h2><fmt:message key="menu.heading.customer" />: ${CURRENT_TABLE} (<fmt:message key="menu.cashier" />: ${sessionScope.USER_SESSION.fullName})</h2>
+                    </c:when>
+                    <c:otherwise>
+                        <h2><fmt:message key="menu.heading.counter" /> (<fmt:message key="menu.cashier" />: ${sessionScope.USER_SESSION.fullName})</h2>
+                    </c:otherwise>
+                </c:choose>
+            </c:when>
             <c:when test="${not empty CURRENT_TABLE}">
                 <div class="flex-between" style="padding-bottom: 20px; border-bottom: 1px solid var(--border-light); margin-bottom: 20px;">
                     <h2 class="m-0"><fmt:message key="menu.heading.customer" />: ${CURRENT_TABLE}</h2>
@@ -24,22 +35,13 @@
                 </div>
             </c:when>
             <c:otherwise>
-                <c:choose>
-                    <c:when test="${not empty sessionScope.USER_SESSION}">
-                        <jsp:include page="header.jsp" />
-                        <h2><fmt:message key="menu.heading.counter" /> (<fmt:message key="menu.cashier" />: ${sessionScope.USER_SESSION.fullName})</h2>
-                    </c:when>
-
-                    <c:otherwise>
-                        <div style="text-align: center; margin-top: 100px;">
-                            <h2 class="msg-error"><fmt:message key="menu.access.denied" /></h2>
-                            <p><fmt:message key="menu.access.scan_qr" /> 
-                                <a href="${pageContext.request.contextPath}/login.jsp" class="text-link-success"><fmt:message key="menu.access.login" /></a>
-                                <fmt:message key="menu.access.as_staff" />.
-                            </p>
-                        </div>
-                    </c:otherwise>
-                </c:choose>
+                <div style="text-align: center; margin-top: 100px;">
+                    <h2 class="msg-error"><fmt:message key="menu.access.denied" /></h2>
+                    <p><fmt:message key="menu.access.scan_qr" /> 
+                        <a href="${pageContext.request.contextPath}/login.jsp" class="text-link-success"><fmt:message key="menu.access.login" /></a>
+                        <fmt:message key="menu.access.as_staff" />.
+                    </p>
+                </div>
             </c:otherwise>
         </c:choose>
 
@@ -57,23 +59,42 @@
         <c:set var="activeTab" value="${not empty ACTIVE_TAB ? ACTIVE_TAB : 'menu'}" />
         <c:if test="${not empty CURRENT_TABLE or not empty sessionScope.USER_SESSION}">
             <div class="tab-nav d-flex mt-15 mb-20">
-                <button class="tab-btn ${activeTab == 'cart' ? '' : 'active'}" onclick="openTab(event, 'tab-menu')"><fmt:message key="menu.tab.menu" /></button>
+                <button class="tab-btn ${(activeTab == 'cart' or activeTab == 'orders') ? '' : 'active'}" onclick="openTab(event, 'tab-menu')"><fmt:message key="menu.tab.menu" /></button>
                 <button class="tab-btn ${activeTab == 'cart' ? 'active' : ''}" onclick="openTab(event, 'tab-cart')">
                     <fmt:message key="menu.tab.cart" /> 
                     <c:if test="${totalCartQuantity > 0}">
                         <span class="msg-error tab-badge">${totalCartQuantity}</span>
                     </c:if>
                 </button>
+                <c:if test="${not empty CURRENT_TABLE}">
+                    <button class="tab-btn ${activeTab == 'orders' ? 'active' : ''}" onclick="openTab(event, 'tab-orders')">
+                        <fmt:message key="menu.tab.orders" />
+                        <c:if test="${not empty TABLE_ORDERS and fn:length(TABLE_ORDERS) > 0}">
+                            <span class="msg-success tab-badge">${fn:length(TABLE_ORDERS)}</span>
+                        </c:if>
+                    </button>
+                </c:if>
             </div>
         </c:if>
-        <div id="tab-menu" class="tab-content ${activeTab == 'cart' ? 'd-none' : 'active'}">
+        <div id="tab-menu" class="tab-content ${(activeTab == 'cart' or activeTab == 'orders') ? 'd-none' : 'active'}">
             <c:if test="${not empty CURRENT_TABLE or not empty sessionScope.USER_SESSION}">
                 <c:if test="${not empty MENU_LIST}">
                     <div class="menu-grid">
                         <c:forEach var="item" items="${MENU_LIST}">
                             <div class="product-card ${item.available ? '' : 'out-of-stock'}">
                                 <div class="product-img-placeholder">
-                                    <fmt:message key="menu.product.image" />: ${item.imageUrl}
+                                    <c:if test="${not item.available}">
+                                        <span class="badge-out-of-stock"><fmt:message key="menu.badge.out_of_stock" /></span>
+                                    </c:if>
+                                    <c:choose>
+                                        <c:when test="${not empty item.imageUrl}">
+                                            <c:set var="menuItemImg" value="${fn:startsWith(item.imageUrl, 'http') ? item.imageUrl : pageContext.request.contextPath.concat('/').concat(item.imageUrl)}" />
+                                            <img src="${menuItemImg}" alt="${item.productName}" class="product-card-img" />
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="placeholder-icon">☕</span>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </div>
 
                                 <h3>${item.productName}</h3>
@@ -89,7 +110,7 @@
                                         </form>
                                     </c:when>
                                     <c:otherwise>
-                                        <button class="btn-add-cart btn-disabled" disabled><fmt:message key="menu.btn.out_of_stock" /></button>
+                                        <button type="button" class="btn-add-cart btn-disabled" disabled><fmt:message key="menu.btn.out_of_stock" /></button>
                                     </c:otherwise>
                                 </c:choose>
                             </div>
@@ -171,19 +192,81 @@
                                 </c:if>
                                 <button type="submit" class="btn-cart-clear"><fmt:message key="menu.cart.btn.clear" /></button>
                             </form>
-                            <form action="${pageContext.request.contextPath}/CartController" method="POST" class="m-0">
-                                <input type="hidden" name="action" value="checkout" />
-                                <c:if test="${not empty CURRENT_TABLE}">
-                                    <input type="hidden" name="tableId" value="${CURRENT_TABLE}" />
-                                </c:if>
-                                <button type="submit" class="btn-register-action m-0 btn-checkout"><fmt:message key="menu.btn.checkout" /></button>
-                            </form>
+                            <button type="button" class="btn-register-action m-0 btn-checkout" onclick="openOrderConfirmModal()"><fmt:message key="menu.btn.checkout" /></button>
                         </div>
                     </div>
                 </c:otherwise>
             </c:choose>
         </div>
+        <c:if test="${not empty CURRENT_TABLE}">
+            <div id="tab-orders" class="tab-content ${activeTab == 'orders' ? 'active' : 'd-none'}">
+                <c:choose>
+                    <c:when test="${empty TABLE_ORDERS}">
+                        <div class="empty-cart-container">
+                            <h3><fmt:message key="menu.orders.empty" /></h3>
+                            <button class="btn-login mt-15" onclick="openTab(event, 'tab-menu')"><fmt:message key="menu.cart.back_to_menu" /></button>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="orders-list-container">
+                            <c:forEach var="tableOrder" items="${TABLE_ORDERS}">
+                                <div class="order-summary-card mb-15">
+                                    <div class="flex-between order-header-row">
+                                        <div>
+                                            <strong>#${tableOrder.orderId}</strong>
+                                            <span class="order-time-text"> - ${tableOrder.createdAt}</span>
+                                        </div>
+                                        <div>
+                                            <span class="order-badge order-badge-${fn:toLowerCase(tableOrder.status)}">
+                                                <c:choose>
+                                                    <c:when test="${tableOrder.status == 'Accepted'}">
+                                                        <fmt:message key="menu.orders.status.accepted" />
+                                                    </c:when>
+                                                    <c:when test="${tableOrder.status == 'Prepared' or tableOrder.status == 'Delivering'}">
+                                                        <fmt:message key="menu.orders.status.cooking" />
+                                                    </c:when>
+                                                    <c:when test="${tableOrder.status == 'Delivered'}">
+                                                        <fmt:message key="menu.orders.status.delivered" />
+                                                    </c:when>
+                                                    <c:when test="${tableOrder.status == 'Cancelled'}">
+                                                        <fmt:message key="menu.orders.status.cancelled" />
+                                                    </c:when>
+                                                    <c:otherwise>${tableOrder.status}</c:otherwise>
+                                                </c:choose>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <table class="table-items-breakdown mt-10">
+                                        <c:forEach var="item" items="${tableOrder.details}">
+                                            <tr>
+                                                <td>${item.productName}</td>
+                                                <td class="text-center">x${item.quantity}</td>
+                                                <td class="text-right"><fmt:formatNumber value="${item.unitPrice * item.quantity}" pattern="#,###" /> ₫</td>
+                                            </tr>
+                                        </c:forEach>
+                                    </table>
+
+                                    <div class="flex-between mt-10 order-footer-row">
+                                        <h4 class="m-0"><fmt:message key="menu.cart.total_amount" />: <fmt:formatNumber value="${tableOrder.totalAmount}" pattern="#,###" /> ₫</h4>
+                                        <c:if test="${tableOrder.canCancelOrder}">
+                                            <form action="${pageContext.request.contextPath}/CartController" method="POST" class="m-0" onsubmit="return confirm('<fmt:message key="menu.orders.confirm_cancel" />');">
+                                                <input type="hidden" name="action" value="cancelTableOrder" />
+                                                <input type="hidden" name="orderId" value="${tableOrder.orderId}" />
+                                                <input type="hidden" name="tableId" value="${CURRENT_TABLE}" />
+                                                <button type="submit" class="btn-order-cancel"><fmt:message key="menu.orders.btn.cancel" /></button>
+                                            </form>
+                                        </c:if>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+        </c:if>
         <jsp:include page="components/floating_cart.jsp" />
+        <jsp:include page="components/order_confirm_modal.jsp" />
         <script src="${pageContext.request.contextPath}/js/main.js"></script>
     </body>
 </html>

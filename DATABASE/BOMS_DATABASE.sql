@@ -524,3 +524,16 @@ JOIN Users u            ON cm.ManagerID = u.UserID;
 
 -- Thong bao chua doc cua 1 user
 SELECT * FROM Notifications WHERE RecipientID = 2 AND IsRead = 0 ORDER BY CreatedAt DESC;
+
+--DU LIEU QRCode cho ban an
+ GO
+    INSERT INTO DiningTables (TableNumber, QRCode) VALUES
+    ('T03', 'QR-T03'),
+    ('T04', 'QR-T04'),
+    ('T05', 'QR-T05'),
+    ('T06', 'QR-T06'),
+    ('T07', 'QR-T07'),
+    ('T08', 'QR-T08'),
+    ('T09', 'QR-T09'),
+    ('T10', 'QR-T10');
+    GO

@@ -187,8 +187,4 @@ public class Constants {
     public static final int REPORT_TITLE_MAX_LENG = 200;
     public static final int REPORT_MAX_EVIDENCE_FILES = 5;
     public static final long REPORT_MAX_EVIDENCE_SIZE = 20L * 1024 * 1024; // 20 MB (7.0.E1)
-    public static final String[] REPORT_ALLOWED_FILE_TYPES = {"jpg", "jpeg", "png", "mp4", "pdf", "docx"};
-    public static final String UPLOAD_CONFIG_FILE = "../Upload.properties";
-    public static final String UPLOAD_CONFIG_KEY = "upload.dir";
-    public static final String DEFAULT_UPLOAD_DIR = "C:/BOMS_uploads/reports";
 }

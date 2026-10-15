@@ -101,7 +101,7 @@ thêm file QR code.md để lưu các link QR truy cập nhanh
 * None
 
 ### Notes
-* File bằng chứng được lưu NGOÀI dự án tại thư mục khai báo trong `web/WEB-INF/Upload.properties` (mặc định `C:/BOMS_uploads/reports`). Ai muốn đổi ổ đĩa thì sửa file này, thư mục sẽ tự tạo khi gửi báo cáo đầu tiên.
+* File bằng chứng lưu chung thư mục dữ liệu `~/boms_data` với ảnh món (qua `ImageUploadUtility`), nhưng ở vùng riêng tư `boms_data/private/reports/`: KHÔNG mở được qua link `/uploads/`, chỉ Manager/Admin tải được qua `EvidenceController`. Không cần cấu hình gì thêm.
 * Không cần chạy lại SQL: chức năng dùng các bảng `ReportCategories`, `CategoryManagers`, `AnonymousReports`, `ReportEvidences`, `Notifications` đã có sẵn.
 * Manager chỉ thấy báo cáo của loại được phân công trong bảng `CategoryManagers`; Admin thấy tất cả.
 ---

@@ -110,6 +110,46 @@ if (document.readyState === "loading") {
 } else {
     initMainApp();
 }
+
+// ===== UC-07: Kiểm tra file bằng chứng ngay khi chọn (server vẫn kiểm tra lại lần nữa) =====
+function initEvidenceFileCheck() {
+    const input = document.getElementById('evidenceFiles');
+    if (!input || input.dataset.checkReady) {
+        return;
+    }
+    input.dataset.checkReady = 'true';
+    const allowedTypes = (input.getAttribute('accept') || '').split(',').map(t => t.trim().replace('.', '').toLowerCase());
+
+    input.addEventListener('change', function () {
+        input.setCustomValidity(getEvidenceError(input, allowedTypes));
+        input.classList.toggle('input-error', input.validationMessage !== '');
+        input.reportValidity();
+    });
+}
+
+function getEvidenceError(input, allowedTypes) {
+    const maxFiles = parseInt(input.dataset.maxFiles, 10);
+    const maxSize = parseInt(input.dataset.maxSize, 10);
+    if (input.files.length > maxFiles) {
+        return input.dataset.msgFiles;
+    }
+    for (const file of input.files) {
+        const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+        if (!allowedTypes.includes(ext)) {
+            return input.dataset.msgType;
+        }
+        if (file.size <= 0 || file.size > maxSize) {
+            return input.dataset.msgSize;
+        }
+    }
+    return '';
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initEvidenceFileCheck);
+} else {
+    initEvidenceFileCheck();
+}
 // Hàm chuyển Tab cho các màn hình Dashboard
 function openTab(evt, tabId) {
     let tabcontent = document.getElementsByClassName("tab-content");

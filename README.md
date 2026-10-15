@@ -73,3 +73,16 @@ none
 * Tài liệu doc dự án đã update hãy đọc để biết thêm rule dự án.
 * đã thêm các tài liệu mới hãy xem .agent
 ---
+# [v0.0.6] - 2026-10-15.
+### Added
+* **Báo cáo ẩn danh (UC-07):** Nhân viên gửi báo cáo ẩn danh kèm bằng chứng (JPG, PNG, MP4, PDF, DOCX; tối đa 5 file, 20 MB/file). Hệ thống không lưu danh tính người gửi, trả về Ticket ID để tra cứu phản hồi và gửi thông báo cho Manager phụ trách loại báo cáo. `(@Duong)`
+* **Quản lý báo cáo (UC-08):** Manager/Admin xem danh sách (lọc theo Trạng thái, Ngày, Loại), xem chi tiết, tải bằng chứng, cập nhật trạng thái In Progress / Resolved / Rejected kèm phản hồi. Bắt buộc nhập lý do khi từ chối. `(@Duong)`
+
+### Fixed
+* None
+
+### Notes
+* File bằng chứng được lưu NGOÀI dự án tại thư mục khai báo trong `web/WEB-INF/Upload.properties` (mặc định `C:/BOMS_uploads/reports`). Ai muốn đổi ổ đĩa thì sửa file này, thư mục sẽ tự tạo khi gửi báo cáo đầu tiên.
+* Không cần chạy lại SQL: chức năng dùng các bảng `ReportCategories`, `CategoryManagers`, `AnonymousReports`, `ReportEvidences`, `Notifications` đã có sẵn.
+* Manager chỉ thấy báo cáo của loại được phân công trong bảng `CategoryManagers`; Admin thấy tất cả.
+---

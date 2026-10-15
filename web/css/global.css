@@ -863,3 +863,102 @@ text-link-success {
     color: var(--text-primary);
     text-align: center;
 }
+/* ===== BÁO CÁO ẨN DANH (UC-07, UC-08) ===== */
+.report-note {
+    color: var(--text-primary);
+    opacity: 0.8;
+    font-style: italic;
+}
+.report-form {
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.report-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.report-field label {
+    font-weight: bold;
+}
+.report-field textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+.report-hint {
+    font-size: 12px;
+    opacity: 0.75;
+}
+.input-error {
+    border: 2px solid var(--color-danger) !important;
+    background-color: rgba(255, 0, 0, 0.05);
+}
+.report-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.btn-report-cancel {
+    padding: 10px 18px;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+.btn-report-cancel:hover {
+    background-color: var(--bg-tertiary);
+}
+.ticket-box {
+    border: 2px dashed var(--color-success);
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ticket-code {
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: var(--color-success);
+}
+.report-info-table {
+    max-width: 900px;
+}
+.report-info-table th {
+    width: 200px;
+}
+.report-pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.evidence-list li {
+    margin-bottom: 6px;
+}
+.report-back-link {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+.report-link-btn {
+    display: inline-block;
+    text-decoration: none;
+}
+.report-badge-pending {
+    background: #fff3e0;
+    color: #f57c00;
+}
+.report-badge-in_progress {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+.report-badge-resolved {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+.report-badge-rejected {
+    background: #ffebee;
+    color: #d32f2f;
+}

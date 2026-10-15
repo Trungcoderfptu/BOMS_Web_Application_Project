@@ -33,7 +33,7 @@ function initMainApp() {
         });
     }
 
-    // ================= XỬ LÝ TAB TRANG CÀI ĐẶT =================
+    // ================= SETTINGS TAB MANAGEMENT =================
     const btnMenuProfile = document.getElementById('btnMenuProfile');
     const btnMenuPassword = document.getElementById('btnMenuPassword');
 
@@ -62,7 +62,7 @@ function initMainApp() {
         });
     }
 
-    // ==================== XỬ LÝ DARK MODE TOÀN CỤC ====================
+    // ==================== GLOBAL DARK MODE ====================
     const btnDarkMode = document.getElementById('btnDarkModeGlobal');
 
     if (btnDarkMode) {
@@ -87,7 +87,7 @@ function initMainApp() {
         });
     }
 
-    // ================= XỬ LÝ DROPDOWN NGÔN NGỮ =================
+    // ================= LANGUAGE DROPDOWN =================
     const btnLangToggle = document.getElementById('btnLangToggle');
     const langDropdown = document.getElementById('langDropdown');
 
@@ -103,6 +103,27 @@ function initMainApp() {
             }
         });
     }
+
+    // Modal click outside handling
+    const staffModal = document.getElementById('staffCancelModal');
+    if (staffModal) {
+        staffModal.addEventListener('click', function (e) {
+            if (e.target === staffModal) {
+                closeStaffCancelModal();
+            }
+        });
+    }
+
+    const orderModal = document.getElementById('orderConfirmModal');
+    if (orderModal) {
+        orderModal.addEventListener('click', function (e) {
+            if (e.target === orderModal) {
+                closeOrderConfirmModal();
+            }
+        });
+    }
+
+    initCancelCountdowns();
 }
 
 if (document.readyState === "loading") {
@@ -150,7 +171,7 @@ if (document.readyState === "loading") {
 } else {
     initEvidenceFileCheck();
 }
-// Hàm chuyển Tab cho các màn hình Dashboard
+// Tab switching for Dashboard screens
 function openTab(evt, tabId) {
     let tabcontent = document.getElementsByClassName("tab-content");
     for (let i = 0; i < tabcontent.length; i++) {
@@ -177,9 +198,268 @@ function openTab(evt, tabId) {
     let floatingCart = document.querySelector(".floating-cart");
     if (floatingCart) {
         if (tabId === 'tab-cart') {
-            floatingCart.style.display = 'none'; // Ẩn khi vào tab giỏ hàng
+            floatingCart.style.display = 'none'; // Hide floating cart on cart tab
         } else {
-            floatingCart.style.display = 'flex'; // Hiện lại khi sang tab khác
+            floatingCart.style.display = 'flex'; // Show floating cart on other tabs
         }
     }
 }
+
+// Modal order confirmation handlers
+function openOrderConfirmModal() {
+    const modal = document.getElementById('orderConfirmModal');
+    if (modal) {
+        modal.classList.remove('d-none');
+    }
+}
+
+function closeOrderConfirmModal() {
+    const modal = document.getElementById('orderConfirmModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+// Modal staff cancel order confirmation handlers
+function openStaffCancelModal(orderId) {
+    const modal = document.getElementById('staffCancelModal');
+    const orderIdInput = document.getElementById('staffCancelModalOrderId');
+    const orderIdText = document.getElementById('staffCancelModalOrderIdText');
+    if (modal) {
+        if (orderIdInput)
+            orderIdInput.value = orderId;
+        if (orderIdText)
+            orderIdText.textContent = '#' + orderId;
+        modal.classList.remove('d-none');
+    }
+}
+
+function closeStaffCancelModal() {
+    const modal = document.getElementById('staffCancelModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function handleStaffStatusSubmit(event, form, orderId) {
+    const select = form.querySelector("select[name='newStatus']");
+    if (select && select.value === 'Cancelled') {
+        event.preventDefault();
+        openStaffCancelModal(orderId);
+        return false;
+    }
+    return true;
+}
+
+// Real-time 5-minute countdown for canceled orders
+function initCancelCountdowns() {
+    const timers = document.querySelectorAll('.cancel-countdown-timer');
+    if (!timers || timers.length === 0)
+        return;
+
+    timers.forEach(timer => {
+        let seconds = parseInt(timer.getAttribute('data-seconds'), 10);
+        const orderId = timer.getAttribute('data-order-id');
+        const lockedText = timer.getAttribute('data-locked-text') || '\u0110\u00E3 kh\u00F3a';
+
+        function updateDisplay() {
+            if (seconds <= 0) {
+                timer.textContent = '00:00';
+                const wrapper = document.getElementById('cancelCountdownWrapper-' + orderId);
+                if (wrapper) {
+                    wrapper.innerHTML = '<span class="badge-locked">' + lockedText + '</span>';
+                }
+                const selectEl = document.querySelector('.status-select-' + orderId);
+                if (selectEl)
+                    selectEl.disabled = true;
+                const btnSave = document.querySelector('.btn-status-save-' + orderId);
+                if (btnSave)
+                    btnSave.disabled = true;
+                return false;
+            }
+
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            timer.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+            return true;
+        }
+
+        updateDisplay();
+        const intervalId = setInterval(() => {
+            seconds--;
+            if (!updateDisplay()) {
+                clearInterval(intervalId);
+            }
+        }, 1000);
+    });
+}
+
+// ==================== MENU MANAGEMENT MODAL ====================
+function switchImageTab(mode) {
+    const btnUpload = document.getElementById('tabBtnUpload');
+    const btnUrl = document.getElementById('tabBtnUrl');
+    const panelUpload = document.getElementById('imageUploadPanel');
+    const panelUrl = document.getElementById('imageUrlPanel');
+
+    if (mode === 'upload') {
+        if (btnUpload) btnUpload.classList.add('active');
+        if (btnUrl) btnUrl.classList.remove('active');
+        if (panelUpload) panelUpload.classList.remove('d-none');
+        if (panelUrl) panelUrl.classList.add('d-none');
+    } else {
+        if (btnUrl) btnUrl.classList.add('active');
+        if (btnUpload) btnUpload.classList.remove('active');
+        if (panelUrl) panelUrl.classList.remove('d-none');
+        if (panelUpload) panelUpload.classList.add('d-none');
+    }
+}
+
+function previewUploadedImage(input) {
+    const previewBox = document.getElementById('imagePreviewBox');
+    const previewImg = document.getElementById('imagePreviewImg');
+    const modal = document.getElementById('productModal');
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const maxBytes = 10 * 1024 * 1024; // 10 MB
+        if (file.size > maxBytes) {
+            const errorMsg = (modal && modal.getAttribute('data-error-size'))
+                ? modal.getAttribute('data-error-size')
+                : 'K\u00EDch th\u01B0\u1EDBc \u1EA3nh v\u01B0\u1EE3t qu\u00E1 dung l\u01B0\u1EE3ng cho ph\u00E9p (t\u1ED1i \u0111a 10MB)!';
+            alert(errorMsg);
+            input.value = '';
+            if (previewBox) previewBox.classList.add('d-none');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (previewImg) previewImg.src = e.target.result;
+            if (previewBox) previewBox.classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        if (previewBox) previewBox.classList.add('d-none');
+    }
+}
+
+function previewUrlImage(url) {
+    const previewBox = document.getElementById('imagePreviewBox');
+    const previewImg = document.getElementById('imagePreviewImg');
+    const urlInput = document.getElementById('productImageInput');
+    if (url && url.trim().length > 0) {
+        if (url.trim().length > 255) {
+            if (urlInput) urlInput.classList.add('border-danger');
+            if (previewBox) previewBox.classList.add('d-none');
+            return;
+        }
+        if (urlInput) urlInput.classList.remove('border-danger');
+        if (previewImg) previewImg.src = url.trim();
+        if (previewBox) previewBox.classList.remove('d-none');
+    } else {
+        if (urlInput) urlInput.classList.remove('border-danger');
+        if (previewBox) previewBox.classList.add('d-none');
+    }
+}
+
+function resetImageModalState() {
+    switchImageTab('upload');
+    const fileInput = document.getElementById('productImageFileInput');
+    const urlInput = document.getElementById('productImageInput');
+    const previewBox = document.getElementById('imagePreviewBox');
+    const previewImg = document.getElementById('imagePreviewImg');
+
+    if (fileInput) fileInput.value = '';
+    if (urlInput) {
+        urlInput.value = '';
+        urlInput.classList.remove('border-danger');
+    }
+    if (previewImg) previewImg.src = '';
+    if (previewBox) previewBox.classList.add('d-none');
+}
+
+function openCreateProductModal() {
+    const modal = document.getElementById('productModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('productModalTitle');
+    const actionEl = document.getElementById('productModalAction');
+    const idEl = document.getElementById('productModalId');
+    const nameEl = document.getElementById('productNameInput');
+    const catEl = document.getElementById('productCategorySelect');
+    const priceEl = document.getElementById('productPriceInput');
+    const statusGroup = document.getElementById('productStatusGroup');
+
+    if (titleEl) {
+        titleEl.textContent = modal.getAttribute('data-title-add') || 'Th\u00EAm M\u00F3n M\u1EDBi V\u00E0o Th\u1EF1c \u0110\u01A1n';
+    }
+    if (actionEl) actionEl.value = 'createProduct';
+    if (idEl) idEl.value = '';
+    if (nameEl) nameEl.value = '';
+    if (catEl) catEl.value = '';
+    if (priceEl) priceEl.value = '';
+    if (statusGroup) statusGroup.classList.add('d-none');
+
+    resetImageModalState();
+
+    modal.classList.remove('d-none');
+    if (nameEl) nameEl.focus();
+}
+
+function openEditProductModal(productId, productName, categoryId, price, imageUrl, isAvailable) {
+    const modal = document.getElementById('productModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('productModalTitle');
+    const actionEl = document.getElementById('productModalAction');
+    const idEl = document.getElementById('productModalId');
+    const nameEl = document.getElementById('productNameInput');
+    const catEl = document.getElementById('productCategorySelect');
+    const priceEl = document.getElementById('productPriceInput');
+    const urlInput = document.getElementById('productImageInput');
+    const fileInput = document.getElementById('productImageFileInput');
+    const previewBox = document.getElementById('imagePreviewBox');
+    const previewImg = document.getElementById('imagePreviewImg');
+    const statusGroup = document.getElementById('productStatusGroup');
+    const availableCb = document.getElementById('productAvailableCheckbox');
+
+    if (titleEl) {
+        titleEl.textContent = modal.getAttribute('data-title-edit') || 'Ch\u1EC9nh S\u1EEDa Th\u00F4ng Tin M\u00F3n \u0102n';
+    }
+    if (actionEl) actionEl.value = 'updateProduct';
+    if (idEl) idEl.value = productId;
+    if (nameEl) nameEl.value = productName || '';
+    if (catEl) catEl.value = categoryId || '';
+    if (priceEl) priceEl.value = Math.round(Number(price)) || '';
+
+    if (fileInput) fileInput.value = '';
+    const cleanImageUrl = (imageUrl && imageUrl !== 'null') ? imageUrl : '';
+    if (urlInput) urlInput.value = cleanImageUrl;
+
+    if (cleanImageUrl) {
+        switchImageTab('url');
+        if (previewImg) previewImg.src = cleanImageUrl;
+        if (previewBox) previewBox.classList.remove('d-none');
+    } else {
+        switchImageTab('upload');
+        if (previewBox) previewBox.classList.add('d-none');
+    }
+
+    if (statusGroup) statusGroup.classList.remove('d-none');
+    if (availableCb) availableCb.checked = (isAvailable === true || isAvailable === 'true');
+
+    modal.classList.remove('d-none');
+    if (nameEl) nameEl.focus();
+}
+
+function closeProductModal() {
+    const modal = document.getElementById('productModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+// Listen for Escape key to close product modal
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeProductModal();
+    }
+});

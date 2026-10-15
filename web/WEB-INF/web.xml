@@ -66,6 +66,14 @@
         <servlet-name>EvidenceController</servlet-name>
         <servlet-class>controller.EvidenceController</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>MenuManagementController</servlet-name>
+        <servlet-class>controller.MenuManagementController</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>ImageServingServlet</servlet-name>
+        <servlet-class>controller.ImageServingServlet</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>LoginController</servlet-name>
         <url-pattern>/LoginController</url-pattern>
@@ -105,6 +113,7 @@
     <servlet-mapping>
         <servlet-name>MenuController</servlet-name>
         <url-pattern>/MenuController</url-pattern>
+        <url-pattern>/menu</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>CartController</servlet-name>
@@ -125,6 +134,14 @@
     <servlet-mapping>
         <servlet-name>EvidenceController</servlet-name>
         <url-pattern>/EvidenceController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>MenuManagementController</servlet-name>
+        <url-pattern>/MenuManagementController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ImageServingServlet</servlet-name>
+        <url-pattern>/uploads/*</url-pattern>
     </servlet-mapping>
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>

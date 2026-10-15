@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import service.CartService;
 import utility.Constants;
@@ -22,10 +24,12 @@ import utility.ValidationException;
 public class CartController extends HttpServlet {
 
     private CartService cartService;
+    private service.OrderService orderService;
 
     @Override
     public void init() throws ServletException {
         cartService = new CartService();
+        orderService = new service.OrderService();
     }
 
     @Override
@@ -40,58 +44,115 @@ public class CartController extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         response.setContentType("text/html;charset=UTF-8");
-        String url = "MenuController";
         HttpSession session = request.getSession();
+
+        String tableId = resolveTableId(request, session);
+        String url = buildRedirectUrl(tableId);
+
         try {
             String action = request.getParameter("action");
-            String tableId = request.getParameter("tableId");
-            if (tableId != null && !tableId.trim().isEmpty()) {
-                url = "MenuController?tableId=" + tableId;
-            }
-
             if ("add".equals(action)) {
-                int productId = Integer.parseInt(request.getParameter("productId"));
-                Object currentCart = session.getAttribute("CURRENT_CART");
-                currentCart = cartService.addProductToCart(currentCart, productId);
-                session.setAttribute("CURRENT_CART", currentCart);
-                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ADD_TO_CART);
+                handleAddAction(request, session);
             } else if ("update".equals(action)) {
-                int productId = Integer.parseInt(request.getParameter("productId"));
-                int quantity = Integer.parseInt(request.getParameter("quantity"));
-                Object currentCart = session.getAttribute("CURRENT_CART");
-                currentCart = cartService.updateItemQuantity(currentCart, productId, quantity);
-                session.setAttribute("CURRENT_CART", currentCart);
-                session.setAttribute("ACTIVE_TAB", "cart");
-                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_CART);
+                handleUpdateAction(request, session);
             } else if ("remove".equals(action)) {
-                int productId = Integer.parseInt(request.getParameter("productId"));
-                Object currentCart = session.getAttribute("CURRENT_CART");
-                currentCart = cartService.removeItemFromCart(currentCart, productId);
-                session.setAttribute("CURRENT_CART", currentCart);
-                session.setAttribute("ACTIVE_TAB", "cart");
-                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_REMOVE_FROM_CART);
+                handleRemoveAction(request, session);
             } else if ("clear".equals(action)) {
-                Object currentCart = session.getAttribute("CURRENT_CART");
-                cartService.clearCart(currentCart);
-                session.removeAttribute("CURRENT_CART");
-                session.setAttribute("ACTIVE_TAB", "cart");
-                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CLEAR_CART);
+                handleClearAction(session);
             } else if ("checkout".equals(action)) {
-                Object currentCart = session.getAttribute("CURRENT_CART");
-                @SuppressWarnings("unchecked")
-                Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
-                int orderId = cartService.checkout(currentCart, tableId, userSession);
-                session.removeAttribute("CURRENT_CART");
-                session.setAttribute("LAST_ORDER_ID", orderId);
-                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CHECKOUT);
+                handleCheckoutAction(session, tableId);
+            } else if ("cancelTableOrder".equals(action)) {
+                handleCancelTableOrderAction(request, session);
             }
-
         } catch (ValidationException e) {
             session.setAttribute("ACTIVE_TAB", "cart");
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
         }
 
         response.sendRedirect(request.getContextPath() + "/" + url);
+    }
+
+    private String resolveTableId(HttpServletRequest request, HttpSession session) {
+        String tableId = request.getParameter("tableId");
+        if (tableId != null && !tableId.trim().isEmpty()) {
+            return tableId.trim();
+        }
+        return (String) session.getAttribute("CURRENT_TABLE");
+    }
+
+    private String buildRedirectUrl(String tableId) {
+        if (tableId != null && !tableId.trim().isEmpty()) {
+            return "MenuController?tableId=" + tableId;
+        }
+        return "MenuController";
+    }
+
+    private void handleAddAction(HttpServletRequest request, HttpSession session) throws ValidationException {
+        int productId = Integer.parseInt(request.getParameter("productId"));
+        Object currentCart = session.getAttribute("CURRENT_CART");
+        currentCart = cartService.addProductToCart(currentCart, productId);
+        session.setAttribute("CURRENT_CART", currentCart);
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ADD_TO_CART);
+    }
+
+    private void handleUpdateAction(HttpServletRequest request, HttpSession session) throws ValidationException {
+        int productId = Integer.parseInt(request.getParameter("productId"));
+        int quantity = Integer.parseInt(request.getParameter("quantity"));
+        Object currentCart = session.getAttribute("CURRENT_CART");
+        currentCart = cartService.updateItemQuantity(currentCart, productId, quantity);
+        session.setAttribute("CURRENT_CART", currentCart);
+        session.setAttribute("ACTIVE_TAB", "cart");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_CART);
+    }
+
+    private void handleRemoveAction(HttpServletRequest request, HttpSession session) throws ValidationException {
+        int productId = Integer.parseInt(request.getParameter("productId"));
+        Object currentCart = session.getAttribute("CURRENT_CART");
+        currentCart = cartService.removeItemFromCart(currentCart, productId);
+        session.setAttribute("CURRENT_CART", currentCart);
+        session.setAttribute("ACTIVE_TAB", "cart");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_REMOVE_FROM_CART);
+    }
+
+    private void handleClearAction(HttpSession session) throws ValidationException {
+        Object currentCart = session.getAttribute("CURRENT_CART");
+        cartService.clearCart(currentCart);
+        session.removeAttribute("CURRENT_CART");
+        session.setAttribute("ACTIVE_TAB", "cart");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CLEAR_CART);
+    }
+
+    private void handleCheckoutAction(HttpSession session, String tableId) throws ValidationException {
+        Object currentCart = session.getAttribute("CURRENT_CART");
+        @SuppressWarnings("unchecked")
+        Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
+        int orderId = cartService.checkout(currentCart, tableId, userSession);
+        session.removeAttribute("CURRENT_CART");
+        session.setAttribute("LAST_ORDER_ID", orderId);
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CHECKOUT);
+        if (tableId != null && !tableId.trim().isEmpty()) {
+            recordPlacedOrderForTableSession(session, orderId);
+            session.setAttribute("ACTIVE_TAB", "orders");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void recordPlacedOrderForTableSession(HttpSession session, int orderId) {
+        List<Integer> placedOrderIds = (List<Integer>) session.getAttribute("PLACED_ORDER_IDS");
+        if (placedOrderIds == null) {
+            placedOrderIds = new ArrayList<>();
+        }
+        if (!placedOrderIds.contains(orderId)) {
+            placedOrderIds.add(orderId);
+        }
+        session.setAttribute("PLACED_ORDER_IDS", placedOrderIds);
+    }
+
+    private void handleCancelTableOrderAction(HttpServletRequest request, HttpSession session) throws ValidationException {
+        int orderId = Integer.parseInt(request.getParameter("orderId"));
+        orderService.cancelOrder(orderId);
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CANCEL_ORDER);
+        session.setAttribute("ACTIVE_TAB", "orders");
     }
 
     @Override

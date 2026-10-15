@@ -32,7 +32,9 @@ public class AuthFilter implements Filter {
         //Whitelist
         boolean isStaticResource = uri.endsWith(".css")
                 || uri.endsWith(".js") || uri.endsWith(".svg")
-                || uri.endsWith(".png");
+                || uri.endsWith(".png") || uri.endsWith(".jpg")
+                || uri.endsWith(".jpeg") || uri.endsWith(".webp")
+                || uri.contains("/uploads/");
         boolean isAuthPage = uri.endsWith("login.jsp")
                 || uri.endsWith("register.jsp")
                 || uri.endsWith("LoginController")
@@ -42,6 +44,7 @@ public class AuthFilter implements Filter {
                 || uri.endsWith("RegisterController")
                 || uri.endsWith("LanguageController")
                 || uri.endsWith("MenuController")
+                || uri.endsWith("/menu")
                 || uri.endsWith("CartController")
                 || uri.equals(contextPath)
                 || uri.equals(contextPath + "/");

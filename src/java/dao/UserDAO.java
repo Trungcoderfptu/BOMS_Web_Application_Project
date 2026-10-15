@@ -21,11 +21,6 @@ import java.sql.SQLException;
  */
 public class UserDAO extends DBContext {
 
-    private static List<User> userList = new ArrayList<>();
-
-    static {
-    }
-
     public List<User> getAllUsers() throws ValidationException {
         List<User> list = new ArrayList<>();
         String sql = "SELECT * FROM Users ORDER BY UserID DESC";

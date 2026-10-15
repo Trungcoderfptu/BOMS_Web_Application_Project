@@ -36,9 +36,38 @@ public class AccountManagerDAO extends DBContext {
                 list.add(key);
             }
         } catch (SQLException e) {
-            throw new ValidationException(Constants.ERROR_DATABASE_GETALL_KEY + e.getMessage());
+            throw new ValidationException(Constants.ERROR_DATABASE_GETALL_KEY);
         }
         return list;
+    }
+
+    public AccountManager getKeyBySecurityKey(String securityKey) throws ValidationException {
+        String sql = "SELECT * FROM AccountManager WHERE SecurityKey = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setString(1, securityKey);
+            ResultSet rs = st.executeQuery();
+            if (rs.next()) {
+                AccountManager key = new AccountManager();
+                key.setKeyId(rs.getInt("KeyID"));
+                key.setSecurityKey(rs.getString("SecurityKey"));
+                key.setRole(rs.getString("Role"));
+
+                int uId = rs.getInt("UserID");
+                if (rs.wasNull()) {
+                    key.setUserId(null);
+                } else {
+                    key.setUserId(uId);
+                }
+
+                key.setIsActive(rs.getBoolean("IsActive"));
+                key.setCreatedAt(new java.util.Date(rs.getTimestamp("CreatedAt").getTime()));
+                return key;
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GETALL_KEY);
+        }
+        return null;
     }
 
     public void insertKey(AccountManager am) throws ValidationException {
@@ -58,7 +87,7 @@ public class AccountManagerDAO extends DBContext {
             st.setTimestamp(5, new java.sql.Timestamp(am.getCreatedAt().getTime()));
             st.executeUpdate();
         } catch (SQLException e) {
-            throw new ValidationException(Constants.ERROR_DATABASE_INSERT_KEY + e.getMessage());
+            throw new ValidationException(Constants.ERROR_DATABASE_INSERT_KEY);
         }
     }
 

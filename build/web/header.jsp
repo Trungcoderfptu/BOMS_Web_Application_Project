@@ -63,6 +63,7 @@
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Shipper' or sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>

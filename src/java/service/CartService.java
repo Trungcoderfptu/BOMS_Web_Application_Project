@@ -203,7 +203,7 @@ public class CartService {
             throw new ValidationException(Constants.ERROR_PRODUCT_NOT_AVAILABLE);
         }
         Product product = productDAO.getProductById(productId);
-        if (product == null || !product.isAvailable()) {
+        if (product == null || !product.isAvailable() || !ingredientDAO.hasSufficientStockForProduct(productId, 1)) {
             throw new ValidationException(Constants.ERROR_PRODUCT_NOT_AVAILABLE);
         }
         return product;
@@ -253,7 +253,7 @@ public class CartService {
         }
     }
 
-    private Map<Integer, Double> calculateTotalIngredientsNeeded(Order cart) {
+    private Map<Integer, Double> calculateTotalIngredientsNeeded(Order cart) throws ValidationException {
         Map<Integer, Double> neededMap = new HashMap<>();
         for (OrderDetail item : cart.getOrderDetails()) {
             List<ProductIngredient> recipes = ingredientDAO.getIngredientsByProductId(item.getProductId());
@@ -265,14 +265,14 @@ public class CartService {
         return neededMap;
     }
 
-    private void disableProductsUsingIngredient(int ingredientId) {
+    private void disableProductsUsingIngredient(int ingredientId) throws ValidationException {
         List<Integer> productIds = ingredientDAO.getProductIdsUsingIngredient(ingredientId);
         for (Integer pid : productIds) {
             productDAO.updateProductAvailability(pid, false);
         }
     }
 
-    private void deductIngredientsStock(Order cart) {
+    private void deductIngredientsStock(Order cart) throws ValidationException {
         Map<Integer, Double> neededMap = calculateTotalIngredientsNeeded(cart);
         for (Map.Entry<Integer, Double> entry : neededMap.entrySet()) {
             int ingredientId = entry.getKey();
@@ -282,7 +282,7 @@ public class CartService {
         }
     }
 
-    private void checkAndDisableIfDepleted(int ingredientId) {
+    private void checkAndDisableIfDepleted(int ingredientId) throws ValidationException {
         Ingredient ing = ingredientDAO.getIngredientById(ingredientId);
         if (ing != null && ing.getQuantity() <= 0) {
             disableProductsUsingIngredient(ingredientId);

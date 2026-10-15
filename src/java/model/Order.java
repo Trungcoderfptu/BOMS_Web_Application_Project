@@ -27,6 +27,7 @@ public class Order {
     private double totalAmount;
     private Timestamp createdAt;
     private Timestamp cookingStartedAt; // Cốt lõi: Nếu null -> cho phép sửa món
+    private Timestamp canceledAt; // Thời điểm hủy đơn: dùng để khóa sau 5 phút
 
     // Danh sách các món trong đơn hàng này (Đóng vai trò như cái Giỏ Hàng) tóm lại là cái để chứa các món khách gọi
     private List<OrderDetail> orderDetails;
@@ -162,5 +163,13 @@ public class Order {
 
     public void setOrderDetails(List<OrderDetail> orderDetails) {
         this.orderDetails = orderDetails;
+    }
+
+    public Timestamp getCanceledAt() {
+        return canceledAt;
+    }
+
+    public void setCanceledAt(Timestamp canceledAt) {
+        this.canceledAt = canceledAt;
     }
 }

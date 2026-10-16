@@ -236,4 +236,37 @@ public class IngredientDAO extends DBContext {
         ing.setIsActive(rs.getBoolean("IsActive"));
         return ing;
     }
+    
+    public boolean updateThresholdIngredient(int ingredientId, double threshold) throws ValidationException {
+        String sql = "UPDATE Ingredients SET WarningThreshold = ? WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setDouble(1, threshold);
+            st.setInt(2, ingredientId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_THRESHOLD);
+        }
+        return true;
+    }
+    
+    public List<Ingredient> searchIngredient(String ingredientName) throws ValidationException {
+        List<Ingredient> search = new ArrayList<>();
+        String sql = "SELECT * FROM Ingredients WHERE IngredientName LIKE '%' + ? + '%'";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setString(1, ingredientName);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                search.add(mapResultSetToIngredient(rs));
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
+        }
+        return search;
+    }
+    
+    public boolean addInventoryAlert() {
+        return true;
+    }
 }

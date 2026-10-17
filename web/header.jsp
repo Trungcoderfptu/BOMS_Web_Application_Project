@@ -61,7 +61,7 @@
                     <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/ReportManagementController"><fmt:message key="header.sidebar.reports" /></a></li>
                     </c:if>
-                    <c:if test="${not empty sessionScope.USER_SESSION}">
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="${pageContext.request.contextPath}/ReportController"><fmt:message key="header.sidebar.anonymous_report" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">

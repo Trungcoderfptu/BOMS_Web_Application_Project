@@ -104,4 +104,5 @@ thêm file QR code.md để lưu các link QR truy cập nhanh
 * File bằng chứng lưu chung thư mục dữ liệu `~/boms_data` với ảnh món (qua `ImageUploadUtility`), nhưng ở vùng riêng tư `boms_data/private/reports/`: KHÔNG mở được qua link `/uploads/`, chỉ Manager/Admin tải được qua `EvidenceController`. Không cần cấu hình gì thêm.
 * Không cần chạy lại SQL: chức năng dùng các bảng `ReportCategories`, `CategoryManagers`, `AnonymousReports`, `ReportEvidences`, `Notifications` đã có sẵn.
 * Manager chỉ thấy báo cáo của loại được phân công trong bảng `CategoryManagers`; Admin thấy tất cả.
+* nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: del /s *.class để tránh lỗi khi merge nhánh
 ---

@@ -43,6 +43,7 @@
                                     <strong>${sessionScope.USER_SESSION.fullName}</strong>
                                     <hr>
                                     <a href="${pageContext.request.contextPath}/ProfileController"><fmt:message key="header.menu.profile" /></a><br><br>
+                                    <a href="${pageContext.request.contextPath}/AttendanceController"><fmt:message key="header.sidebar.attendance" /></a><br><br>
                                     <a href="${pageContext.request.contextPath}/SettingsController"><fmt:message key="header.menu.settings" /></a><br><br>
                                     <a href="${pageContext.request.contextPath}/LogoutController" class="text-danger"><fmt:message key="header.menu.logout" /></a>
                                 </div>
@@ -57,8 +58,11 @@
             <button id="btnDongMenuDoc">✖ <fmt:message key="header.sidebar.close" /></button>
             <ul class="no-bullet">
                 <li><a href="${pageContext.request.contextPath}/index.jsp"><fmt:message key="header.sidebar.deshbard" /></a></li>
+                    <c:if test="${not empty sessionScope.USER_SESSION}">
+                    <li><a href="${pageContext.request.contextPath}/AttendanceController"><fmt:message key="header.sidebar.attendance" /></a></li>
+                    </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Admin' or sessionScope.USER_SESSION.role == 'Manager'}">
-                    <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.hr" /></a></li>
                     <li><a href="#"><fmt:message key="header.sidebar.reports" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">

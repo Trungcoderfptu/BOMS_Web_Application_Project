@@ -1283,3 +1283,185 @@ text-link-success {
 .border-danger {
     border-color: #ef4444 !important;
 }
+
+/* ==================== PHÂN HỆ CHẤM CÔNG (ATTENDANCE UC-05 & UC-06) ==================== */
+.attendance-top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+@media (max-width: 768px) {
+    .attendance-top-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.attendance-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.attendance-card-title {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 18px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 10px;
+}
+
+.attendance-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border-light);
+}
+
+.info-label {
+    color: var(--text-muted);
+}
+
+.font-highlight {
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+.badge-status-working {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.badge-status-ended {
+    background-color: #f1f5f9;
+    color: #475569;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.badge-status-waiting {
+    background-color: #fef3c7;
+    color: #b45309;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.btn-clock-in {
+    background-color: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-clock-in:hover {
+    background-color: #059669;
+}
+
+.btn-clock-out {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-clock-out:hover {
+    background-color: #dc2626;
+}
+
+.empty-shift-box {
+    text-align: center;
+    padding: 20px;
+}
+
+.clock-display {
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: 2px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.clock-date-text {
+    color: var(--text-muted);
+    font-size: 15px;
+}
+
+.shift-summary-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 14px;
+}
+
+.attendance-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.summary-metric-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.metric-number {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.metric-label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.attendance-history-panel {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.badge-sub-status {
+    font-size: 11px;
+    display: block;
+}
+
+.ot-reason-bubble {
+    display: inline-block;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #fef2f2;
+    color: #991b1b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}

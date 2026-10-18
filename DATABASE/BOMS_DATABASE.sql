@@ -416,7 +416,7 @@ INSERT INTO Payments (OrderID, Method, Amount) VALUES (1, 'Cash', 55000);
 INSERT INTO Payments (OrderID, Method, Amount, TransactionCode) VALUES (2, 'Online', 30000, 'VNP123456');
 INSERT INTO DeliveryStatusHistory (OrderID, ShipperID, Status) VALUES (3, 4, 'Picked up'), (3, 4, 'Delivering');
 
-INSERT INTO Shifts (ShiftName, StartTime, EndTime) VALUES (N'Ca sáng', '07:00', '15:00'), (N'Ca chiều', '15:00', '23:00');
+INSERT INTO Shifts (ShiftName, StartTime, EndTime) VALUES (N'Ca sáng', '07:00', '15:00'), (N'Ca chiều', '15:00', '23:00'), (N'Ca tối', '18:00', '23:00');
 INSERT INTO ShiftAssignments (UserID, ShiftID, WorkDate) VALUES (3, 1, '2026-10-01'), (3, 1, '2026-10-02');
 INSERT INTO Attendances (AssignmentID, CheckInTime, CheckInStatus, CheckOutTime, CheckOutStatus, WorkingHours) VALUES
  (1, '2026-10-01 06:58', 'On Time', '2026-10-01 15:05', 'On Time', 8.1);

@@ -687,3 +687,47 @@
 
 
 
+## [2026-10-15] - Hoàn thiện UC-07 & UC-08: Báo cáo ẩn danh kèm bằng chứng
+### 1. File bị tác động / tạo mới:
+- `src/java/model/ReportCategory.java`, `AnonymousReport.java`, `ReportEvidence.java` (Tạo mới): Entity khớp bảng `ReportCategories`, `AnonymousReports`, `ReportEvidences`. `AnonymousReport` KHÔNG có thuộc tính UserID người gửi.
+- `src/java/dao/ReportDAO.java` (Tạo mới): Truy vấn JDBC thật (không mock). `insertReportWithEvidences` lưu báo cáo + bằng chứng trong 1 transaction (rollback khi lỗi). `filterReports` lọc theo Trạng thái / Ngày / Loại và giới hạn theo `CategoryManagers` cho Manager.
+- `src/java/dao/NotificationDAO.java` (Tạo mới): `insertNotification` ghi vào bảng `Notifications` dùng chung.
+- `src/java/service/ReportService.java` (Tạo mới):
+  - UC-07: `submitReport` (validate loại, tiêu đề, mô tả, file; sinh Ticket ID `TK-XXXXXXXX`; lưu file; thông báo Manager phụ trách loại báo cáo - BR-13).
+  - UC-08: `getReportsForView`, `getReportDetailForView`, `updateReport` (chỉ nhận In Progress / Resolved / Rejected; Rejected bắt buộc có phản hồi - 8.0.E1; báo cáo Resolved/Rejected bị khóa), `getEvidenceForDownload` + `writeEvidenceTo` (8.2).
+  - Phân quyền: Admin xem toàn bộ, Manager chỉ xem loại được phân công trong `CategoryManagers`.
+  - `resolveEvidencePath` chặn đường dẫn `../` để không đọc được file ngoài thư mục upload.
+- `src/java/controller/ReportController.java` (Tạo mới): Gửi báo cáo (multipart) và tra cứu phản hồi theo Ticket ID.
+- `src/java/controller/ReportManagementController.java` (Tạo mới): Danh sách (mặc định lọc Pending), chi tiết, cập nhật trạng thái; lỗi validate thì ở lại trang chi tiết và giữ dữ liệu đã nhập.
+- `src/java/controller/EvidenceController.java` (Tạo mới): Tải file bằng chứng có kiểm tra quyền.
+- `web/report.jsp`, `web/report_management.jsp`, `web/report_detail.jsp` (Tạo mới): Có nút Hủy (7.1, 8.1), tô đỏ ô lỗi (`.input-error`), toàn bộ nội dung người dùng nhập được escape bằng `c:out` / `fn:escapeXml` để chống XSS.
+- `web/WEB-INF/Upload.properties`: (đã bỏ ngày 2026-10-16, xem mục bên dưới).
+- `web/WEB-INF/web.xml`: Đăng ký 3 Servlet; `ReportController` có `<multipart-config>` giới hạn 20MB/file.
+- `web/header.jsp`: Link "Báo cáo" (Admin/Manager) trỏ `ReportManagementController`; thêm link "Báo cáo ẩn danh" cho mọi tài khoản đã đăng nhập.
+- `src/java/utility/Constants.java`: Mã S0300-S0301, E0300-E0316, DE0030-DE0033 (đổi từ DE0012-DE0015 khi gộp bản 0.0.6 của Trung vì trùng mã) và hằng số nghiệp vụ báo cáo.
+- `messages_vi.properties` & `messages_en.properties`: Bản dịch đầy đủ cho các khóa `report.*` và mã lỗi mới.
+- `web/css/global.css`: Class `.report-*`, `.input-error`, `.ticket-box`, `.report-badge-*`.
+- `web/js/main.js`: `initEvidenceFileCheck` kiểm tra số lượng / định dạng / dung lượng file ngay khi chọn (server vẫn kiểm tra lại).
+
+### 2. Bài học kinh nghiệm:
+- **Không dùng `Paths.get` với tên file người dùng gửi lên:** Tên chứa ký tự Windows cấm (`?`, `*`, `:`) làm ném `InvalidPathException` -> lỗi 500. Chỉ cắt chuỗi sau dấu `/` cuối cùng và lưu file trên ổ đĩa bằng tên UUID.
+- **Không khai báo `static` ngoài package utility** (kể cả hằng số chuỗi SQL trong DAO): dùng `private final`.
+- **Upload file trong Tomcat:** Khi file vượt `max-file-size`, `request.getParts()` ném `IllegalStateException` -> Controller phải bắt và đổi thành mã lỗi (E0306). Trình duyệt không cho điền lại file khi forward về form, cần nhắc người dùng chọn lại.
+- **Kiểm thử tiếng Việt bằng curl trên Git Bash:** Tham số dòng lệnh không phải UTF-8 nên dữ liệu bị lỗi font; phải đọc nội dung từ file UTF-8 (`-F "field=<file.txt"`) mới phản ánh đúng trình duyệt.
+
+## [2026-10-16] - Gộp luồng upload bằng chứng (UC-07) vào `ImageUploadUtility` dùng chung (theo yêu cầu của Trung)
+### 1. File bị tác động:
+- `src/java/utility/ImageUploadUtility.java` (Nâng cấp, GIỮ NGUYÊN API cũ `saveImage`, `getImageFile`, `deleteImage`, `UPLOAD_ROOT_DIR`, `MAX_FILE_SIZE` nên `MenuManagementController` và `ImageServingServlet` không phải sửa):
+  - Thêm lớp `UploadRule` (đuôi file, MIME, dung lượng tối đa, mã lỗi, vùng lưu) và 2 quy tắc có sẵn: `IMAGE_RULE` (jpg/jpeg/png/webp, 10MB, công khai - giống hệt trước) và `REPORT_EVIDENCE_RULE` (jpg/jpeg/png/mp4/pdf/docx, 20MB, riêng tư - khớp `CK_Evidence_Type`, `CK_Evidence_Size`).
+  - Thêm `saveFile(part, subFolder, rule)`, `validateFile(part, rule)`, `getPrivateFile(path)`, `deleteFile(path)`, `getContentType(fileName)`.
+  - 2 vùng lưu: `~/boms_data/uploads/` (công khai, `ImageServingServlet` phát qua `/uploads/*`) và `~/boms_data/private/` (riêng tư, KHÔNG có URL công khai). Đường dẫn lưu DB: `uploads/...` hoặc `private/...`.
+  - Siết kiểm tra Directory Traversal: so sánh với `canonicalBase + File.separator` để không lọt sang thư mục cùng tiền tố (ví dụ `uploads2`). Ghi file lỗi thì xóa file dở dang.
+- `src/java/service/ReportService.java`: Bỏ toàn bộ code tự lưu file, tự đọc cấu hình thư mục, tự chặn `../`, tự đoán MIME; gọi `ImageUploadUtility` thay thế. Service chỉ giữ kiểm tra nghiệp vụ (ít nhất 1, tối đa 5 file) và kiểm tra quyền trước khi tải.
+- `src/java/utility/Constants.java`: Bỏ `UPLOAD_CONFIG_FILE`, `UPLOAD_CONFIG_KEY`, `DEFAULT_UPLOAD_DIR`, `REPORT_ALLOWED_FILE_TYPES` (đã chuyển vào `REPORT_EVIDENCE_RULE`).
+- `web/WEB-INF/Upload.properties`: Xóa. Không còn cần cấu hình thư mục riêng.
+
+### 2. Bài học kinh nghiệm:
+- **Upload dùng chung KHÔNG có nghĩa là phát công khai chung:** `AuthFilter` cho mọi URL chứa `/uploads/` đi qua không cần đăng nhập. File nhạy cảm (bằng chứng báo cáo) phải lưu NGOÀI `uploads/` và chỉ trả về qua Controller có kiểm tra quyền.
+- **Kiểm tra toàn bộ file trước rồi mới lưu:** gọi `validateFile` cho mọi file trước `saveFile`, tránh trường hợp lưu được file 1 rồi file 2 lỗi để lại file rác.
+- **Dữ liệu cũ:** bằng chứng gửi trước ngày 2026-10-16 (đường dẫn kiểu `TK-xxx/uuid.png` trong `C:/BOMS_uploads`) không còn tải được, hệ thống báo E0314. Chỉ là dữ liệu test, có thể xóa.
+

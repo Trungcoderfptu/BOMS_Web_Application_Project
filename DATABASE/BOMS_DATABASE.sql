@@ -121,7 +121,7 @@ CREATE TABLE IngredientBatches (
 CREATE TABLE InventoryAlerts (
     AlertID        INT IDENTITY(1,1) PRIMARY KEY,
     IngredientID   INT          NOT NULL,
-    AlertType      VARCHAR(20)  NOT NULL,                -- LowStock, OutOfStock, Expired
+    AlertType      VARCHAR(20)  NOT NULL,                -- LowStock, OutOfStock, Expired, Expiring Soon
     Status         VARCHAR(20)  NOT NULL DEFAULT 'Active',
     ConfirmedBy    INT          NULL,
     CreatedAt      DATETIME     NOT NULL DEFAULT GETDATE(),

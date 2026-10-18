@@ -52,6 +52,16 @@ public class Constants {
     public static final String SUCCESS_UPDATE_PRODUCT = "S0209";
     public static final String SUCCESS_CHANGE_PRODUCT_STATUS = "S0210";
 
+    // Dải S030X: Quản lý Kho nguyên liệu (Inventory)
+    public static final String SUCCESS_UPDATE_THRESHOLD = "S0301";
+    public static final String SUCCESS_CREATE_INGREDIENT = "S0302";
+    public static final String SUCCESS_UPDATE_INGREDIENT = "S0303";
+    public static final String SUCCESS_DELETE_INGREDIENT = "S0304";
+
+    // Dải S040X: Cảnh báo Tồn kho & Hết hạn (Alerts)
+    public static final String SUCCESS_CONFIRM_ALERT = "S0401";
+    public static final String SUCCESS_CLOSE_ALERT = "S0402";
+
     // Dải S9XXX: Nghiệp vụ Quản trị hệ thống (Admin)
     public static final String SUCCESS_ACCOUNT_STATE_CHANGE = "S9000";
 
@@ -109,6 +119,19 @@ public class Constants {
     public static final String ERROR_PRODUCT_NAME_EXISTS = "E0210";
     public static final String ERROR_PRODUCT_NOT_FOUND = "E0211";
 
+    // Dải E030X: Quản lý Kho nguyên liệu (Inventory)
+    public static final String ERROR_INGREDIENT_NOT_FOUND = "E0301";
+    public static final String ERROR_INGREDIENT_NAME_EXISTS = "E0302";
+    public static final String ERROR_INVALID_THRESHOLD = "E0303";
+    public static final String ERROR_EMPTY_INGREDIENT_NAME = "E0304";
+    public static final String ERROR_INVALID_INGREDIENT_PRICE = "E0305";
+    public static final String ERROR_INVALID_INGREDIENT_QTY = "E0306";
+    public static final String ERROR_INSUFFICIENT_PERMISSION = "E0307";
+    public static final String ERROR_INVALID_INGREDIENT_DATA = "E0308";
+
+    // Dải E040X: Cảnh báo Tồn kho & Hết hạn (Alerts)
+    public static final String ERROR_ALERT_NOT_FOUND = "E0401";
+
     // Dải E9XXX: Cấu hình & Nghiệp vụ Quản trị (Admin / System)
     public static final String SERROR_INVALID_SETTING_TAB = "E9000";
 
@@ -139,6 +162,11 @@ public class Constants {
     // Nhóm Kho & Công thức nguyên liệu (Ingredient DAO)
     public static final String ERROR_DATABASE_GET_INGREDIENT = "DE0014";
     public static final String ERROR_DATABASE_UPDATE_INGREDIENT = "DE0015";
+    public static final String ERROR_DATABASE_UPDATE_THRESHOLD = "DE0018";
+
+    // Nhóm Cảnh báo Kho (Alert DAO)
+    public static final String ERROR_DATABASE_GET_ALERT = "DE0019";
+    public static final String ERROR_DATABASE_UPDATE_ALERT = "DE0020";
 
     // Nhóm Đơn hàng & Chi tiết bán lẻ (Order DAO)
     public static final String ERROR_DATABASE_INSERT_ORDER = "DE0011";

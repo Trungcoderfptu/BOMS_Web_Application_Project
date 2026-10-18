@@ -675,18 +675,6 @@
 - **Quy chuẩn Quản lý Văn bản trong JavaScript:** Tuyệt đối không hardcode chuỗi tiếng Việt thô vào file JS. Toàn bộ chuỗi ngôn ngữ phải được View (JSP) nạp qua Resource Bundle và truyền xuống JS thông qua các thuộc tính HTML `data-*` attribute. Mọi chuỗi dự phòng (fallback) trong JS bắt buộc phải dùng Unicode Escape (`\uXXXX`).
 - **Trạng thái Build:** Biên dịch javac với Apache Tomcat 10.1 và thư viện dự án đạt **0 lỗi** (`BUILD SUCCESSFUL`).
 
-
-
-
-
-
-
-
-
-
-
-
-
 ## [2026-10-15] - Hoàn thiện UC-07 & UC-08: Báo cáo ẩn danh kèm bằng chứng
 ### 1. File bị tác động / tạo mới:
 - `src/java/model/ReportCategory.java`, `AnonymousReport.java`, `ReportEvidence.java` (Tạo mới): Entity khớp bảng `ReportCategories`, `AnonymousReports`, `ReportEvidences`. `AnonymousReport` KHÔNG có thuộc tính UserID người gửi.
@@ -731,3 +719,90 @@
 - **Kiểm tra toàn bộ file trước rồi mới lưu:** gọi `validateFile` cho mọi file trước `saveFile`, tránh trường hợp lưu được file 1 rồi file 2 lỗi để lại file rác.
 - **Dữ liệu cũ:** bằng chứng gửi trước ngày 2026-10-16 (đường dẫn kiểu `TK-xxx/uuid.png` trong `C:/BOMS_uploads`) không còn tải được, hệ thống báo E0314. Chỉ là dữ liệu test, có thể xóa.
 
+## [2026-10-18] - Hoàn thiện FE-03: Quản lý Kho Nguyên liệu (Inventory Management - Tasks 3.1 -> 3.6)
+### 1. File bị tác động / tạo mới:
+- `src/java/utility/Constants.java`:
+  - Khai báo các hằng số mã thành công: `SUCCESS_CREATE_INGREDIENT` (S0301), `SUCCESS_UPDATE_INGREDIENT` (S0302), `SUCCESS_DELETE_INGREDIENT` (S0303), `SUCCESS_UPDATE_THRESHOLD` (S0304).
+  - Khai báo các mã lỗi: `ERROR_INGREDIENT_NOT_FOUND` (E0301), `ERROR_EMPTY_INGREDIENT_NAME` (E0302), `ERROR_INVALID_INGREDIENT_QTY` (E0303), `ERROR_INVALID_INGREDIENT_PRICE` (E0304), `ERROR_INVALID_THRESHOLD` (E0305), `ERROR_INGREDIENT_NAME_EXISTS` (E0306), `ERROR_INVALID_INGREDIENT_DATA` (E0307), `ERROR_INSUFFICIENT_PERMISSION` (E0308).
+  - Chuẩn hóa mã lỗi CSDL `ERROR_DATABASE_UPDATE_THRESHOLD` từ `"DE00XX"` thành `"DE0018"`.
+- `src/java/utility/Validator.java`:
+  - Bổ sung hàm tiện ích `checkNonNegativeDouble(String value, String errorMessage)` kiểm tra số thực >= 0.
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`:
+  - Khai báo toàn bộ thông điệp mã S0301-S0304, E0301-E0308, DE0018 và toàn bộ nhãn giao diện `inventory.*`, `header.sidebar.inventory` (100% mã hóa `\uXXXX` cho tiếng Việt).
+- `src/java/dao/IngredientDAO.java`:
+  - Hoàn thiện `updateThresholdIngredient(int ingredientId, double threshold)`.
+  - Bổ sung `isIngredientNameExists(String name, int excludeId)`, `searchIngredient(String ingredientName)` (tìm kiếm linh hoạt), và `getIngredientCategoryMap()`.
+- `src/java/service/IngredientService.java`:
+  - Triển khai nghiệp vụ kho: `getAllIngredientsForView(searchTerm)`, `getIngredientDetailForView(id)`, `getCategoriesForView()`, `updateWarningThreshold(...)`, `createIngredient(...)`, `updateIngredient(...)`, `deleteIngredient(...)`.
+  - Tích hợp kiểm tra phân quyền Manager/Admin (`validateManagerPermission`), Validation 2 tầng, chuyển đổi dữ liệu thực thể sang `Map<String, Object>` (DTO) phẳng, phân loại trạng thái kho (`IN_STOCK`, `LOW_STOCK`, `OUT_OF_STOCK`).
+- `src/java/controller/InventoryManagementController.java` (Tạo mới):
+  - Servlet điều phối quản lý kho (`/InventoryManagementController`), kiểm tra `USER_SESSION` & role, xử lý các action `create`, `update`, `delete`, `updateThreshold`.
+  - Áp dụng chuẩn Post-Redirect-Get (PRG) và Flash Message qua `Session`. Tuyệt đối không import `model.*` hay `dao.*`.
+- `web/components/inventory_form_modal.jsp` (Tạo mới):
+  - Modal form 2 trong 1 (Thêm/Sửa nguyên liệu & Cập nhật nhanh ngưỡng cảnh báo).
+- `web/inventory_management.jsp` (Tạo mới):
+  - Giao diện quản lý kho với bảng `admin-table`, tìm kiếm thời gian thực, badge trạng thái 3 màu (Xanh/Vàng/Đỏ), phân quyền hiển thị nút thao tác cho Manager.
+- `web/header.jsp` & `web/WEB-INF/web.xml`:
+  - Thêm liên kết Quản lý kho trên sidebar và đăng ký servlet mapping `/InventoryManagementController`.
+- `web/js/main.js` & `web/css/global.css`:
+  - Bổ sung các hàm modal kho (`openCreateIngredientModal`, `openEditIngredientModal`, `openThresholdModal`, `closeIngredientModal`, `closeThresholdModal`) và CSS bảng, badge trạng thái.
+- `.agent/WorkList.md`: Đã cập nhật đánh dấu `[DONE]` Tasks 3.1 -> 3.6 và Task 4.1.
+
+### 2. Tuân thủ kiến trúc:
+- Controller không import Model/DAO, không dùng `PrintWriter`.
+- Service ném `ValidationException` kèm mã lỗi chuẩn, đóng gói DTO dạng Map.
+- View không scriptlet, không CSS/JS inline, tuân thủ i18n và phân quyền.
+- Biên dịch NetBeans Ant đạt `BUILD SUCCESSFUL` (0 errors).
+
+## [2026-10-18] - Hoàn thiện FE-04: Cảnh báo Tồn kho & Hết hạn (Inventory Alerts & Expiration - Tasks 4.2 -> 4.6)
+### 1. File bị tác động / tạo mới:
+- `src/java/utility/Constants.java`:
+  - Khai báo các hằng số mã thành công: `SUCCESS_CONFIRM_ALERT` (S0401), `SUCCESS_CLOSE_ALERT` (S0402).
+  - Khai báo mã lỗi: `ERROR_ALERT_NOT_FOUND` (E0401).
+  - Khai báo mã lỗi CSDL: `ERROR_DATABASE_GET_ALERT` (DE0019), `ERROR_DATABASE_UPDATE_ALERT` (DE0020).
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`:
+  - Khai báo song ngữ cho các mã S0401, S0402, E0401, DE0019, DE0020.
+  - Bổ sung toàn bộ nhãn giao diện `alert.*` (100% mã hóa `\uXXXX` cho tiếng Việt): chuông cảnh báo, tiêu đề modal, phân loại cảnh báo, nút xác nhận/đóng.
+- `src/java/dao/IngredientDAO.java`:
+  - Bổ sung các phương thức: `isAlertActive(ingredientId, alertType)`, `insertInventoryAlert(ingredientId, alertType)`, `getActiveAlerts()`, `confirmAlert(alertId, userId)`, `closeAlert(alertId)`, `closeResolvedStockAlerts()` (tự động đóng cảnh báo khi đã bổ sung hàng), và `getExpiringIngredientIds(withinDays)` (truy xuất các lô hàng trong `IngredientBatches` cận date <= 3 ngày).
+- `src/java/service/IngredientService.java`:
+  - `scanIngredientStock()`: Tự động đối soát tồn kho và hạn dùng theo chu kỳ, đóng cảnh báo đã giải quyết, tự động sinh cảnh báo mới khi cạn kiệt (OutOfStock), chạm ngưỡng (LowStock) hoặc cận hạn (Expired).
+  - `getActiveAlertsForView()`: Trả về danh sách cảnh báo thời gian thực dạng Map DTO phẳng.
+  - `confirmAlert(alertIdStr, userId)` và `closeAlert(alertIdStr)`: Xử lý nghiệp vụ xác nhận và đóng cảnh báo.
+- `src/java/controller/IngredientAlertController.java` (Tạo mới):
+  - Servlet điều phối AJAX Polling (`/IngredientAlertController`), tiếp nhận request `doGet` (trả về danh sách cảnh báo dạng JSON) và `doPost` (xử lý xác nhận cảnh báo).
+  - Tuân thủ tuyệt đối: Không import Model/DAO, bọc try-catch tập trung.
+- `web/components/inventory_alert_modal.jsp` (Tạo mới):
+  - Component modal hiển thị danh sách các nguyên liệu bị cảnh báo kèm trạng thái, thông tin người xác nhận, nút xác nhận và đóng.
+  - Dùng `data-*` attribute để truyền nhãn ngôn ngữ sang JavaScript, ngăn chặn hoàn toàn lỗi vỡ font Mojibake.
+- `web/header.jsp` & `web/WEB-INF/web.xml`:
+  - Bổ sung icon Chuông thông báo (`btnInventoryAlertBell`) kèm badge đếm số lượng thời gian thực trên Header khi đăng nhập (Staff/Manager/Admin).
+  - Nhúng `<jsp:include page="components/inventory_alert_modal.jsp" />` vào Header để mở modal xem cảnh báo từ mọi trang.
+  - Đăng ký servlet và servlet-mapping cho `IngredientAlertController`.
+- `web/js/main.js`:
+  - Bổ sung kịch bản `pollInventoryAlerts()` chạy ngầm định kỳ 60 giây qua AJAX.
+  - Tích hợp âm thanh cảnh báo (Audio notification) bằng Web Audio API khi số lượng cảnh báo mới tăng lên.
+  - Quản lý mở/đóng modal và gọi API xác nhận `confirmInventoryAlert(alertId)`.
+  - 100% comment tiếng Anh thuần ASCII, fallback Unicode Escape `\uXXXX`.
+- `web/css/global.css`:
+  - Định dạng `.btn-icon-alert`, `.alert-badge`, hiệu ứng nhấp nháy `.alert-badge-pulse`, `.modal-card-lg`, và các badge màu sắc trạng thái cảnh báo (`.badge-alert-out`, `.badge-alert-low`, `.badge-alert-expired`, `.badge-confirmed`).
+- `.agent/WorkList.md`: Đã cập nhật đánh dấu hoàn thành `[DONE]` cho toàn bộ FE-04 (Tasks 4.1 -> 4.6).
+
+### 2. Tuân thủ kiến trúc:
+- Controller chỉ trả về JSON DTO, tuyệt đối không import Model/DAO.
+- Service xử lý 100% logic đối soát kho và ném `ValidationException`.
+- View không scriptlet, không CSS/JS inline, giao diện thân thiện i18n và đồng bộ đa chủ đề (Light/Dark Mode).
+- Biên dịch NetBeans Ant đạt `BUILD SUCCESSFUL` (0 errors).
+
+## [2026-10-18] - Tối ưu phân loại `AlertType.ExpiringSoon` & Khắc phục lỗi Xác nhận cảnh báo (`confirmAlert`)
+### 1. File bị tác động:
+- `src/java/dao/IngredientDAO.java`:
+  - Tách riêng 2 phương thức truy vấn lô hàng theo hạn dùng: `getExpiredIngredientIds()` (`ExpirationDate < CAST(GETDATE() AS DATE)`) và `getExpiringSoonIngredientIds(int withinDays)` (`ExpirationDate >= CAST(GETDATE() AS DATE) AND ExpirationDate <= DATEADD(day, ?, CAST(GETDATE() AS DATE))`).
+  - Ánh xạ chuỗi `'Expiring Soon'` trong CSDL sang enum `AlertType.ExpiringSoon` trong `getActiveAlerts()`.
+  - Phòng hộ `userId <= 0` bằng `st.setNull(1, java.sql.Types.INTEGER)` trong `confirmAlert` để ngăn lỗi vi phạm khóa ngoại `FOREIGN KEY (ConfirmedBy)`.
+- `src/java/service/IngredientService.java`:
+  - Cập nhật `scanIngredientStock()` để quét và tạo cảnh báo `'Expired'` cho lô hàng đã quá hạn và `'Expiring Soon'` cho lô hàng cận hạn trong vòng 3 ngày tới.
+- `src/java/controller/IngredientAlertController.java`:
+  - Khắc phục lỗi trích xuất `userId` từ `sessionScope.USER_SESSION` (bổ sung `Integer.parseInt(idVal.toString().trim())` khi `userId` được lưu dạng `String` từ `UserService.buildUserSessionMap`), đảm bảo `ConfirmedBy` cập nhật chính xác `UserID` người xác nhận lên CSDL.
+- `src/java/resources/messages_vi.properties`, `src/java/resources/messages_en.properties`, `web/components/inventory_alert_modal.jsp`, `web/js/main.js`:
+  - Bổ sung khóa `alert.type.expiring_soon` ("Sắp hết hạn (Cận date)" / "Expiring Soon") tách biệt với `alert.type.expired` ("Đã hết hạn" / "Expired") và phản hồi nút bấm `confirmInventoryAlert` tức thì.

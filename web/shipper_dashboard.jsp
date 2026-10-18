@@ -47,8 +47,8 @@
                                         <button type="submit" class="btn btn-accept"><fmt:message key="shipper.btn.accept" /></button>
                                     </form>
                                     
-                                    <!-- Nút Từ Chối -->
-                                    <form action="ShipperController" method="POST" class="inline-form">
+                                    <!-- Nút Từ Chối (Đã tích hợp hộp thoại xác nhận JS) -->
+                                    <form action="ShipperController" method="POST" class="inline-form" onsubmit="return confirm('<fmt:message key="shipper.confirm.reject" />');">
                                         <input type="hidden" name="action" value="rejectTask">
                                         <input type="hidden" name="txtTaskId" value="${task.taskId}">
                                         <button type="submit" class="btn btn-reject"><fmt:message key="shipper.btn.reject" /></button>
@@ -86,24 +86,27 @@
                             <strong><fmt:message key="status.${task.status}" /></strong>
                         </td>
                         <td class="action-cell">
-                            <c:if test="${task.status != 'COMPLETED' && task.status != 'FAILED'}">
+                            <!-- Kiểm tra nếu đơn chưa đóng luồng thì hiện dropdown cập nhật -->
+                            <c:if test="${task.status != 'Delivered' && task.status != 'Returned'}">
                                 <form action="ShipperController" method="POST" class="inline-form">
+                                    <input type="hidden" name="action" value="updateStatus">
                                     <input type="hidden" name="txtTaskId" value="${task.taskId}">
                                     <select name="txtStatus" class="status-select">
-                                        <option value="DELIVERING" ${task.status == 'DELIVERING' ? 'selected' : ''}>
+                                        <option value="Delivering" ${task.status == 'DELIVERING' || task.status == 'Delivering' ? 'selected' : ''}>
                                             <fmt:message key="status.DELIVERING" />
                                         </option>
-                                        <option value="COMPLETED">
+                                        <option value="Delivered">
                                             <fmt:message key="status.COMPLETED" />
                                         </option>
-                                        <option value="FAILED">
+                                        <option value="Returned">
                                             <fmt:message key="status.FAILED" />
                                         </option>
                                     </select>
                                     <button type="submit" class="btn btn-update"><fmt:message key="shipper.btn.update" /></button>
                                 </form>
                             </c:if>
-                            <c:if test="${task.status == 'COMPLETED' || task.status == 'FAILED'}">
+                            <!-- Nếu đơn đã hoàn thành hoặc bom hàng thì khóa luồng -->
+                            <c:if test="${task.status == 'Delivered' || task.status == 'Returned'}">
                                 <span class="text-closed"><fmt:message key="shipper.text.closed" /></span>
                             </c:if>
                         </td>

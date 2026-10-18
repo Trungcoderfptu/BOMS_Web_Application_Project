@@ -124,6 +124,34 @@ function initMainApp() {
     }
 
     initCancelCountdowns();
+
+    // ================= ATTENDANCE SERVER CLOCK =================
+    const clockEl = document.getElementById('serverClockDisplay');
+    if (clockEl) {
+        const timeStr = clockEl.getAttribute('data-server-time');
+        if (timeStr) {
+            const parts = timeStr.split(':');
+            if (parts.length === 3) {
+                let hours = parseInt(parts[0], 10);
+                let minutes = parseInt(parts[1], 10);
+                let seconds = parseInt(parts[2], 10);
+
+                setInterval(function () {
+                    seconds++;
+                    if (seconds >= 60) {
+                        seconds = 0;
+                        minutes++;
+                        if (minutes >= 60) {
+                            minutes = 0;
+                            hours = (hours + 1) % 24;
+                        }
+                    }
+                    const pad = function (n) { return n < 10 ? '0' + n : n; };
+                    clockEl.textContent = pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+                }, 1000);
+            }
+        }
+    }
 }
 
 if (document.readyState === "loading") {
@@ -417,9 +445,29 @@ function closeProductModal() {
     }
 }
 
-// Listen for Escape key to close product modal
+// ================= ATTENDANCE OT MODAL =================
+function openOtReasonModal() {
+    const modal = document.getElementById('otReasonModal');
+    if (modal) {
+        modal.classList.remove('d-none');
+        const input = document.getElementById('otReasonInput');
+        if (input) {
+            input.focus();
+        }
+    }
+}
+
+function closeOtReasonModal() {
+    const modal = document.getElementById('otReasonModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+// Listen for Escape key to close modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeProductModal();
+        closeOtReasonModal();
     }
 });

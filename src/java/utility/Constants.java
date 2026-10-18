@@ -52,6 +52,10 @@ public class Constants {
     public static final String SUCCESS_UPDATE_PRODUCT = "S0209";
     public static final String SUCCESS_CHANGE_PRODUCT_STATUS = "S0210";
 
+    // Dải S030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
+    public static final String SUCCESS_ATTENDANCE_CHECK_IN = "S0301";
+    public static final String SUCCESS_ATTENDANCE_CHECK_OUT = "S0302";
+
     // Dải S9XXX: Nghiệp vụ Quản trị hệ thống (Admin)
     public static final String SUCCESS_ACCOUNT_STATE_CHANGE = "S9000";
 
@@ -109,6 +113,14 @@ public class Constants {
     public static final String ERROR_PRODUCT_NAME_EXISTS = "E0210";
     public static final String ERROR_PRODUCT_NOT_FOUND = "E0211";
 
+    // Dải E030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
+    public static final String ERROR_ATTENDANCE_NO_SHIFT = "E0301";
+    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_IN = "E0302";
+    public static final String ERROR_ATTENDANCE_NOT_CHECKED_IN = "E0303";
+    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_OUT = "E0304";
+    public static final String ERROR_ATTENDANCE_PENDING_ORDERS = "E0305";
+    public static final String ERROR_ATTENDANCE_EMPTY_OT_REASON = "E0306";
+
     // Dải E9XXX: Cấu hình & Nghiệp vụ Quản trị (Admin / System)
     public static final String SERROR_INVALID_SETTING_TAB = "E9000";
 
@@ -144,4 +156,9 @@ public class Constants {
     public static final String ERROR_DATABASE_INSERT_ORDER = "DE0011";
     public static final String ERROR_DATABASE_GET_ORDER = "DE0016";
     public static final String ERROR_DATABASE_UPDATE_ORDER = "DE0017";
+
+    // Nhóm Chấm công & Ca làm việc (Attendance DAO)
+    public static final String ERROR_DATABASE_GET_ATTENDANCE = "DE0018";
+    public static final String ERROR_DATABASE_INSERT_ATTENDANCE = "DE0019";
+    public static final String ERROR_DATABASE_UPDATE_ATTENDANCE = "DE0020";
 }

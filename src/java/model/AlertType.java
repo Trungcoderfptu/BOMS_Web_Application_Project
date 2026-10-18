@@ -10,5 +10,6 @@ package model;
 public enum AlertType {
     LowStock,
     OutOfStock,
+    ExpiringSoon,
     Expired;
 }

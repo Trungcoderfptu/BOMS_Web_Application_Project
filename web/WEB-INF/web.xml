@@ -56,6 +56,14 @@
         <servlet-name>ImageServingServlet</servlet-name>
         <servlet-class>controller.ImageServingServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>InventoryManagementController</servlet-name>
+        <servlet-class>controller.InventoryManagementController</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>IngredientAlertController</servlet-name>
+        <servlet-class>controller.IngredientAlertController</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>LoginController</servlet-name>
         <url-pattern>/LoginController</url-pattern>
@@ -112,6 +120,14 @@
     <servlet-mapping>
         <servlet-name>ImageServingServlet</servlet-name>
         <url-pattern>/uploads/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>InventoryManagementController</servlet-name>
+        <url-pattern>/InventoryManagementController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>IngredientAlertController</servlet-name>
+        <url-pattern>/IngredientAlertController</url-pattern>
     </servlet-mapping>
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>

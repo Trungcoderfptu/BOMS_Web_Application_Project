@@ -128,7 +128,7 @@ CREATE TABLE InventoryAlerts (
     ConfirmedAt    DATETIME     NULL,
     FOREIGN KEY (IngredientID) REFERENCES Ingredients(IngredientID),
     FOREIGN KEY (ConfirmedBy)  REFERENCES Users(UserID),
-    CONSTRAINT CK_Alert_Type   CHECK (AlertType IN ('LowStock', 'OutOfStock', 'Expired')),
+    CONSTRAINT CK_Alert_Type   CHECK (AlertType IN ('LowStock', 'OutOfStock', 'Expired', 'Expiring Soon')),
     CONSTRAINT CK_Alert_Status CHECK (Status IN ('Active', 'Confirmed', 'Closed'))
 );
 

@@ -121,14 +121,14 @@ CREATE TABLE IngredientBatches (
 CREATE TABLE InventoryAlerts (
     AlertID        INT IDENTITY(1,1) PRIMARY KEY,
     IngredientID   INT          NOT NULL,
-    AlertType      VARCHAR(20)  NOT NULL,                -- LowStock, OutOfStock, Expired
+    AlertType      VARCHAR(20)  NOT NULL,                -- LowStock, OutOfStock, Expired, Expiring Soon
     Status         VARCHAR(20)  NOT NULL DEFAULT 'Active',
     ConfirmedBy    INT          NULL,
     CreatedAt      DATETIME     NOT NULL DEFAULT GETDATE(),
     ConfirmedAt    DATETIME     NULL,
     FOREIGN KEY (IngredientID) REFERENCES Ingredients(IngredientID),
     FOREIGN KEY (ConfirmedBy)  REFERENCES Users(UserID),
-    CONSTRAINT CK_Alert_Type   CHECK (AlertType IN ('LowStock', 'OutOfStock', 'Expired')),
+    CONSTRAINT CK_Alert_Type   CHECK (AlertType IN ('LowStock', 'OutOfStock', 'Expired', 'Expiring Soon')),
     CONSTRAINT CK_Alert_Status CHECK (Status IN ('Active', 'Confirmed', 'Closed'))
 );
 

@@ -7,7 +7,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import model.AlertStatus;
+import model.AlertType;
 import model.Ingredient;
+import model.IngredientAlert;
 import model.ProductIngredient;
 import utility.Constants;
 import utility.ValidationException;
@@ -235,5 +238,226 @@ public class IngredientDAO extends DBContext {
         ing.setWarningThreshold(rs.getDouble("WarningThreshold"));
         ing.setIsActive(rs.getBoolean("IsActive"));
         return ing;
+    }
+    
+    public boolean updateThresholdIngredient(int ingredientId, double threshold) throws ValidationException {
+        String sql = "UPDATE Ingredients SET WarningThreshold = ? WHERE IngredientID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setDouble(1, threshold);
+            st.setInt(2, ingredientId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_THRESHOLD);
+        }
+        return true;
+    }
+
+    public boolean isIngredientNameExists(String name, int excludeId) throws ValidationException {
+        String sql = "SELECT COUNT(*) FROM Ingredients WHERE LOWER(IngredientName) = LOWER(?) AND IngredientID != ? AND IsActive = 1";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setString(1, name.trim());
+            st.setInt(2, excludeId);
+            ResultSet rs = st.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
+        }
+        return false;
+    }
+    
+    public List<Ingredient> searchIngredient(String ingredientName) throws ValidationException {
+        List<Ingredient> search = new ArrayList<>();
+        String sql = "SELECT IngredientID, CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive "
+                + "FROM Ingredients WHERE (IngredientName LIKE '%' + ? + '%' OR ? = '') AND IsActive = 1 ORDER BY IngredientID ASC";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            String term = (ingredientName != null) ? ingredientName.trim() : "";
+            st.setString(1, term);
+            st.setString(2, term);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                search.add(mapResultSetToIngredient(rs));
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
+        }
+        return search;
+    }
+
+    public java.util.Map<Integer, String> getIngredientCategoryMap() throws ValidationException {
+        java.util.Map<Integer, String> map = new java.util.HashMap<>();
+        String sql = "SELECT CategoryID, CategoryName FROM IngredientCategories ORDER BY CategoryID ASC";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                map.put(rs.getInt("CategoryID"), rs.getString("CategoryName"));
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
+        }
+        return map;
+    }
+    
+    // =========================================================================
+    // INVENTORY ALERTS (FE-04)
+    // =========================================================================
+
+    public boolean isAlertActive(int ingredientId, String alertType) throws ValidationException {
+        String sql = "SELECT COUNT(*) FROM InventoryAlerts WHERE IngredientID = ? AND AlertType = ? AND Status IN ('Active', 'Confirmed')";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, ingredientId);
+            st.setString(2, alertType);
+            ResultSet rs = st.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ALERT);
+        }
+        return false;
+    }
+
+    public void insertInventoryAlert(int ingredientId, String alertType) throws ValidationException {
+        String sql = "INSERT INTO InventoryAlerts (IngredientID, AlertType, Status, CreatedAt) VALUES (?, ?, 'Active', GETDATE())";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, ingredientId);
+            st.setString(2, alertType);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ALERT);
+        }
+    }
+
+    public List<IngredientAlert> getActiveAlerts() throws ValidationException {
+        List<IngredientAlert> list = new ArrayList<>();
+        String sql = "SELECT a.AlertID, a.IngredientID, a.AlertType, a.Status, a.ConfirmedBy, a.CreatedAt, a.ConfirmedAt, "
+                + "i.CategoryID, i.IngredientName, i.Unit, i.Quantity, i.Price, i.StorageLocation, i.WarningThreshold, i.IsActive, "
+                + "u.FullName AS ConfirmedByName "
+                + "FROM InventoryAlerts a "
+                + "JOIN Ingredients i ON a.IngredientID = i.IngredientID "
+                + "LEFT JOIN Users u ON a.ConfirmedBy = u.UserID "
+                + "WHERE a.Status IN ('Active', 'Confirmed') AND i.IsActive = 1 "
+                + "ORDER BY a.CreatedAt DESC";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                Ingredient ing = mapResultSetToIngredient(rs);
+                IngredientAlert alert = new IngredientAlert();
+                alert.setAlertId(rs.getInt("AlertID"));
+                alert.setIngredient(ing);
+                String rawAlertType = rs.getString("AlertType");
+                if ("Expiring Soon".equalsIgnoreCase(rawAlertType) || "ExpiringSoon".equalsIgnoreCase(rawAlertType)) {
+                    alert.setType(AlertType.ExpiringSoon);
+                } else {
+                    try {
+                        alert.setType(AlertType.valueOf(rawAlertType));
+                    } catch (IllegalArgumentException | NullPointerException ex) {
+                        alert.setType(AlertType.LowStock);
+                    }
+                }
+                try {
+                    alert.setStatus(AlertStatus.valueOf(rs.getString("Status")));
+                } catch (IllegalArgumentException | NullPointerException ex) {
+                    alert.setStatus(AlertStatus.Active);
+                }
+                alert.setConfirmedBy(rs.getString("ConfirmedByName"));
+                alert.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                alert.setConfirmedAt(rs.getTimestamp("ConfirmedAt"));
+                list.add(alert);
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ALERT);
+        }
+        return list;
+    }
+
+    public void confirmAlert(int alertId, int userId) throws ValidationException {
+        String sql = "UPDATE InventoryAlerts SET Status = 'Confirmed', ConfirmedBy = ?, ConfirmedAt = GETDATE() WHERE AlertID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            if (userId > 0) {
+                st.setInt(1, userId);
+            } else {
+                st.setNull(1, java.sql.Types.INTEGER);
+            }
+            st.setInt(2, alertId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ALERT);
+        }
+    }
+
+    public void closeAlert(int alertId) throws ValidationException {
+        String sql = "UPDATE InventoryAlerts SET Status = 'Closed' WHERE AlertID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, alertId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ALERT);
+        }
+    }
+
+    public void closeResolvedStockAlerts() throws ValidationException {
+        String sql = "UPDATE a SET a.Status = 'Closed' "
+                + "FROM InventoryAlerts a "
+                + "JOIN Ingredients i ON a.IngredientID = i.IngredientID "
+                + "WHERE a.Status IN ('Active', 'Confirmed') "
+                + "  AND a.AlertType IN ('LowStock', 'OutOfStock') "
+                + "  AND i.Quantity > i.WarningThreshold";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ALERT);
+        }
+    }
+
+    public List<Integer> getExpiredIngredientIds() throws ValidationException {
+        List<Integer> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT b.IngredientID "
+                + "FROM IngredientBatches b "
+                + "JOIN Ingredients i ON b.IngredientID = i.IngredientID "
+                + "WHERE b.ExpirationDate < CAST(GETDATE() AS DATE) "
+                + "  AND b.Quantity > 0 AND i.IsActive = 1";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getInt("IngredientID"));
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ALERT);
+        }
+        return list;
+    }
+
+    public List<Integer> getExpiringSoonIngredientIds(int withinDays) throws ValidationException {
+        List<Integer> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT b.IngredientID "
+                + "FROM IngredientBatches b "
+                + "JOIN Ingredients i ON b.IngredientID = i.IngredientID "
+                + "WHERE b.ExpirationDate >= CAST(GETDATE() AS DATE) "
+                + "  AND b.ExpirationDate <= DATEADD(day, ?, CAST(GETDATE() AS DATE)) "
+                + "  AND b.Quantity > 0 AND i.IsActive = 1";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setInt(1, withinDays);
+            ResultSet rs = st.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getInt("IngredientID"));
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ALERT);
+        }
+        return list;
     }
 }

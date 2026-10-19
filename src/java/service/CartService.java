@@ -247,7 +247,6 @@ public class CartService {
             Ingredient ingredient = ingredientDAO.getIngredientById(ingredientId);
 
             if (ingredient == null || ingredient.getQuantity() < neededAmount) {
-                disableProductsUsingIngredient(ingredientId);
                 throw new ValidationException(Constants.ERROR_INSUFFICIENT_INGREDIENTS);
             }
         }
@@ -265,27 +264,12 @@ public class CartService {
         return neededMap;
     }
 
-    private void disableProductsUsingIngredient(int ingredientId) throws ValidationException {
-        List<Integer> productIds = ingredientDAO.getProductIdsUsingIngredient(ingredientId);
-        for (Integer pid : productIds) {
-            productDAO.updateProductAvailability(pid, false);
-        }
-    }
-
     private void deductIngredientsStock(Order cart) throws ValidationException {
         Map<Integer, Double> neededMap = calculateTotalIngredientsNeeded(cart);
         for (Map.Entry<Integer, Double> entry : neededMap.entrySet()) {
             int ingredientId = entry.getKey();
             double amount = entry.getValue();
             ingredientDAO.deductStock(ingredientId, amount);
-            checkAndDisableIfDepleted(ingredientId);
-        }
-    }
-
-    private void checkAndDisableIfDepleted(int ingredientId) throws ValidationException {
-        Ingredient ing = ingredientDAO.getIngredientById(ingredientId);
-        if (ing != null && ing.getQuantity() <= 0) {
-            disableProductsUsingIngredient(ingredientId);
         }
     }
 }

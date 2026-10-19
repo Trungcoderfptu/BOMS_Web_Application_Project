@@ -119,7 +119,7 @@
                             <td>
                                 <div class="menu-action-buttons">
                                     <button type="button" class="btn-action-edit"
-                                            onclick="openEditProductModal('${product.productId}', '${fn:escapeXml(product.productName)}', '${product.categoryId}', '${product.price}', '${fn:escapeXml(product.imageUrl)}', ${product.isAvailable})">
+                                            onclick="openEditProductModal('${product.productId}', '${fn:escapeXml(product.productName)}', '${product.categoryId}', '${product.price}', '${fn:escapeXml(product.imageUrl)}', ${product.isAvailable}, '${product.recipeData}')">
                                         <fmt:message key="menu.mgmt.btn.edit" />
                                     </button>
 

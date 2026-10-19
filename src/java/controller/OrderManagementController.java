@@ -60,7 +60,6 @@ public class OrderManagementController extends HttpServlet {
         try {
             List<Map<String, Object>> orderList = orderService.getOrdersForView(filterDate, filterStatus);
             request.setAttribute("ORDER_LIST", orderList);
-            request.setAttribute("AVAILABLE_PRODUCTS", orderService.getAvailableProductsForExchange());
             request.setAttribute("CURRENT_FILTER_DATE", filterDate);
             request.setAttribute("CURRENT_FILTER_STATUS", filterStatus);
         } catch (ValidationException e) {
@@ -100,14 +99,6 @@ public class OrderManagementController extends HttpServlet {
                 int orderId = Integer.parseInt(request.getParameter("orderId"));
                 orderService.cancelOrder(orderId);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CANCEL_ORDER);
-            } else if ("exchange".equals(action)) {
-                int orderId = Integer.parseInt(request.getParameter("orderId"));
-                int oldProductId = Integer.parseInt(request.getParameter("oldProductId"));
-                int newProductId = Integer.parseInt(request.getParameter("newProductId"));
-                int newQuantity = Integer.parseInt(request.getParameter("newQuantity"));
-                double priceDiff = orderService.exchangeDish(orderId, oldProductId, newProductId, newQuantity);
-                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CHANGE_DISH);
-                session.setAttribute("PRICE_DIFF", priceDiff);
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
@@ -133,10 +124,6 @@ public class OrderManagementController extends HttpServlet {
         if (session.getAttribute(Constants.ERROR_MESSAGE) != null) {
             request.setAttribute(Constants.ERROR_MESSAGE, session.getAttribute(Constants.ERROR_MESSAGE));
             session.removeAttribute(Constants.ERROR_MESSAGE);
-        }
-        if (session.getAttribute("PRICE_DIFF") != null) {
-            request.setAttribute("PRICE_DIFF", session.getAttribute("PRICE_DIFF"));
-            session.removeAttribute("PRICE_DIFF");
         }
     }
 

@@ -77,7 +77,10 @@
                     <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/InventoryManagementController"><fmt:message key="header.sidebar.inventory" /></a></li>
+<<<<<<< Updated upstream
                     <li><a href="${pageContext.request.contextPath}/DispatchController"><fmt:message key="header.sidebar.shipper" /></a></li>
+=======
+>>>>>>> Stashed changes
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Shipper'}">
                     <li><a href="${pageContext.request.contextPath}/ShipperController"><fmt:message key="header.sidebar.my_tasks" /></a></li>

@@ -19,3 +19,4 @@ desktop.ini
 # 4. CẤU HÌNH AI & MÔI TRƯỜNG CỤC BỘ
 .env
 .ngrok.log
+/build

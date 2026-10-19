@@ -25,7 +25,7 @@
                         <jsp:include page="components/language_switcher.jsp" />
                         <jsp:include page="components/theme_toggle.jsp" />
                     </div>
-                    <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager' or sessionScope.USER_SESSION.role == 'Admin')}">
+                    <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager')}">
                         <button id="btnInventoryAlertBell" type="button" class="btn-icon-alert" title="<fmt:message key='alert.bell.title' />" onclick="openInventoryAlertModal()">
                             🔔<span id="inventoryAlertBadge" class="alert-badge d-none">0</span>
                         </button>
@@ -48,7 +48,9 @@
                                     <strong>${sessionScope.USER_SESSION.fullName}</strong>
                                     <hr>
                                     <a href="${pageContext.request.contextPath}/ProfileController"><fmt:message key="header.menu.profile" /></a><br><br>
-                                    <a href="${pageContext.request.contextPath}/AttendanceController"><fmt:message key="header.sidebar.attendance" /></a><br><br>
+                                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff'}">
+                                        <a href="${pageContext.request.contextPath}/AttendanceController"><fmt:message key="header.sidebar.attendance" /></a><br><br>
+                                    </c:if>
                                     <a href="${pageContext.request.contextPath}/SettingsController"><fmt:message key="header.menu.settings" /></a><br><br>
                                     <a href="${pageContext.request.contextPath}/LogoutController" class="text-danger"><fmt:message key="header.menu.logout" /></a>
                                 </div>
@@ -67,31 +69,33 @@
             <button id="btnDongMenuDoc">✖ <fmt:message key="header.sidebar.close" /></button>
             <ul class="no-bullet">
                 <li><a href="${pageContext.request.contextPath}/index.jsp"><fmt:message key="header.sidebar.deshbard" /></a></li>
-                    <c:if test="${not empty sessionScope.USER_SESSION}">
-                    <li><a href="${pageContext.request.contextPath}/AttendanceController"><fmt:message key="header.sidebar.attendance" /></a></li>
-                    </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Admin' or sessionScope.USER_SESSION.role == 'Manager'}">
-                    <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.hr" /></a></li>
-                    <li><a href="#"><fmt:message key="header.sidebar.reports" /></a></li>
-                    <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
-                    <li><a href="${pageContext.request.contextPath}/ReportManagementController"><fmt:message key="header.sidebar.reports" /></a></li>
-                    </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
-                    <li><a href="${pageContext.request.contextPath}/ReportController"><fmt:message key="header.sidebar.anonymous_report" /></a></li>
-                    </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
+                <%-- Admin: Chỉ phụ trách quản lý tài khoản --%>
+                <c:if test="${sessionScope.USER_SESSION.role == 'Admin'}">
+                    <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.admin_daskboard" /></a></li>
+                </c:if>
+
+                <%-- Manager: Quản lý đơn hàng, Quản lý thực đơn, Quản lý kho, Quản lý báo cáo, Quản lý nhân sự --%>
+                <c:if test="${sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/InventoryManagementController"><fmt:message key="header.sidebar.inventory" /></a></li>
-                    </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Shipper' or sessionScope.USER_SESSION.role == 'Manager'}">
-                    <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
-                    </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Admin'}">
-                    <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.admin_daskboard" /></a></li>
-                    </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff'}">
+                    <li><a href="${pageContext.request.contextPath}/ReportManagementController"><fmt:message key="header.sidebar.reports" /></a></li>
+                    <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
+                </c:if>
+
+                <%-- Staff: Đặt món tại quầy, Quản lý đơn hàng, Tạo thực đơn, Xem kho, Chấm công, Gửi báo cáo ẩn danh --%>
+                <c:if test="${sessionScope.USER_SESSION.role == 'Staff'}">
                     <li><a href="${pageContext.request.contextPath}/MenuController"><fmt:message key="header.sidebar.menu" /></a></li>
-                    </c:if>
+                    <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/InventoryManagementController"><fmt:message key="header.sidebar.inventory" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/AttendanceController"><fmt:message key="header.sidebar.attendance" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/ReportController"><fmt:message key="header.sidebar.anonymous_report" /></a></li>
+                </c:if>
+
+                <%-- Shipper: Chỉ thực hiện luồng shipper --%>
+                <c:if test="${sessionScope.USER_SESSION.role == 'Shipper'}">
+                    <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
+                </c:if>
             </ul>
         </aside>

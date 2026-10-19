@@ -106,3 +106,16 @@ thêm file QR code.md để lưu các link QR truy cập nhanh
 * Manager chỉ thấy báo cáo của loại được phân công trong bảng `CategoryManagers`; Admin thấy tất cả.
 * nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: del /s *.class để tránh lỗi khi merge nhánh
 ---
+# [v0.0.8] - 2026-10-19.
+### Added
+* **CẬp nhật UC-03 và UC-04** các chức năng liên quan đến kho bãi. `(@Đạt)`
+* **Gộp nhóm đạt thành công:**Đã kiểm thử và gộp thành công nhánh đạt `(@Trung)`
+
+### Fixed
+* đã fix cơ bản tính năng đặt món khi đơn hàng vượt quá giới hạn hàng có trông kho(mức tạm chấp nhận)
+* đã xóa bỏ addmin ra khỏi luồng làm việc của kho
+
+### Notes
+* File SQL đã thêm 1 tí thay đổi hãy chạy lại SQL mỗi khi nâng cấp phần mềm
+* nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: del /s *.class để tránh lỗi khi merge nhánh
+---

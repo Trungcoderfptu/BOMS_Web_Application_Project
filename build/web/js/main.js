@@ -123,7 +123,17 @@ function initMainApp() {
         });
     }
 
+    const alertModal = document.getElementById('inventoryAlertModal');
+    if (alertModal) {
+        alertModal.addEventListener('click', function (e) {
+            if (e.target === alertModal) {
+                closeInventoryAlertModal();
+            }
+        });
+    }
+
     initCancelCountdowns();
+    initInventoryAlertPolling();
 }
 
 if (document.readyState === "loading") {
@@ -376,6 +386,101 @@ function resetImageModalState() {
     if (previewBox) previewBox.classList.add('d-none');
 }
 
+function resetRecipeRows() {
+    const list = document.getElementById('recipeList');
+    const hint = document.getElementById('recipeEmptyHint');
+    if (list) list.innerHTML = '';
+    if (hint) hint.classList.remove('d-none');
+}
+
+function addRecipeRow(selectedIngId, qtyValue) {
+    const template = document.getElementById('ingredientMasterTemplate');
+    const list = document.getElementById('recipeList');
+    const hint = document.getElementById('recipeEmptyHint');
+    if (!template || !list) return;
+
+    if (hint) hint.classList.add('d-none');
+
+    const row = document.createElement('div');
+    row.className = 'recipe-row flex-align-center gap-10 mb-8';
+
+    const colIng = document.createElement('div');
+    colIng.className = 'recipe-col-ingredient flex-1';
+
+    const select = document.createElement('select');
+    select.name = 'recipeIngredientId';
+    select.className = 'filter-input w-100';
+    select.required = true;
+    select.innerHTML = template.innerHTML;
+
+    if (selectedIngId) {
+        select.value = String(selectedIngId);
+    }
+
+    colIng.appendChild(select);
+
+    const colQty = document.createElement('div');
+    colQty.className = 'recipe-col-qty flex-align-center gap-5';
+
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.name = 'recipeQuantity';
+    qtyInput.className = 'filter-input input-qty-sm text-right';
+    qtyInput.step = 'any';
+    qtyInput.min = '0.001';
+    qtyInput.placeholder = '0.0';
+    qtyInput.required = true;
+    if (qtyValue !== undefined && qtyValue !== null && qtyValue !== '') {
+        qtyInput.value = qtyValue;
+    }
+
+    const unitSpan = document.createElement('span');
+    unitSpan.className = 'recipe-unit-label font-bold text-muted';
+    unitSpan.textContent = '---';
+
+    colQty.appendChild(qtyInput);
+    colQty.appendChild(unitSpan);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-remove-recipe';
+    removeBtn.textContent = '\u2715';
+    removeBtn.onclick = function() {
+        removeRecipeRow(this);
+    };
+
+    row.appendChild(colIng);
+    row.appendChild(colQty);
+    row.appendChild(removeBtn);
+
+    select.onchange = function() {
+        onRecipeIngredientChange(this, unitSpan);
+    };
+
+    list.appendChild(row);
+    onRecipeIngredientChange(select, unitSpan);
+}
+
+function onRecipeIngredientChange(selectEl, unitSpanEl) {
+    if (!selectEl || !unitSpanEl) return;
+    const selectedOption = selectEl.options[selectEl.selectedIndex];
+    const unit = selectedOption ? selectedOption.getAttribute('data-unit') : '';
+    unitSpanEl.textContent = unit || '---';
+}
+
+function removeRecipeRow(btnEl) {
+    if (!btnEl) return;
+    const row = btnEl.closest('.recipe-row');
+    if (row && row.parentNode) {
+        row.parentNode.removeChild(row);
+    }
+    const list = document.getElementById('recipeList');
+    const hint = document.getElementById('recipeEmptyHint');
+    if (list && list.children.length === 0 && hint) {
+        hint.classList.remove('d-none');
+    }
+}
+
 function openCreateProductModal() {
     const modal = document.getElementById('productModal');
     if (!modal) return;
@@ -399,12 +504,13 @@ function openCreateProductModal() {
     if (statusGroup) statusGroup.classList.add('d-none');
 
     resetImageModalState();
+    resetRecipeRows();
 
     modal.classList.remove('d-none');
     if (nameEl) nameEl.focus();
 }
 
-function openEditProductModal(productId, productName, categoryId, price, imageUrl, isAvailable) {
+function openEditProductModal(productId, productName, categoryId, price, imageUrl, isAvailable, recipeData) {
     const modal = document.getElementById('productModal');
     if (!modal) return;
 
@@ -446,6 +552,17 @@ function openEditProductModal(productId, productName, categoryId, price, imageUr
     if (statusGroup) statusGroup.classList.remove('d-none');
     if (availableCb) availableCb.checked = (isAvailable === true || isAvailable === 'true');
 
+    resetRecipeRows();
+    if (recipeData && typeof recipeData === 'string' && recipeData.trim() !== '') {
+        const pairs = recipeData.trim().split(',');
+        for (let i = 0; i < pairs.length; i++) {
+            const parts = pairs[i].split(':');
+            if (parts.length === 2) {
+                addRecipeRow(parts[0], parts[1]);
+            }
+        }
+    }
+
     modal.classList.remove('d-none');
     if (nameEl) nameEl.focus();
 }
@@ -457,9 +574,291 @@ function closeProductModal() {
     }
 }
 
-// Listen for Escape key to close product modal
+// Listen for Escape key to close modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeProductModal();
+        closeInventoryModal();
+        closeThresholdModal();
     }
 });
+
+// ================= INVENTORY MODAL HANDLERS =================
+function openCreateIngredientModal() {
+    const modal = document.getElementById('inventoryModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('inventoryModalTitle');
+    const actionEl = document.getElementById('inventoryModalAction');
+    const idEl = document.getElementById('inventoryModalId');
+    const nameEl = document.getElementById('ingredientNameInput');
+    const catEl = document.getElementById('ingredientCategorySelect');
+    const unitEl = document.getElementById('ingredientUnitInput');
+    const qtyEl = document.getElementById('ingredientQtyInput');
+    const priceEl = document.getElementById('ingredientPriceInput');
+    const threshEl = document.getElementById('ingredientThresholdInput');
+    const locEl = document.getElementById('ingredientLocationInput');
+
+    if (titleEl) {
+        titleEl.textContent = modal.getAttribute('data-title-add') || 'Thêm Nguyên Liệu Mới';
+    }
+    if (actionEl) actionEl.value = 'create';
+    if (idEl) idEl.value = '';
+    if (nameEl) nameEl.value = '';
+    if (unitEl) unitEl.value = '';
+    if (qtyEl) qtyEl.value = '0';
+    if (priceEl) priceEl.value = '0';
+    if (threshEl) threshEl.value = '5';
+    if (locEl) locEl.value = '';
+
+    modal.classList.remove('d-none');
+    if (nameEl) nameEl.focus();
+}
+
+function openEditIngredientModal(id, categoryId, name, unit, quantity, price, location, threshold) {
+    const modal = document.getElementById('inventoryModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('inventoryModalTitle');
+    const actionEl = document.getElementById('inventoryModalAction');
+    const idEl = document.getElementById('inventoryModalId');
+    const nameEl = document.getElementById('ingredientNameInput');
+    const catEl = document.getElementById('ingredientCategorySelect');
+    const unitEl = document.getElementById('ingredientUnitInput');
+    const qtyEl = document.getElementById('ingredientQtyInput');
+    const priceEl = document.getElementById('ingredientPriceInput');
+    const threshEl = document.getElementById('ingredientThresholdInput');
+    const locEl = document.getElementById('ingredientLocationInput');
+
+    if (titleEl) {
+        titleEl.textContent = modal.getAttribute('data-title-edit') || 'Chỉnh Sửa Nguyên Liệu';
+    }
+    if (actionEl) actionEl.value = 'update';
+    if (idEl) idEl.value = id;
+    if (nameEl) nameEl.value = name || '';
+    if (catEl) catEl.value = categoryId || '';
+    if (unitEl) unitEl.value = unit || '';
+    if (qtyEl) qtyEl.value = quantity || '0';
+    if (priceEl) priceEl.value = Math.round(Number(price)) || '0';
+    if (threshEl) threshEl.value = threshold || '0';
+    if (locEl) locEl.value = (location && location !== '-') ? location : '';
+
+    modal.classList.remove('d-none');
+    if (nameEl) nameEl.focus();
+}
+
+function closeInventoryModal() {
+    const modal = document.getElementById('inventoryModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function openThresholdModal(id, name, currentThreshold) {
+    const modal = document.getElementById('thresholdModal');
+    if (!modal) return;
+
+    const idEl = document.getElementById('thresholdIngredientId');
+    const nameEl = document.getElementById('thresholdIngredientName');
+    const valEl = document.getElementById('thresholdValueInput');
+
+    if (idEl) idEl.value = id;
+    if (nameEl) nameEl.textContent = name || '';
+    if (valEl) valEl.value = currentThreshold || '0';
+
+    modal.classList.remove('d-none');
+    if (valEl) valEl.focus();
+}
+
+function closeThresholdModal() {
+    const modal = document.getElementById('thresholdModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+// ================= INVENTORY ALERTS (POLLING, AUDIO & MODAL) =================
+let __lastAlertCount = 0;
+let __latestInventoryAlerts = [];
+
+function playNotificationSound() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+    } catch (e) {
+        // Silently catch audio policy restrictions
+    }
+}
+
+function pollInventoryAlerts() {
+    const badge = document.getElementById('inventoryAlertBadge');
+    if (!badge) return;
+
+    fetch('IngredientAlertController?action=poll', { cache: 'no-store' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (!data || !data.success) return;
+            const count = data.count || 0;
+            __latestInventoryAlerts = data.alerts || [];
+
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('d-none');
+                badge.classList.add('alert-badge-pulse');
+                if (count > __lastAlertCount) {
+                    playNotificationSound();
+                }
+            } else {
+                badge.textContent = '0';
+                badge.classList.add('d-none');
+                badge.classList.remove('alert-badge-pulse');
+            }
+            __lastAlertCount = count;
+
+            const modal = document.getElementById('inventoryAlertModal');
+            if (modal && !modal.classList.contains('d-none')) {
+                renderInventoryAlertsTable(__latestInventoryAlerts);
+            }
+        })
+        .catch(function (err) {
+            // Ignore polling connection glitches silently
+        });
+}
+
+function initInventoryAlertPolling() {
+    const bell = document.getElementById('btnInventoryAlertBell');
+    if (!bell) return;
+
+    // Initial check on load
+    pollInventoryAlerts();
+
+    // Regular polling every 60 seconds
+    setInterval(pollInventoryAlerts, 60000);
+}
+
+function openInventoryAlertModal() {
+    const modal = document.getElementById('inventoryAlertModal');
+    if (!modal) return;
+
+    modal.classList.remove('d-none');
+    renderInventoryAlertsTable(__latestInventoryAlerts);
+    pollInventoryAlerts();
+}
+
+function closeInventoryAlertModal() {
+    const modal = document.getElementById('inventoryAlertModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function renderInventoryAlertsTable(alerts) {
+    const modal = document.getElementById('inventoryAlertModal');
+    const tableBody = document.getElementById('inventoryAlertTableBody');
+    const emptyState = document.getElementById('alertEmptyState');
+    const tableContainer = document.getElementById('alertTableContainer');
+    if (!modal || !tableBody) return;
+
+    const lblLow = modal.getAttribute('data-type-low-stock') || 'Low Stock';
+    const lblOut = modal.getAttribute('data-type-out-of-stock') || 'Out of Stock';
+    const lblExpSoon = modal.getAttribute('data-type-expiring-soon') || 'Expiring Soon';
+    const lblExp = modal.getAttribute('data-type-expired') || 'Expired';
+    const lblBtnConfirm = modal.getAttribute('data-btn-confirm') || 'Confirm';
+    const lblBtnConfirmed = modal.getAttribute('data-btn-confirmed') || 'Confirmed';
+
+    tableBody.innerHTML = '';
+
+    if (!alerts || alerts.length === 0) {
+        if (emptyState) emptyState.classList.remove('d-none');
+        if (tableContainer) tableContainer.classList.add('d-none');
+        return;
+    }
+
+    if (emptyState) emptyState.classList.add('d-none');
+    if (tableContainer) tableContainer.classList.remove('d-none');
+
+    alerts.forEach(function (a) {
+        const tr = document.createElement('tr');
+
+        let typeBadgeHtml = '';
+        if (a.alertType === 'OutOfStock') {
+            typeBadgeHtml = '<span class="badge-status-inactive">' + escapeHtml(lblOut) + '</span>';
+        } else if (a.alertType === 'Expired') {
+            typeBadgeHtml = '<span class="badge-alert-expired">' + escapeHtml(lblExp) + '</span>';
+        } else if (a.alertType === 'ExpiringSoon' || a.alertType === 'Expiring Soon') {
+            typeBadgeHtml = '<span class="badge-stock-out">' + escapeHtml(lblExpSoon) + '</span>';
+        } else {
+            typeBadgeHtml = '<span class="badge-stock-out">' + escapeHtml(lblLow) + '</span>';
+        }
+
+        const isConfirmed = (a.status === 'Confirmed');
+        const statusHtml = isConfirmed
+            ? '<span class="badge-stock-ok">' + escapeHtml(lblBtnConfirmed) + (a.confirmedBy ? ' (' + escapeHtml(a.confirmedBy) + ')' : '') + '</span>'
+            : '<span class="badge-status-inactive">\u26A0\uFE0F Active</span>';
+
+        const actionHtml = isConfirmed
+            ? '<span class="text-muted">\u2714\uFE0F ' + escapeHtml(lblBtnConfirmed) + '</span>'
+            : '<button type="button" class="btn-action-edit" onclick="confirmInventoryAlert(' + a.alertId + ', this)">' + escapeHtml(lblBtnConfirm) + '</button>';
+
+        tr.innerHTML = '<td><strong>' + escapeHtml(a.ingredientName || '-') + '</strong></td>'
+            + '<td>' + typeBadgeHtml + '</td>'
+            + '<td><span class="text-danger font-bold">' + (a.quantity != null ? a.quantity : 0) + '</span> ' + escapeHtml(a.unit || '') + '</td>'
+            + '<td>' + (a.warningThreshold != null ? a.warningThreshold : 0) + ' ' + escapeHtml(a.unit || '') + '</td>'
+            + '<td>' + escapeHtml(a.createdAt || '-') + '</td>'
+            + '<td>' + statusHtml + '</td>'
+            + '<td>' + actionHtml + '</td>';
+
+        tableBody.appendChild(tr);
+    });
+}
+
+function confirmInventoryAlert(alertId, btnElement) {
+    if (!alertId) return;
+
+    if (btnElement) {
+        btnElement.disabled = true;
+    }
+
+    fetch('IngredientAlertController', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=confirm&alertId=' + encodeURIComponent(alertId)
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+        if (data && data.success) {
+            pollInventoryAlerts();
+        } else if (btnElement) {
+            btnElement.disabled = false;
+        }
+    })
+    .catch(function (err) {
+        if (btnElement) {
+            btnElement.disabled = false;
+        }
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
+}

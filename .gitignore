@@ -1,1 +1,21 @@
+# 1. THƯ MỤC BIÊN DỊCH (Tự sinh ra khi chạy NetBeans)
+/build
+/dist
 *.class
+*.war
+*.ear
+
+# 2. CẤU HÌNH CÁ NHÂN CỦA NETBEANS (Tránh conflict giao diện IDE giữa các thành viên)
+/nbproject/private
+/nbbuild
+/nbdist
+/.nb-gradle
+
+# 3. RÁC HỆ ĐIỀU HÀNH TỰ SINH
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# 4. CẤU HÌNH AI & MÔI TRƯỜNG CỤC BỘ
+.env
+.ngrok.log

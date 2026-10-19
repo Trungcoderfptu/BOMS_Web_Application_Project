@@ -1,6 +1,34 @@
 # BOMS LEARNING & PROGRESS LOG
 
-## [2026-10-15] - Hoàn thiện Hệ thống Tải ảnh & Streaming Độc lập, Khắc phục Lỗi Kết nối Đặt lại và Lỗi Cơ sở dữ liệu khi dán Link Web
+## [2026-10-19] - Khắc phục Triệt để Lỗi Khóa Cứng Thực Đơn (Hết hàng) và Sập Luồng Đặt Món Khi Vượt Quá Tồn Kho Hoặc Hủy Đơn
+### 1. Phân tích Nguyên nhân Gốc rễ (Root Cause Analysis):
+- **Lỗi 1 (Sai lầm can thiệp CSDL trong pha Validation):**
+  - Trong `CartService.java`, phương thức `validateInventoryStock` khi kiểm tra thấy nguyên liệu trong kho không đủ cho số lượng khách đặt (ví dụ: kho còn 5 phần nhưng giỏ hàng đặt 10 phần) đã lập tức gọi `disableProductsUsingIngredient(ingredientId)`.
+  - Hàm này thực thi `productDAO.updateProductAvailability(pid, false)`, ghi đè trực tiếp `Products.IsAvailable = 0` vào CSDL SQL Server!
+  - Ngay sau đó, hàm ném `ValidationException(Constants.ERROR_INSUFFICIENT_INGREDIENTS)` khiến giao dịch chốt đơn bị hủy bỏ, **không có bản ghi Order nào được tạo ra trong CSDL**.
+  - Hậu quả: Món ăn bị biến thành "Ngừng kinh doanh" vĩnh viễn trong CSDL. Khi quay lại `menu.jsp`, `ProductService.checkProductAvailability` thấy `!p.isAvailable()` nên trả về `false`, làm nút "Thêm vào giỏ" bị khóa cứng thành `<button disabled>Hết hàng</button>`. Khách và nhân viên không thể đặt lại món đó dù trong kho vẫn còn 5 phần!
+- **Lỗi 2 (Sập luồng khi hủy đơn / Không có đơn để hủy):**
+  - Vì đơn hàng bị từ chối ngay ở bước kiểm tra và chưa hề được lưu vào DB, người dùng không có đơn nào để bấm "Hủy đơn".
+  - Nếu người dùng bấm hủy một đơn hàng cũ khác, cơ chế `recheckProductAvailabilityAfterStockRestore` trong `OrderService` chỉ rà soát những nguyên liệu của đơn hàng bị hủy đó. Nếu món bị khóa không dùng chung nguyên liệu, nó sẽ vĩnh viễn không bao giờ được mở khóa lại.
+- **Lỗi 3 (Xung đột giữa Quyền Quản trị và Trạng thái Tồn kho):**
+  - `CartService.deductIngredientsStock` gọi `checkAndDisableIfDepleted` tự ý set `IsAvailable = 0` trong DB khi nguyên liệu về 0. Khi Quản lý nhập thêm kho (`InventoryManagementController`), không có bất kỳ logic nào tự động bật lại `IsAvailable = 1`, khiến món bị "chết" vĩnh viễn trên thực đơn.
+  - Ngược lại, trong `OrderService`, hàm `recheckProductAvailabilityAfterStockRestore` khi hoàn kho lại tự ý set `IsAvailable = 1`, vô tình ghi đè và làm mất trạng thái "Ngừng kinh doanh" mà Quản lý chủ động cài đặt trước đó.
+
+### 2. Giải pháp Kiến trúc Chuẩn hóa (Architectural Resolution):
+- **Tách biệt triệt để 2 khái niệm:**
+  1. `Products.IsAvailable` (Quyền Quản trị Danh mục): Do Admin / Store Manager kiểm soát chủ động qua Menu Management (Đang kinh doanh / Ngừng kinh doanh). Tuyệt đối không để tầng bán hàng (Cart/Order) can thiệp sửa đổi cờ này trong CSDL.
+  2. `Dynamic Inventory Stock Check` (Tồn kho thời gian thực): Tự động tính toán on-the-fly qua `ingredientDAO.hasSufficientStockForProduct(productId, 1)` và bảng công thức `ProductIngredients`.
+- **Cập nhật `CartService.java`:**
+  - Loại bỏ hoàn toàn việc gọi `disableProductsUsingIngredient` trong `validateInventoryStock`. Khi vượt tồn kho, chỉ ném `ValidationException(Constants.ERROR_INSUFFICIENT_INGREDIENTS)` mà KHÔNG làm thay đổi bất kỳ bản ghi nào trong CSDL. Khách hàng/nhân viên có thể giảm số lượng giỏ hàng xuống mức tồn kho hiện có và đặt hàng bình thường.
+  - Loại bỏ hoàn toàn `checkAndDisableIfDepleted` và `disableProductsUsingIngredient` trong `deductIngredientsStock`. Khi nguyên liệu hết (về 0), tầng View sẽ tự động hiển thị nút "Hết hàng" tức thì nhờ truy vấn động `hasSufficientStockForProduct(productId, 1)`.
+- **Cập nhật `OrderService.java`:**
+  - Loại bỏ `recheckProductAvailabilityAfterStockRestore` trong `restoreItemIngredients`. Khi hủy đơn, kho nguyên liệu được hoàn trả đầy đủ, và hệ thống sẽ tự động mở khóa món ăn trên Menu ngay lập tức ở lần tải trang kế tiếp mà không ghi đè cờ nghiệp vụ `IsAvailable` của Quản lý.
+  - Dọn dẹp import và trường `ProductDAO` không còn sử dụng trong `OrderService`.
+
+### 3. File bị tác động:
+- `src/java/service/CartService.java`: Gỡ bỏ `disableProductsUsingIngredient` và `checkAndDisableIfDepleted`.
+- `src/java/service/OrderService.java`: Gỡ bỏ `recheckProductAvailabilityAfterStockRestore`, gỡ bỏ dependency `ProductDAO`.
+
 ### 1. File bị tác động / tạo mới:
 - `src/java/utility/ImageUploadUtility.java` (Tạo mới):
   - Tiện ích lưu trữ file ảnh độc lập tại `System.getProperty("user.home")/boms_data/uploads/` nhằm khắc phục nhược điểm mất file khi Clean & Build / Redeploy của NetBeans/Tomcat.
@@ -806,3 +834,75 @@
   - Khắc phục lỗi trích xuất `userId` từ `sessionScope.USER_SESSION` (bổ sung `Integer.parseInt(idVal.toString().trim())` khi `userId` được lưu dạng `String` từ `UserService.buildUserSessionMap`), đảm bảo `ConfirmedBy` cập nhật chính xác `UserID` người xác nhận lên CSDL.
 - `src/java/resources/messages_vi.properties`, `src/java/resources/messages_en.properties`, `web/components/inventory_alert_modal.jsp`, `web/js/main.js`:
   - Bổ sung khóa `alert.type.expiring_soon` ("Sắp hết hạn (Cận date)" / "Expiring Soon") tách biệt với `alert.type.expired` ("Đã hết hạn" / "Expired") và phản hồi nút bấm `confirmInventoryAlert` tức thì.
+
+## [2026-10-19] - Hoàn thiện Tính năng Cấu hình Công thức Định lượng Nguyên liệu (Recipe / ProductIngredients) cho Thực đơn
+### 1. Vấn đề phát hiện & Giải pháp kỹ thuật:
+- **Vấn đề cốt lõi:** Khi người dùng tạo món mới trên giao diện Quản lý thực đơn (`MenuManagementController`), hệ thống chỉ lưu thông tin vào bảng `Products` mà không cho phép gắn nguyên liệu vào `ProductIngredients`. Do đó, món mới không có định lượng công thức, dẫn tới `hasSufficientStockForProduct` luôn coi là còn hàng và `CartService.deductIngredientsStock` không hề trừ một gam nguyên liệu nào khi bán món mới.
+- **Giải pháp triển khai:**
+  - Tích hợp bảng cấu hình công thức nguyên liệu động ngay trên Modal Thêm/Sửa món (`product_form_modal.jsp`).
+  - Cho phép chọn nhiều nguyên liệu từ danh sách nguyên liệu khả dụng (`INGREDIENT_LIST`) và nhập định lượng tiêu hao (`quantityUsed > 0`).
+  - Hỗ trợ xem trước và tự động đồng bộ đơn vị tính (kg, gam, lon, hộp...) theo thời gian thực.
+  - Khi chỉnh sửa món ăn, tự động nạp lại công thức định lượng đã cấu hình từ trước (`recipeData`).
+  - Khi lưu món mới hoặc cập nhật món: Service tự động validate định lượng > 0 (`E0212`), kiểm tra nguyên liệu tồn tại và lưu/đồng bộ vào bảng `ProductIngredients` qua `ingredientDAO.insertProductIngredient`.
+
+### 2. File bị tác động / chỉnh sửa:
+- `src/java/utility/Constants.java`:
+  - Bổ sung mã lỗi nghiệp vụ `ERROR_INVALID_RECIPE_QUANTITY` ("E0212").
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`:
+  - Bổ sung bản dịch song ngữ chuẩn cho mã `E0212` và các nhãn giao diện `menu.modal.recipe.*` (100% Unicode Escape `\uXXXX` cho tiếng Việt).
+- `src/java/service/ProductService.java`:
+  - Thêm phương thức `getAllActiveIngredientsForView()`: Trả về danh sách nguyên liệu đang hoạt động dạng Map DTO cho View.
+  - Trong `getAllProductsForManagementView()`: Nạp chuỗi công thức định lượng `recipeData` (`ingId:qty,...`) cho từng món ăn.
+  - Nâng cấp `createProduct` và `updateProduct` hỗ trợ mảng `recipeIngredientIds` và `recipeQuantities`, tự động kiểm tra tính hợp lệ và ghi vào `ProductIngredients` (giữ nguyên overload cũ để backward compatible).
+  - Tách các hàm SRP: `buildRecipeString`, `parseAndValidateRecipes`, `saveProductRecipes`.
+- `src/java/controller/MenuManagementController.java`:
+  - Trong `doGet`: Cung cấp `INGREDIENT_LIST` xuống View.
+  - Trong `doPost`: Tiếp nhận mảng `recipeIngredientId` và `recipeQuantity` từ form multipart và truyền sang `ProductService`.
+- `web/components/product_form_modal.jsp`:
+  - Bổ sung section công thức nguyên liệu (label, nút thêm nguyên liệu, template dropdown, danh sách hàng động, và thông báo khi chưa có công thức).
+- `web/menu_management.jsp`:
+  - Truyền tham số `product.recipeData` vào hàm `openEditProductModal(...)`.
+- `web/js/main.js`:
+  - Thêm các hàm quản lý DOM: `resetRecipeRows()`, `addRecipeRow(ingId, qty)`, `onRecipeIngredientChange(select, unitSpan)`, `removeRecipeRow(btn)`.
+  - Cập nhật `openCreateProductModal` và `openEditProductModal` để reset và nạp công thức tương ứng. 100% thuần ASCII.
+- `web/css/global.css`:
+  - Bổ sung định dạng `.modal-card-md`, `.btn-action-add-recipe`, `.recipe-container`, `.recipe-empty-hint`, `.recipe-row`, `.recipe-unit-label`, `.btn-remove-recipe`.
+
+### 3. Tuân thủ kiến trúc:
+- Controller không import Model/DAO, bọc try-catch tập trung.
+- Service xử lý 100% nghiệp vụ và ném `ValidationException`.
+- View không scriptlet, không CSS/JS inline, giao diện thân thiện đa ngôn ngữ.
+- Toàn bộ dự án biên dịch qua `javac` đạt 0 lỗi.
+
+## [2026-10-19] - Loại bỏ Triệt để Tính năng "Đổi món" (Exchange Dish) Khỏi Toàn bộ Dự án
+### 1. Bối cảnh & Quyết định:
+- Theo chỉ đạo của người dùng, tính năng đổi món (`exchangeDish`) trong đơn hàng gây ra nhiều rủi ro về kế toán, kiểm soát kho phức tạp (hoàn tạm món cũ, bù trừ món mới, tính tiền chênh lệch âm/dương).
+- Thống nhất quy trình nghiệp vụ: Khi khách có nhu cầu đổi món, nhân viên thực hiện **Hủy đơn cũ** (hệ thống tự động hoàn kho nguyên liệu theo đúng quy chuẩn) và **Tạo đơn hàng mới thay thế**.
+- Tiến hành rà soát và loại bỏ triệt để 100% mã nguồn, hằng số, giao diện liên quan đến đổi món mà không làm ảnh hưởng đến bất kỳ tính năng nào khác của hệ thống.
+
+### 2. File bị tác động / loại bỏ:
+- `web/order_management.jsp`:
+  - Gỡ bỏ khối hiển thị Flash Message tính tiền chênh lệch `${PRICE_DIFF}` (thu thêm / hoàn trả tiền).
+  - Gỡ bỏ component `<details class="exchange-details">` và form đổi món trên từng dòng chi tiết đơn hàng.
+  - Cập nhật điều kiện hiển thị nút [Hủy Đơn] của nhân viên sang `order.canCancelOrder` (đảm bảo tính năng Hủy đơn hoạt động trơn tru 100%).
+- `src/java/controller/OrderManagementController.java`:
+  - Gỡ bỏ nhánh xử lý `action = "exchange"` trong `doPost`.
+  - Gỡ bỏ việc nạp `AVAILABLE_PRODUCTS` vào request trong `doGet` (tăng tốc độ tải trang vì không cần truy vấn danh sách toàn bộ món ăn).
+  - Gỡ bỏ xử lý `PRICE_DIFF` trong `forwardFlashMessages`.
+- `src/java/service/OrderService.java`:
+  - Gỡ bỏ hoàn toàn các phương thức: `exchangeDish(...)`, `getAvailableProductsForExchange()`, `validateExchangeParams(...)`, và `findDetailByProductId(...)`.
+  - Trong `convertOrderToMap`: Loại bỏ `canChangeOrder`, giữ nguyên chuẩn `canCancelOrder`.
+- `src/java/dao/OrderDAO.java`:
+  - Gỡ bỏ phương thức `replaceOrderItem(...)` và các câu lệnh SQL giao dịch liên quan.
+- `src/java/utility/Constants.java`:
+  - Dọn dẹp hằng số `SUCCESS_CHANGE_DISH` (S0207) và `ERROR_INVALID_EXCHANGE_PRODUCT` (E0208).
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`:
+  - Dọn dẹp toàn bộ các khóa mã thông báo và nhãn giao diện: `S0207`, `E0208`, `order.management.btn.exchange`, `order.management.exchange.*`, `order.management.diff.*`.
+  - Chuẩn hóa thông điệp mã lỗi `E0206` ("Không thể hủy đơn vì đơn hàng đã bắt đầu chế biến!").
+- `web/css/global.css`:
+  - Dọn dẹp các class CSS: `.exchange-details`, `.btn-exchange-summary`, `.exchange-form`. Bảo lưu `.input-qty-sm` cho công thức nguyên liệu.
+
+### 3. Kết quả & Tuân thủ kiến trúc:
+- Loại bỏ hoàn toàn 100% tàn dư của tính năng đổi món.
+- Tính năng Hủy đơn khi chưa nấu (`cookingStartedAt == null`), khóa hủy sau 5 phút và hoàn kho nguyên liệu tự động tiếp tục hoạt động an toàn, chính xác tuyệt đối.
+- Toàn bộ dự án biên dịch qua `javac` đạt **`BUILD SUCCESSFUL` (0 lỗi)**.

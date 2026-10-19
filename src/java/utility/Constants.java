@@ -47,7 +47,6 @@ public class Constants {
     public static final String SUCCESS_CLEAR_CART = "S0204";
     public static final String SUCCESS_UPDATE_ORDER_STATUS = "S0205";
     public static final String SUCCESS_CANCEL_ORDER = "S0206";
-    public static final String SUCCESS_CHANGE_DISH = "S0207";
     public static final String SUCCESS_CREATE_PRODUCT = "S0208";
     public static final String SUCCESS_UPDATE_PRODUCT = "S0209";
     public static final String SUCCESS_CHANGE_PRODUCT_STATUS = "S0210";
@@ -118,10 +117,10 @@ public class Constants {
     public static final String ERROR_INSUFFICIENT_INGREDIENTS = "E0205";
     public static final String ERROR_ORDER_ALREADY_COOKING = "E0206";
     public static final String ERROR_ORDER_CANNOT_BE_CANCELLED = "E0207";
-    public static final String ERROR_INVALID_EXCHANGE_PRODUCT = "E0208";
     public static final String ERROR_CANCELLED_ORDER_LOCKED = "E0209";
     public static final String ERROR_PRODUCT_NAME_EXISTS = "E0210";
     public static final String ERROR_PRODUCT_NOT_FOUND = "E0211";
+    public static final String ERROR_INVALID_RECIPE_QUANTITY = "E0212";
 
     // Dải E030X: Báo cáo ẩn danh (UC-07, UC-08)
     public static final String ERROR_REPORT_EMPTY_CATEGORY = "E0300";

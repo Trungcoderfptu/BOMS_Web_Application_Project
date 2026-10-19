@@ -8,10 +8,13 @@ import dao.MenuCategoryDAO;
 import dao.ProductDAO;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import model.Ingredient;
 import model.MenuCategory;
 import model.Product;
+import model.ProductIngredient;
 import utility.Constants;
 import utility.ValidationException;
 import utility.Validator;
@@ -70,8 +73,28 @@ public class ProductService {
     }
 
     /**
+     * Lấy toàn bộ danh sách nguyên liệu đang hoạt động phục vụ dropdown công thức món
+     */
+    public List<Map<String, Object>> getAllActiveIngredientsForView() throws ValidationException {
+        List<Ingredient> ingredients = ingredientDAO.getAllIngredients();
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (ingredients != null) {
+            for (Ingredient ing : ingredients) {
+                if (ing.isActive()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("ingredientId", String.valueOf(ing.getIngredientId()));
+                    map.put("ingredientName", ing.getIngredientName());
+                    map.put("unit", ing.getUnit());
+                    result.add(map);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * Lấy danh sách toàn bộ món ăn cho trang Quản lý Thực đơn (Admin & Staff)
-     * Đóng gói đầy đủ tên danh mục, trạng thái kinh doanh và tình trạng tồn kho nguyên liệu
+     * Đóng gói đầy đủ tên danh mục, trạng thái kinh doanh, công thức nguyên liệu và tình trạng tồn kho nguyên liệu
      */
     public List<Map<String, Object>> getAllProductsForManagementView() throws ValidationException {
         List<Product> products = productDAO.getAllProducts();
@@ -95,6 +118,7 @@ public class ProductService {
                 map.put("imageUrl", p.getImageUrl());
                 map.put("isAvailable", p.isAvailable());
                 map.put("availableInStock", checkProductAvailability(p));
+                map.put("recipeData", buildRecipeString(p.getProductId()));
                 result.add(map);
             }
         }
@@ -125,10 +149,18 @@ public class ProductService {
     }
 
     /**
-     * Nghiệp vụ Tạo món mới vào thực đơn kèm 2 tầng Validation
+     * Nghiệp vụ Tạo món mới vào thực đơn (Overload tương thích ngược)
      */
     public void createProduct(String categoryIdStr, String productName, String priceStr, String imageUrl)
             throws ValidationException {
+        createProduct(categoryIdStr, productName, priceStr, imageUrl, null, null);
+    }
+
+    /**
+     * Nghiệp vụ Tạo món mới vào thực đơn kèm công thức nguyên liệu và 2 tầng Validation
+     */
+    public void createProduct(String categoryIdStr, String productName, String priceStr, String imageUrl,
+            String[] recipeIngredientIds, String[] recipeQuantities) throws ValidationException {
         // Validation Tầng 1: Kiểm tra dữ liệu thô đầu vào
         Validator.checkEmpty(productName, Constants.ERROR_EMPTY_PRODUCT_NAME);
         int categoryId = Validator.checkInteger(categoryIdStr, Constants.ERROR_EMPTY_PRODUCT_CATEGORY);
@@ -147,6 +179,8 @@ public class ProductService {
             throw new ValidationException(Constants.ERROR_PRODUCT_NAME_EXISTS);
         }
 
+        Map<Integer, Double> recipeMap = parseAndValidateRecipes(recipeIngredientIds, recipeQuantities);
+
         // Tạo thực thể và lưu xuống CSDL
         Product newProduct = new Product();
         newProduct.setCategoryId(categoryId);
@@ -156,13 +190,25 @@ public class ProductService {
         newProduct.setAvailable(true); // Mặc định món mới được phép kinh doanh
 
         productDAO.insertProduct(newProduct);
+
+        // Lưu công thức định lượng vào ProductIngredients
+        saveProductRecipes(newProduct.getProductId(), recipeMap);
     }
 
     /**
-     * Nghiệp vụ Cập nhật thông tin món ăn kèm 2 tầng Validation
+     * Nghiệp vụ Cập nhật thông tin món ăn (Overload tương thích ngược)
      */
     public void updateProduct(String productIdStr, String categoryIdStr, String productName,
             String priceStr, String imageUrl, String isAvailableStr) throws ValidationException {
+        updateProduct(productIdStr, categoryIdStr, productName, priceStr, imageUrl, isAvailableStr, null, null);
+    }
+
+    /**
+     * Nghiệp vụ Cập nhật thông tin món ăn kèm cập nhật công thức nguyên liệu và 2 tầng Validation
+     */
+    public void updateProduct(String productIdStr, String categoryIdStr, String productName,
+            String priceStr, String imageUrl, String isAvailableStr,
+            String[] recipeIngredientIds, String[] recipeQuantities) throws ValidationException {
         // Validation Tầng 1: Kiểm tra dữ liệu thô đầu vào
         int productId = Validator.checkInteger(productIdStr, Constants.ERROR_PRODUCT_NOT_FOUND);
         Validator.checkEmpty(productName, Constants.ERROR_EMPTY_PRODUCT_NAME);
@@ -185,6 +231,8 @@ public class ProductService {
             throw new ValidationException(Constants.ERROR_PRODUCT_NAME_EXISTS);
         }
 
+        Map<Integer, Double> recipeMap = parseAndValidateRecipes(recipeIngredientIds, recipeQuantities);
+
         // Cập nhật thuộc tính
         boolean isAvailable = isAvailableStr != null ? Boolean.parseBoolean(isAvailableStr) : existing.isAvailable();
         existing.setCategoryId(categoryId);
@@ -194,6 +242,10 @@ public class ProductService {
         existing.setAvailable(isAvailable);
 
         productDAO.updateProduct(existing);
+
+        // Đồng bộ lại công thức: Xóa cũ và nạp mới
+        ingredientDAO.deleteProductIngredientsByProductId(productId);
+        saveProductRecipes(productId, recipeMap);
     }
 
     /**
@@ -250,5 +302,62 @@ public class ProductService {
         map.put("imageUrl", p.getImageUrl());
         map.put("available", checkProductAvailability(p));
         return map;
+    }
+
+    private String buildRecipeString(int productId) throws ValidationException {
+        List<ProductIngredient> list = ingredientDAO.getIngredientsByProductId(productId);
+        if (list == null || list.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            ProductIngredient pi = list.get(i);
+            if (i > 0) {
+                sb.append(",");
+            }
+            sb.append(pi.getIngredientId()).append(":").append(pi.getQuantityUsed());
+        }
+        return sb.toString();
+    }
+
+    private Map<Integer, Double> parseAndValidateRecipes(String[] recipeIngredientIds, String[] recipeQuantities)
+            throws ValidationException {
+        Map<Integer, Double> recipeMap = new LinkedHashMap<>();
+        if (recipeIngredientIds == null || recipeQuantities == null) {
+            return recipeMap;
+        }
+        int len = Math.min(recipeIngredientIds.length, recipeQuantities.length);
+        for (int i = 0; i < len; i++) {
+            String ingIdStr = recipeIngredientIds[i];
+            String qtyStr = recipeQuantities[i];
+            if (ingIdStr == null || ingIdStr.trim().isEmpty()) {
+                continue;
+            }
+            int ingId;
+            try {
+                ingId = Integer.parseInt(ingIdStr.trim());
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (ingId <= 0) {
+                continue;
+            }
+            double qty = Validator.checkPositiveDouble(qtyStr, Constants.ERROR_INVALID_RECIPE_QUANTITY);
+            Ingredient ing = ingredientDAO.getIngredientById(ingId);
+            if (ing == null || !ing.isActive()) {
+                throw new ValidationException(Constants.ERROR_INGREDIENT_NOT_FOUND);
+            }
+            recipeMap.put(ingId, recipeMap.getOrDefault(ingId, 0.0) + qty);
+        }
+        return recipeMap;
+    }
+
+    private void saveProductRecipes(int productId, Map<Integer, Double> recipeMap) throws ValidationException {
+        if (recipeMap != null) {
+            for (Map.Entry<Integer, Double> entry : recipeMap.entrySet()) {
+                ProductIngredient pi = new ProductIngredient(productId, entry.getKey(), entry.getValue());
+                ingredientDAO.insertProductIngredient(pi);
+            }
+        }
     }
 }

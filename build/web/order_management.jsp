@@ -19,23 +19,6 @@
         <c:if test="${not empty SUCCESS_MESSAGE}">
             <p class="msg-success text-center"><fmt:message key="${SUCCESS_MESSAGE}" /></p>
         </c:if>
-        <c:if test="${not empty PRICE_DIFF}">
-            <p class="text-center font-bold ${PRICE_DIFF > 0 ? 'msg-error' : 'msg-success'}">
-                <c:choose>
-                    <c:when test="${PRICE_DIFF > 0}">
-                        <fmt:message key="order.management.diff.extra" /> 
-                        <fmt:formatNumber value="${PRICE_DIFF}" pattern="#,###" /> ₫
-                    </c:when>
-                    <c:when test="${PRICE_DIFF < 0}">
-                        <fmt:message key="order.management.diff.refund" /> 
-                        <fmt:formatNumber value="${-PRICE_DIFF}" pattern="#,###" /> ₫
-                    </c:when>
-                    <c:otherwise>
-                        <fmt:message key="order.management.diff.equal" />
-                    </c:otherwise>
-                </c:choose>
-            </p>
-        </c:if>
 
         <form action="${pageContext.request.contextPath}/OrderManagementController" method="GET" class="order-filter-panel">
             <div class="filter-item">
@@ -117,27 +100,6 @@
                                                     <strong>${detail.productName}</strong> x${detail.quantity} 
                                                     (<fmt:formatNumber value="${detail.unitPrice}" pattern="#,###" /> ₫)
                                                 </div>
-                                                <c:if test="${order.canChangeOrder}">
-                                                    <details class="exchange-details">
-                                                        <summary class="btn-exchange-summary"><fmt:message key="order.management.btn.exchange" /></summary>
-                                                        <form action="${pageContext.request.contextPath}/OrderManagementController" method="POST" class="exchange-form">
-                                                            <input type="hidden" name="action" value="exchange" />
-                                                            <input type="hidden" name="orderId" value="${order.orderId}" />
-                                                            <input type="hidden" name="oldProductId" value="${detail.productId}" />
-                                                            <input type="hidden" name="filterDate" value="${CURRENT_FILTER_DATE}" />
-                                                            <input type="hidden" name="filterStatus" value="${CURRENT_FILTER_STATUS}" />
-                                                            <select name="newProductId" class="filter-input-sm" required>
-                                                                <c:forEach var="p" items="${AVAILABLE_PRODUCTS}">
-                                                                    <c:if test="${p.productId != detail.productId}">
-                                                                        <option value="${p.productId}">${p.productName} (<fmt:formatNumber value="${p.price}" pattern="#,###" /> ₫)</option>
-                                                                    </c:if>
-                                                                </c:forEach>
-                                                            </select>
-                                                            <input type="number" name="newQuantity" value="${detail.quantity}" min="1" max="99" class="input-qty-sm" required />
-                                                            <button type="submit" class="btn-status-save"><fmt:message key="order.management.exchange.btn_submit" /></button>
-                                                        </form>
-                                                    </details>
-                                                </c:if>
                                             </li>
                                         </c:forEach>
                                     </ul>
@@ -200,7 +162,7 @@
                                             <button type="submit" class="btn-status-save btn-status-save-${order.orderId}" ${order.isCancelLocked ? 'disabled' : ''}><fmt:message key="order.management.btn.update" /></button>
                                         </form>
 
-                                        <c:if test="${order.canChangeOrder}">
+                                        <c:if test="${order.canCancelOrder}">
                                             <button type="button" class="btn-order-cancel mt-5" onclick="openStaffCancelModal('${order.orderId}')"><fmt:message key="order.management.btn.cancel" /></button>
                                         </c:if>
                                     </div>

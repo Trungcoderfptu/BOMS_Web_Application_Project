@@ -47,11 +47,13 @@ public class Constants {
     public static final String SUCCESS_CLEAR_CART = "S0204";
     public static final String SUCCESS_UPDATE_ORDER_STATUS = "S0205";
     public static final String SUCCESS_CANCEL_ORDER = "S0206";
-    public static final String SUCCESS_CHANGE_DISH = "S0207";
     public static final String SUCCESS_CREATE_PRODUCT = "S0208";
     public static final String SUCCESS_UPDATE_PRODUCT = "S0209";
     public static final String SUCCESS_CHANGE_PRODUCT_STATUS = "S0210";
 
+    // Dải S030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
+    public static final String SUCCESS_ATTENDANCE_CHECK_IN = "S0301";
+    public static final String SUCCESS_ATTENDANCE_CHECK_OUT = "S0302";
     // Dải S030X: Báo cáo ẩn danh (UC-07, UC-08)
     public static final String SUCCESS_SUBMIT_REPORT = "S0300";
     public static final String SUCCESS_UPDATE_REPORT = "S0301";
@@ -118,11 +120,18 @@ public class Constants {
     public static final String ERROR_INSUFFICIENT_INGREDIENTS = "E0205";
     public static final String ERROR_ORDER_ALREADY_COOKING = "E0206";
     public static final String ERROR_ORDER_CANNOT_BE_CANCELLED = "E0207";
-    public static final String ERROR_INVALID_EXCHANGE_PRODUCT = "E0208";
     public static final String ERROR_CANCELLED_ORDER_LOCKED = "E0209";
     public static final String ERROR_PRODUCT_NAME_EXISTS = "E0210";
     public static final String ERROR_PRODUCT_NOT_FOUND = "E0211";
+    public static final String ERROR_INVALID_RECIPE_QUANTITY = "E0212";
 
+    // Dải E030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
+    public static final String ERROR_ATTENDANCE_NO_SHIFT = "E0301";
+    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_IN = "E0302";
+    public static final String ERROR_ATTENDANCE_NOT_CHECKED_IN = "E0303";
+    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_OUT = "E0304";
+    public static final String ERROR_ATTENDANCE_PENDING_ORDERS = "E0305";
+    public static final String ERROR_ATTENDANCE_EMPTY_OT_REASON = "E0306";
     // Dải E030X: Báo cáo ẩn danh (UC-07, UC-08)
     public static final String ERROR_REPORT_EMPTY_CATEGORY = "E0300";
     public static final String ERROR_REPORT_EMPTY_TITLE = "E0301";
@@ -196,6 +205,10 @@ public class Constants {
     public static final String ERROR_DATABASE_GET_ORDER = "DE0016";
     public static final String ERROR_DATABASE_UPDATE_ORDER = "DE0017";
 
+    // Nhóm Chấm công & Ca làm việc (Attendance DAO)
+    public static final String ERROR_DATABASE_GET_ATTENDANCE = "DE0018";
+    public static final String ERROR_DATABASE_INSERT_ATTENDANCE = "DE0019";
+    public static final String ERROR_DATABASE_UPDATE_ATTENDANCE = "DE0020";
     // Nhóm Báo cáo ẩn danh & Thông báo (Report DAO, Notification DAO)
     public static final String ERROR_DATABASE_GET_REPORT = "DE0030";
     public static final String ERROR_DATABASE_INSERT_REPORT = "DE0031";

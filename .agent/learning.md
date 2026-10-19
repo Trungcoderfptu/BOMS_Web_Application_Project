@@ -906,3 +906,22 @@
 - Loại bỏ hoàn toàn 100% tàn dư của tính năng đổi món.
 - Tính năng Hủy đơn khi chưa nấu (`cookingStartedAt == null`), khóa hủy sau 5 phút và hoàn kho nguyên liệu tự động tiếp tục hoạt động an toàn, chính xác tuyệt đối.
 - Toàn bộ dự án biên dịch qua `javac` đạt **`BUILD SUCCESSFUL` (0 lỗi)**.
+
+## [2026-10-19] - Chuẩn hóa Phân quyền Menu Header (`header.jsp`) & Khắc phục Lỗi Cấu trúc Servlet trong `web.xml`
+### 1. File bị tác động:
+- `web/header.jsp`:
+  - **Chuông cảnh báo kho (`btnInventoryAlertBell`):** Loại bỏ vai trò `Admin`, chỉ cho phép `Staff` và `Manager` hiển thị và nhận cảnh báo (khớp với việc nhúng `inventory_alert_modal.jsp` và quy định loại Admin khỏi luồng kho).
+  - **Dropdown Menu Tài khoản (`#menuTaiKhoan`):** Bọc liên kết `AttendanceController` (Chấm công) chỉ hiển thị cho nhân viên (`Staff`).
+  - **Menu Dọc (Sidebar `#menuDoc`):** Tái cấu trúc phân quyền rõ ràng theo 4 vai trò của dự án:
+    1. `Admin`: Chỉ hiển thị duy nhất Quản lý tài khoản (`AdminDashboardController`).
+    2. `Manager`: Quản lý đơn hàng (`OrderManagementController`), Quản lý thực đơn / thêm món (`MenuManagementController`), Quản lý kho / thêm sửa xem (`InventoryManagementController`), Quản lý báo cáo ẩn danh (`ReportManagementController`), Quản lý nhân sự (`#` - chờ module nhân sự tích hợp theo quyết định phê duyệt).
+    3. `Staff`: Đặt món tại quầy (`MenuController`), Quản lý đơn hàng (`OrderManagementController`), Tạo thực đơn (`MenuManagementController`), Xem kho (`InventoryManagementController`), Chấm công (`AttendanceController`), Gửi báo cáo ẩn danh (`ReportController`).
+    4. `Shipper`: Chỉ hiển thị luồng giao hàng (`#`).
+  - **Khắc phục lỗi đường dẫn & trùng lặp:** Dọn dẹp dứt điểm các thẻ `<li>` bị lặp sau đợt merge nhánh (`AdminDashboardController` nhầm nhãn HR, các link rác `href="#"` của báo cáo và nhân sự, gỡ `Manager` khỏi luồng Shipper).
+- `web/WEB-INF/web.xml`:
+  - Khắc phục lỗi cú pháp nghiêm trọng sau khi gộp nhánh Hoài: Tách thẻ `<servlet>` và `<servlet-mapping>` bị lồng gộp giữa `AttendanceController` và `InventoryManagementController` thành 2 cặp thẻ độc lập chuẩn Servlet 6.0.
+
+### 2. Tuân thủ kiến trúc:
+- Giao diện View tuân thủ 100% JSTL/EL, không Scriptlet, không CSS/JS inline.
+- Phân quyền giao diện đọc từ `sessionScope.USER_SESSION.role` an toàn.
+- Dự án biên dịch thành công qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi)**.

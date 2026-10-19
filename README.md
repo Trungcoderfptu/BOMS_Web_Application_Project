@@ -119,3 +119,29 @@ thêm file QR code.md để lưu các link QR truy cập nhanh
 * File SQL đã thêm 1 tí thay đổi hãy chạy lại SQL mỗi khi nâng cấp phần mềm
 * nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: del /s *.class để tránh lỗi khi merge nhánh
 ---
+# [v0.0.9] - 2026-10-19.
+### Added
+* **Gộp nhóm hoài thành công:** Đã kiểm thử và gộp thành công nhánh hoài `(@Trung)`
+
+### Fixed
+* Chưa fix còn lỗi của phần hoài
+---
+# [v0.10] - 2026-10-19.
+### Added
+* **Chuẩn hóa phân quyền Menu Header (header.jsp):** Phân chia rõ ràng ranh giới truy cập giao diện theo 4 vai trò của dự án:
+  - **Admin:** Chỉ duy nhất phụ trách Quản lý tài khoản (`AdminDashboardController`), tách hoàn toàn khỏi luồng kho bãi và báo cáo.
+  - **Manager:** Quản lý đơn hàng, Quản lý thực đơn (thêm/sửa món), Quản lý kho (xem/thêm/sửa), Quản lý báo cáo ẩn danh và Quản lý nhân sự.
+  - **Staff:** Đặt món tại quầy POS, Quản lý đơn hàng, Tạo thực đơn, Xem kho, Chấm công và Gửi báo cáo ẩn danh.
+  - **Shipper:** Chỉ thực hiện luồng giao hàng của Shipper. `(@Trung)`
+
+### Fixed
+* **Khắc phục lỗi cú pháp servlet trong `web.xml` (Fix dứt điểm lỗi phần Hoài):** Tách thẻ `<servlet>` và `<servlet-mapping>` bị chập gộp giữa `AttendanceController` (nhánh Hoài) và `InventoryManagementController` (nhánh Đạt) thành 2 định nghĩa servlet độc lập, đảm bảo hệ thống deploy an toàn trên Tomcat 10.
+* **Dọn dẹp liên kết và tối ưu trải nghiệm (UX):**
+  - Xóa bỏ hoàn toàn các thẻ duplicate và link rác (`href="#"`) của Báo cáo và Nhân sự.
+  - Loại bỏ chuông cảnh báo kho cho Admin (chỉ Staff và Manager nhận thông báo).
+  - Khóa liên kết Chấm công trong dropdown tài khoản cá nhân, chỉ hiển thị riêng cho Staff.
+
+### Notes
+* Dự án biên dịch thành công 0 lỗi qua NetBeans Ant (`BUILD SUCCESSFUL`).
+* Nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: `del /s *.class` để tránh lỗi khi merge nhánh.
+---

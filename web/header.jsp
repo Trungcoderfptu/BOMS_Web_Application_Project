@@ -25,6 +25,11 @@
                         <jsp:include page="components/language_switcher.jsp" />
                         <jsp:include page="components/theme_toggle.jsp" />
                     </div>
+                    <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager' or sessionScope.USER_SESSION.role == 'Admin')}">
+                        <button id="btnInventoryAlertBell" type="button" class="btn-icon-alert" title="<fmt:message key='alert.bell.title' />" onclick="openInventoryAlertModal()">
+                            🔔<span id="inventoryAlertBadge" class="alert-badge d-none">0</span>
+                        </button>
+                    </c:if>
                     <div class="dropdown-wrapper">
                         <c:choose>
                             <c:when test="${empty sessionScope.USER_SESSION}">
@@ -54,6 +59,10 @@
             </div>
         </header>
 
+        <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager' or sessionScope.USER_SESSION.role == 'Admin')}">
+            <jsp:include page="components/inventory_alert_modal.jsp" />
+        </c:if>
+
         <aside id="menuDoc">
             <button id="btnDongMenuDoc">✖ <fmt:message key="header.sidebar.close" /></button>
             <ul class="no-bullet">
@@ -64,10 +73,16 @@
                     <c:if test="${sessionScope.USER_SESSION.role == 'Admin' or sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.hr" /></a></li>
                     <li><a href="#"><fmt:message key="header.sidebar.reports" /></a></li>
+                    <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/ReportManagementController"><fmt:message key="header.sidebar.reports" /></a></li>
+                    </c:if>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
+                    <li><a href="${pageContext.request.contextPath}/ReportController"><fmt:message key="header.sidebar.anonymous_report" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/InventoryManagementController"><fmt:message key="header.sidebar.inventory" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Shipper' or sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>

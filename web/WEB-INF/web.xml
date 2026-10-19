@@ -49,6 +49,24 @@
         <servlet-class>controller.OrderManagementController</servlet-class>
     </servlet>
     <servlet>
+        <servlet-name>ReportController</servlet-name>
+        <servlet-class>controller.ReportController</servlet-class>
+        <!-- UC-07 7.0.E1: toi da 20MB/file, toi da 5 file + 1MB du phong cho cac o nhap lieu -->
+        <multipart-config>
+            <max-file-size>20971520</max-file-size>
+            <max-request-size>105906176</max-request-size>
+            <file-size-threshold>1048576</file-size-threshold>
+        </multipart-config>
+    </servlet>
+    <servlet>
+        <servlet-name>ReportManagementController</servlet-name>
+        <servlet-class>controller.ReportManagementController</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>EvidenceController</servlet-name>
+        <servlet-class>controller.EvidenceController</servlet-class>
+    </servlet>
+    <servlet>
         <servlet-name>MenuManagementController</servlet-name>
         <servlet-class>controller.MenuManagementController</servlet-class>
     </servlet>
@@ -59,6 +77,12 @@
     <servlet>
         <servlet-name>AttendanceController</servlet-name>
         <servlet-class>controller.AttendanceController</servlet-class>
+        <servlet-name>InventoryManagementController</servlet-name>
+        <servlet-class>controller.InventoryManagementController</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>IngredientAlertController</servlet-name>
+        <servlet-class>controller.IngredientAlertController</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>LoginController</servlet-name>
@@ -110,6 +134,18 @@
         <url-pattern>/OrderManagementController</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
+        <servlet-name>ReportController</servlet-name>
+        <url-pattern>/ReportController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ReportManagementController</servlet-name>
+        <url-pattern>/ReportManagementController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>EvidenceController</servlet-name>
+        <url-pattern>/EvidenceController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
         <servlet-name>MenuManagementController</servlet-name>
         <url-pattern>/MenuManagementController</url-pattern>
     </servlet-mapping>
@@ -120,6 +156,12 @@
     <servlet-mapping>
         <servlet-name>AttendanceController</servlet-name>
         <url-pattern>/AttendanceController</url-pattern>
+        <servlet-name>InventoryManagementController</servlet-name>
+        <url-pattern>/InventoryManagementController</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>IngredientAlertController</servlet-name>
+        <url-pattern>/IngredientAlertController</url-pattern>
     </servlet-mapping>
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>

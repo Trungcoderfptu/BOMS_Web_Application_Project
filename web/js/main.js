@@ -123,6 +123,15 @@ function initMainApp() {
         });
     }
 
+    const alertModal = document.getElementById('inventoryAlertModal');
+    if (alertModal) {
+        alertModal.addEventListener('click', function (e) {
+            if (e.target === alertModal) {
+                closeInventoryAlertModal();
+            }
+        });
+    }
+
     initCancelCountdowns();
 
     // ================= ATTENDANCE SERVER CLOCK =================
@@ -152,12 +161,53 @@ function initMainApp() {
             }
         }
     }
+    initInventoryAlertPolling();
 }
 
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initMainApp);
 } else {
     initMainApp();
+}
+
+// ===== UC-07: Kiểm tra file bằng chứng ngay khi chọn (server vẫn kiểm tra lại lần nữa) =====
+function initEvidenceFileCheck() {
+    const input = document.getElementById('evidenceFiles');
+    if (!input || input.dataset.checkReady) {
+        return;
+    }
+    input.dataset.checkReady = 'true';
+    const allowedTypes = (input.getAttribute('accept') || '').split(',').map(t => t.trim().replace('.', '').toLowerCase());
+
+    input.addEventListener('change', function () {
+        input.setCustomValidity(getEvidenceError(input, allowedTypes));
+        input.classList.toggle('input-error', input.validationMessage !== '');
+        input.reportValidity();
+    });
+}
+
+function getEvidenceError(input, allowedTypes) {
+    const maxFiles = parseInt(input.dataset.maxFiles, 10);
+    const maxSize = parseInt(input.dataset.maxSize, 10);
+    if (input.files.length > maxFiles) {
+        return input.dataset.msgFiles;
+    }
+    for (const file of input.files) {
+        const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+        if (!allowedTypes.includes(ext)) {
+            return input.dataset.msgType;
+        }
+        if (file.size <= 0 || file.size > maxSize) {
+            return input.dataset.msgSize;
+        }
+    }
+    return '';
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initEvidenceFileCheck);
+} else {
+    initEvidenceFileCheck();
 }
 // Tab switching for Dashboard screens
 function openTab(evt, tabId) {
@@ -469,5 +519,287 @@ document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeProductModal();
         closeOtReasonModal();
+        closeInventoryModal();
+        closeThresholdModal();
     }
 });
+
+// ================= INVENTORY MODAL HANDLERS =================
+function openCreateIngredientModal() {
+    const modal = document.getElementById('inventoryModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('inventoryModalTitle');
+    const actionEl = document.getElementById('inventoryModalAction');
+    const idEl = document.getElementById('inventoryModalId');
+    const nameEl = document.getElementById('ingredientNameInput');
+    const catEl = document.getElementById('ingredientCategorySelect');
+    const unitEl = document.getElementById('ingredientUnitInput');
+    const qtyEl = document.getElementById('ingredientQtyInput');
+    const priceEl = document.getElementById('ingredientPriceInput');
+    const threshEl = document.getElementById('ingredientThresholdInput');
+    const locEl = document.getElementById('ingredientLocationInput');
+
+    if (titleEl) {
+        titleEl.textContent = modal.getAttribute('data-title-add') || 'Thêm Nguyên Liệu Mới';
+    }
+    if (actionEl) actionEl.value = 'create';
+    if (idEl) idEl.value = '';
+    if (nameEl) nameEl.value = '';
+    if (unitEl) unitEl.value = '';
+    if (qtyEl) qtyEl.value = '0';
+    if (priceEl) priceEl.value = '0';
+    if (threshEl) threshEl.value = '5';
+    if (locEl) locEl.value = '';
+
+    modal.classList.remove('d-none');
+    if (nameEl) nameEl.focus();
+}
+
+function openEditIngredientModal(id, categoryId, name, unit, quantity, price, location, threshold) {
+    const modal = document.getElementById('inventoryModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('inventoryModalTitle');
+    const actionEl = document.getElementById('inventoryModalAction');
+    const idEl = document.getElementById('inventoryModalId');
+    const nameEl = document.getElementById('ingredientNameInput');
+    const catEl = document.getElementById('ingredientCategorySelect');
+    const unitEl = document.getElementById('ingredientUnitInput');
+    const qtyEl = document.getElementById('ingredientQtyInput');
+    const priceEl = document.getElementById('ingredientPriceInput');
+    const threshEl = document.getElementById('ingredientThresholdInput');
+    const locEl = document.getElementById('ingredientLocationInput');
+
+    if (titleEl) {
+        titleEl.textContent = modal.getAttribute('data-title-edit') || 'Chỉnh Sửa Nguyên Liệu';
+    }
+    if (actionEl) actionEl.value = 'update';
+    if (idEl) idEl.value = id;
+    if (nameEl) nameEl.value = name || '';
+    if (catEl) catEl.value = categoryId || '';
+    if (unitEl) unitEl.value = unit || '';
+    if (qtyEl) qtyEl.value = quantity || '0';
+    if (priceEl) priceEl.value = Math.round(Number(price)) || '0';
+    if (threshEl) threshEl.value = threshold || '0';
+    if (locEl) locEl.value = (location && location !== '-') ? location : '';
+
+    modal.classList.remove('d-none');
+    if (nameEl) nameEl.focus();
+}
+
+function closeInventoryModal() {
+    const modal = document.getElementById('inventoryModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function openThresholdModal(id, name, currentThreshold) {
+    const modal = document.getElementById('thresholdModal');
+    if (!modal) return;
+
+    const idEl = document.getElementById('thresholdIngredientId');
+    const nameEl = document.getElementById('thresholdIngredientName');
+    const valEl = document.getElementById('thresholdValueInput');
+
+    if (idEl) idEl.value = id;
+    if (nameEl) nameEl.textContent = name || '';
+    if (valEl) valEl.value = currentThreshold || '0';
+
+    modal.classList.remove('d-none');
+    if (valEl) valEl.focus();
+}
+
+function closeThresholdModal() {
+    const modal = document.getElementById('thresholdModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+// ================= INVENTORY ALERTS (POLLING, AUDIO & MODAL) =================
+let __lastAlertCount = 0;
+let __latestInventoryAlerts = [];
+
+function playNotificationSound() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+    } catch (e) {
+        // Silently catch audio policy restrictions
+    }
+}
+
+function pollInventoryAlerts() {
+    const badge = document.getElementById('inventoryAlertBadge');
+    if (!badge) return;
+
+    fetch('IngredientAlertController?action=poll', { cache: 'no-store' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (!data || !data.success) return;
+            const count = data.count || 0;
+            __latestInventoryAlerts = data.alerts || [];
+
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('d-none');
+                badge.classList.add('alert-badge-pulse');
+                if (count > __lastAlertCount) {
+                    playNotificationSound();
+                }
+            } else {
+                badge.textContent = '0';
+                badge.classList.add('d-none');
+                badge.classList.remove('alert-badge-pulse');
+            }
+            __lastAlertCount = count;
+
+            const modal = document.getElementById('inventoryAlertModal');
+            if (modal && !modal.classList.contains('d-none')) {
+                renderInventoryAlertsTable(__latestInventoryAlerts);
+            }
+        })
+        .catch(function (err) {
+            // Ignore polling connection glitches silently
+        });
+}
+
+function initInventoryAlertPolling() {
+    const bell = document.getElementById('btnInventoryAlertBell');
+    if (!bell) return;
+
+    // Initial check on load
+    pollInventoryAlerts();
+
+    // Regular polling every 60 seconds
+    setInterval(pollInventoryAlerts, 60000);
+}
+
+function openInventoryAlertModal() {
+    const modal = document.getElementById('inventoryAlertModal');
+    if (!modal) return;
+
+    modal.classList.remove('d-none');
+    renderInventoryAlertsTable(__latestInventoryAlerts);
+    pollInventoryAlerts();
+}
+
+function closeInventoryAlertModal() {
+    const modal = document.getElementById('inventoryAlertModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function renderInventoryAlertsTable(alerts) {
+    const modal = document.getElementById('inventoryAlertModal');
+    const tableBody = document.getElementById('inventoryAlertTableBody');
+    const emptyState = document.getElementById('alertEmptyState');
+    const tableContainer = document.getElementById('alertTableContainer');
+    if (!modal || !tableBody) return;
+
+    const lblLow = modal.getAttribute('data-type-low-stock') || 'Low Stock';
+    const lblOut = modal.getAttribute('data-type-out-of-stock') || 'Out of Stock';
+    const lblExpSoon = modal.getAttribute('data-type-expiring-soon') || 'Expiring Soon';
+    const lblExp = modal.getAttribute('data-type-expired') || 'Expired';
+    const lblBtnConfirm = modal.getAttribute('data-btn-confirm') || 'Confirm';
+    const lblBtnConfirmed = modal.getAttribute('data-btn-confirmed') || 'Confirmed';
+
+    tableBody.innerHTML = '';
+
+    if (!alerts || alerts.length === 0) {
+        if (emptyState) emptyState.classList.remove('d-none');
+        if (tableContainer) tableContainer.classList.add('d-none');
+        return;
+    }
+
+    if (emptyState) emptyState.classList.add('d-none');
+    if (tableContainer) tableContainer.classList.remove('d-none');
+
+    alerts.forEach(function (a) {
+        const tr = document.createElement('tr');
+
+        let typeBadgeHtml = '';
+        if (a.alertType === 'OutOfStock') {
+            typeBadgeHtml = '<span class="badge-status-inactive">' + escapeHtml(lblOut) + '</span>';
+        } else if (a.alertType === 'Expired') {
+            typeBadgeHtml = '<span class="badge-alert-expired">' + escapeHtml(lblExp) + '</span>';
+        } else if (a.alertType === 'ExpiringSoon' || a.alertType === 'Expiring Soon') {
+            typeBadgeHtml = '<span class="badge-stock-out">' + escapeHtml(lblExpSoon) + '</span>';
+        } else {
+            typeBadgeHtml = '<span class="badge-stock-out">' + escapeHtml(lblLow) + '</span>';
+        }
+
+        const isConfirmed = (a.status === 'Confirmed');
+        const statusHtml = isConfirmed
+            ? '<span class="badge-stock-ok">' + escapeHtml(lblBtnConfirmed) + (a.confirmedBy ? ' (' + escapeHtml(a.confirmedBy) + ')' : '') + '</span>'
+            : '<span class="badge-status-inactive">\u26A0\uFE0F Active</span>';
+
+        const actionHtml = isConfirmed
+            ? '<span class="text-muted">\u2714\uFE0F ' + escapeHtml(lblBtnConfirmed) + '</span>'
+            : '<button type="button" class="btn-action-edit" onclick="confirmInventoryAlert(' + a.alertId + ', this)">' + escapeHtml(lblBtnConfirm) + '</button>';
+
+        tr.innerHTML = '<td><strong>' + escapeHtml(a.ingredientName || '-') + '</strong></td>'
+            + '<td>' + typeBadgeHtml + '</td>'
+            + '<td><span class="text-danger font-bold">' + (a.quantity != null ? a.quantity : 0) + '</span> ' + escapeHtml(a.unit || '') + '</td>'
+            + '<td>' + (a.warningThreshold != null ? a.warningThreshold : 0) + ' ' + escapeHtml(a.unit || '') + '</td>'
+            + '<td>' + escapeHtml(a.createdAt || '-') + '</td>'
+            + '<td>' + statusHtml + '</td>'
+            + '<td>' + actionHtml + '</td>';
+
+        tableBody.appendChild(tr);
+    });
+}
+
+function confirmInventoryAlert(alertId, btnElement) {
+    if (!alertId) return;
+
+    if (btnElement) {
+        btnElement.disabled = true;
+    }
+
+    fetch('IngredientAlertController', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=confirm&alertId=' + encodeURIComponent(alertId)
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+        if (data && data.success) {
+            pollInventoryAlerts();
+        } else if (btnElement) {
+            btnElement.disabled = false;
+        }
+    })
+    .catch(function (err) {
+        if (btnElement) {
+            btnElement.disabled = false;
+        }
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
+}

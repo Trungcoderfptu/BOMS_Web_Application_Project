@@ -55,6 +55,19 @@ public class Constants {
     // Dải S030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
     public static final String SUCCESS_ATTENDANCE_CHECK_IN = "S0301";
     public static final String SUCCESS_ATTENDANCE_CHECK_OUT = "S0302";
+    // Dải S030X: Báo cáo ẩn danh (UC-07, UC-08)
+    public static final String SUCCESS_SUBMIT_REPORT = "S0300";
+    public static final String SUCCESS_UPDATE_REPORT = "S0301";
+
+    // Dải S040X: Quản lý Kho nguyên liệu (Inventory)
+    public static final String SUCCESS_UPDATE_THRESHOLD = "S0401";
+    public static final String SUCCESS_CREATE_INGREDIENT = "S0402";
+    public static final String SUCCESS_UPDATE_INGREDIENT = "S0403";
+    public static final String SUCCESS_DELETE_INGREDIENT = "S0404";
+
+    // Dải S050X: Cảnh báo Tồn kho & Hết hạn (Alerts)
+    public static final String SUCCESS_CONFIRM_ALERT = "S0501";
+    public static final String SUCCESS_CLOSE_ALERT = "S0502";
 
     // Dải S9XXX: Nghiệp vụ Quản trị hệ thống (Admin)
     public static final String SUCCESS_ACCOUNT_STATE_CHANGE = "S9000";
@@ -120,6 +133,37 @@ public class Constants {
     public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_OUT = "E0304";
     public static final String ERROR_ATTENDANCE_PENDING_ORDERS = "E0305";
     public static final String ERROR_ATTENDANCE_EMPTY_OT_REASON = "E0306";
+    // Dải E030X: Báo cáo ẩn danh (UC-07, UC-08)
+    public static final String ERROR_REPORT_EMPTY_CATEGORY = "E0300";
+    public static final String ERROR_REPORT_EMPTY_TITLE = "E0301";
+    public static final String ERROR_REPORT_EMPTY_DESCRIPTION = "E0302";
+    public static final String ERROR_REPORT_TITLE_TOO_LONG = "E0303";
+    public static final String ERROR_REPORT_NO_EVIDENCE = "E0304";
+    public static final String ERROR_REPORT_INVALID_FILE_TYPE = "E0305";
+    public static final String ERROR_REPORT_FILE_TOO_LARGE = "E0306";
+    public static final String ERROR_REPORT_TOO_MANY_FILES = "E0307";
+    public static final String ERROR_REPORT_NOT_FOUND = "E0308";
+    public static final String ERROR_REPORT_TICKET_NOT_FOUND = "E0309";
+    public static final String ERROR_REPORT_INVALID_STATUS = "E0310";
+    public static final String ERROR_REPORT_REJECT_NEED_FEEDBACK = "E0311";
+    public static final String ERROR_REPORT_ALREADY_CLOSED = "E0312";
+    public static final String ERROR_REPORT_NO_PERMISSION = "E0313";
+    public static final String ERROR_EVIDENCE_NOT_FOUND = "E0314";
+    public static final String ERROR_REPORT_UPLOAD_FAILED = "E0315";
+    public static final String ERROR_REPORT_EMPTY_TICKET = "E0316";
+
+    // Dải E040X: Quản lý Kho nguyên liệu (Inventory)
+    public static final String ERROR_INGREDIENT_NOT_FOUND = "E0401";
+    public static final String ERROR_INGREDIENT_NAME_EXISTS = "E0402";
+    public static final String ERROR_INVALID_THRESHOLD = "E0403";
+    public static final String ERROR_EMPTY_INGREDIENT_NAME = "E0404";
+    public static final String ERROR_INVALID_INGREDIENT_PRICE = "E0405";
+    public static final String ERROR_INVALID_INGREDIENT_QTY = "E0406";
+    public static final String ERROR_INSUFFICIENT_PERMISSION = "E0407";
+    public static final String ERROR_INVALID_INGREDIENT_DATA = "E0408";
+
+    // Dải E050X: Cảnh báo Tồn kho & Hết hạn (Alerts)
+    public static final String ERROR_ALERT_NOT_FOUND = "E0501";
 
     // Dải E9XXX: Cấu hình & Nghiệp vụ Quản trị (Admin / System)
     public static final String SERROR_INVALID_SETTING_TAB = "E9000";
@@ -151,6 +195,11 @@ public class Constants {
     // Nhóm Kho & Công thức nguyên liệu (Ingredient DAO)
     public static final String ERROR_DATABASE_GET_INGREDIENT = "DE0014";
     public static final String ERROR_DATABASE_UPDATE_INGREDIENT = "DE0015";
+    public static final String ERROR_DATABASE_UPDATE_THRESHOLD = "DE0018";
+
+    // Nhóm Cảnh báo Kho (Alert DAO)
+    public static final String ERROR_DATABASE_GET_ALERT = "DE0019";
+    public static final String ERROR_DATABASE_UPDATE_ALERT = "DE0020";
 
     // Nhóm Đơn hàng & Chi tiết bán lẻ (Order DAO)
     public static final String ERROR_DATABASE_INSERT_ORDER = "DE0011";
@@ -161,4 +210,23 @@ public class Constants {
     public static final String ERROR_DATABASE_GET_ATTENDANCE = "DE0018";
     public static final String ERROR_DATABASE_INSERT_ATTENDANCE = "DE0019";
     public static final String ERROR_DATABASE_UPDATE_ATTENDANCE = "DE0020";
+    // Nhóm Báo cáo ẩn danh & Thông báo (Report DAO, Notification DAO)
+    public static final String ERROR_DATABASE_GET_REPORT = "DE0030";
+    public static final String ERROR_DATABASE_INSERT_REPORT = "DE0031";
+    public static final String ERROR_DATABASE_UPDATE_REPORT = "DE0032";
+    public static final String ERROR_DATABASE_INSERT_NOTIFICATION = "DE0033";
+
+    // =========================================================================
+    // 6. HẰNG SỐ NGHIỆP VỤ BÁO CÁO ẨN DANH (UC-07, UC-08)
+    // =========================================================================
+    public static final String REPORT_STATUS_PENDING = "Pending";
+    public static final String REPORT_STATUS_IN_PROGRESS = "In Progress";
+    public static final String REPORT_STATUS_RESOLVED = "Resolved";
+    public static final String REPORT_STATUS_REJECTED = "Rejected";
+    public static final String REPORT_FILTER_ALL = "ALL";
+    public static final String REPORT_TICKET_PREFIX = "TK-";
+    public static final String NOTIFICATION_TYPE_REPORT = "Report";
+    public static final int REPORT_TITLE_MAX_LENG = 200;
+    public static final int REPORT_MAX_EVIDENCE_FILES = 5;
+    public static final long REPORT_MAX_EVIDENCE_SIZE = 20L * 1024 * 1024; // 20 MB (7.0.E1)
 }

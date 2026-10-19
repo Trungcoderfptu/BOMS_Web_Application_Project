@@ -7,7 +7,7 @@
 
 <main class="main-content">
     <h2><fmt:message key="shipper.title" />: ${sessionScope.USER_SESSION.fullName}</h2>
-    
+
     <c:if test="${not empty ERROR_MESSAGE}">
         <p class="msg-error"><fmt:message key="${ERROR_MESSAGE}" /></p>
     </c:if>
@@ -46,7 +46,7 @@
                                         <input type="hidden" name="txtTaskId" value="${task.taskId}">
                                         <button type="submit" class="btn btn-accept"><fmt:message key="shipper.btn.accept" /></button>
                                     </form>
-                                    
+
                                     <!-- Nút Từ Chối (Đã tích hợp hộp thoại xác nhận JS) -->
                                     <form action="ShipperController" method="POST" class="inline-form" onsubmit="return confirm('<fmt:message key="shipper.confirm.reject" />');">
                                         <input type="hidden" name="action" value="rejectTask">
@@ -107,7 +107,7 @@
                             </c:if>
                             <!-- Nếu đơn đã hoàn thành hoặc bom hàng thì khóa luồng -->
                             <c:if test="${task.status == 'Delivered' || task.status == 'Returned'}">
-                                <span class="text-closed"><fmt:message key="shipper.text.closed" /></span>
+
                             </c:if>
                         </td>
                     </tr>

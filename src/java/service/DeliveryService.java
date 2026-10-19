@@ -21,15 +21,11 @@ public class DeliveryService {
         this.userDAO = new UserDAO();
     }
 
-    public List<Map<String, String>> getTasksForShipper(String shipperUsername) {
+    public List<Map<String, String>> getTasksForShipper(String shipperUsername) throws ValidationException {
         List<Map<String, String>> resultList = new ArrayList<>();
-        try {
-            List<DeliveryTask> tasks = deliveryDAO.getTasksByShipper(shipperUsername);
-            for (DeliveryTask t : tasks) {
-                resultList.add(buildTaskMap(t));
-            }
-        } catch (ValidationException e) {
-            System.out.println("Lỗi Service: " + e.getMessage());
+        List<DeliveryTask> tasks = deliveryDAO.getTasksByShipper(shipperUsername);
+        for (DeliveryTask t : tasks) {
+            resultList.add(buildTaskMap(t));
         }
         return resultList;
     }
@@ -49,17 +45,13 @@ public class DeliveryService {
         return resultList;
     }
 
-    public List<Map<String, String>> getUnassignedTasks() {
+    public List<Map<String, String>> getUnassignedTasks() throws ValidationException {
         List<Map<String, String>> unassignedList = new ArrayList<>();
-        try {
-            List<DeliveryTask> allTasks = deliveryDAO.getAllTasks();
-            for (DeliveryTask t : allTasks) {
-                if (isTaskWaitingForShipper(t)) {
-                    unassignedList.add(buildTaskMap(t));
-                }
+        List<DeliveryTask> allTasks = deliveryDAO.getAllTasks();
+        for (DeliveryTask t : allTasks) {
+            if (isTaskWaitingForShipper(t)) {
+                unassignedList.add(buildTaskMap(t));
             }
-        } catch (ValidationException e) {
-            System.out.println("Lỗi Service: " + e.getMessage());
         }
         return unassignedList;
     }
@@ -108,7 +100,7 @@ public class DeliveryService {
         return map;
     }
 
-    private Map<String, String> buildShipperStatusMap(String username) {
+    private Map<String, String> buildShipperStatusMap(String username) throws ValidationException {
         int activeOrders = countActiveOrders(username); 
 
         Map<String, String> statusMap = new HashMap<>();
@@ -127,17 +119,13 @@ public class DeliveryService {
         return map;
     }
 
-    private int countActiveOrders(String username) {
+    private int countActiveOrders(String username) throws ValidationException {
         int count = 0;
-        try {
-            List<DeliveryTask> tasks = deliveryDAO.getTasksByShipper(username);
-            for (DeliveryTask t : tasks) {
-                if (Constants.STATUS_DELIVERING.equals(t.getStatus())) {
-                    count++;
-                }
+        List<DeliveryTask> tasks = deliveryDAO.getTasksByShipper(username);
+        for (DeliveryTask t : tasks) {
+            if (Constants.STATUS_DELIVERING.equals(t.getStatus())) {
+                count++;
             }
-        } catch (ValidationException e) {
-            System.out.println("Lỗi đếm đơn: " + e.getMessage());
         }
         return count;
     }

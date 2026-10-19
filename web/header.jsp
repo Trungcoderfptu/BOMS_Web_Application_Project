@@ -95,7 +95,7 @@
 
                 <%-- Shipper: Chỉ thực hiện luồng shipper --%>
                 <c:if test="${sessionScope.USER_SESSION.role == 'Shipper'}">
-                    <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/ShipperController"><fmt:message key="header.sidebar.my_tasks" /></a></li>
                 </c:if>
             </ul>
         </aside>

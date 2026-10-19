@@ -228,4 +228,21 @@ public class Constants {
     public static final int REPORT_TITLE_MAX_LENG = 200;
     public static final int REPORT_MAX_EVIDENCE_FILES = 5;
     public static final long REPORT_MAX_EVIDENCE_SIZE = 20L * 1024 * 1024; // 20 MB (7.0.E1)
+    
+// ================= DELIVERY STATUSES
+    public static final String STATUS_PENDING = "Waiting for delivery"; // Hoặc 'Waiting for dispatch' tùy bạn chọn
+    public static final String STATUS_DELIVERING = "Delivering";
+    public static final String STATUS_COMPLETED = "Delivered";
+    public static final String STATUS_FAILED = "Returned";
+    public static final String STATUS_REJECTED = "Cancelled";
+    
+    // ================= DELIVERY ERROR & VALIDATION KEYS =================
+    public static final String ERROR_INVALID_TASK = "error.delivery.invalid_task";
+    public static final String ERROR_UNAUTHORIZED_SHIPPER = "error.delivery.unauthorized";
+    public static final String ERROR_INVALID_STATUS_FLOW = "error.delivery.invalid_flow";
+    public static final String ERROR_TASK_ALREADY_ASSIGNED = "error.delivery.task_assigned";
+    public static final String ERROR_CANNOT_REJECT = "error.delivery.cannot_reject";
+    public static final String ERROR_SHIPPER_FULL = "error.delivery.shipper_full";
+    
+    
 }

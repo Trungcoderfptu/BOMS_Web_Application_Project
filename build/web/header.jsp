@@ -61,7 +61,7 @@
             </div>
         </header>
 
-        <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager')}">
+        <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager' or sessionScope.USER_SESSION.role == 'Admin')}">
             <jsp:include page="components/inventory_alert_modal.jsp" />
         </c:if>
 

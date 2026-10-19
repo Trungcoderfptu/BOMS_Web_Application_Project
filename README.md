@@ -92,3 +92,17 @@ Các chuỗ trong file đa ngôn ngữ .prototies đặc biệt bản việt ph�
 xem file .agent/learning.md để nắm rõ thay đổi chi tiết
 thêm file QR code.md để lưu các link QR truy cập nhanh
 ---
+# [v0.0.7] - 2026-10-16.
+### Added
+* **Báo cáo ẩn danh (UC-07):** Nhân viên gửi báo cáo ẩn danh kèm bằng chứng (JPG, PNG, MP4, PDF, DOCX; tối đa 5 file, 20 MB/file). Hệ thống không lưu danh tính người gửi, trả về Ticket ID để tra cứu phản hồi và gửi thông báo cho Manager phụ trách loại báo cáo. `(@Duong)`
+* **Quản lý báo cáo (UC-08):** Manager/Admin xem danh sách (lọc theo Trạng thái, Ngày, Loại), xem chi tiết, tải bằng chứng, cập nhật trạng thái In Progress / Resolved / Rejected kèm phản hồi. Bắt buộc nhập lý do khi từ chối. `(@Duong)`
+
+### Fixed
+* None
+
+### Notes
+* File bằng chứng lưu chung thư mục dữ liệu `~/boms_data` với ảnh món (qua `ImageUploadUtility`), nhưng ở vùng riêng tư `boms_data/private/reports/`: KHÔNG mở được qua link `/uploads/`, chỉ Manager/Admin tải được qua `EvidenceController`. Không cần cấu hình gì thêm.
+* Không cần chạy lại SQL: chức năng dùng các bảng `ReportCategories`, `CategoryManagers`, `AnonymousReports`, `ReportEvidences`, `Notifications` đã có sẵn.
+* Manager chỉ thấy báo cáo của loại được phân công trong bảng `CategoryManagers`; Admin thấy tất cả.
+* nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: del /s *.class để tránh lỗi khi merge nhánh
+---

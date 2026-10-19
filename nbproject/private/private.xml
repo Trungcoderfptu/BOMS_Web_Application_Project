@@ -6,5 +6,15 @@
             <file>file:/D:/gifhub/BOMS_Web_Application/src/java/controller/CartController.java</file>
             <file>file:/D:/gifhub/BOMS_Web_Application/web/menu.jsp</file>
         </group>
+        <group name="prj201">
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/src/java/service/OrderService.java</file>
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/src/java/utility/Constants.java</file>
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/src/java/service/IngredientService.java</file>
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/src/java/service/CartService.java</file>
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/src/java/dao/IngredientDAO.java</file>
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/web/inventory_managerment.jsp</file>
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/src/java/model/Ingredient.java</file>
+            <file>file:/C:/Users/TUAN%20DAT/Documents/NetBeansProjects/prj201/BOMS_Web_Application_Project/src/java/dao/OrderDAO.java</file>
+        </group>
     </open-files>
 </project-private>

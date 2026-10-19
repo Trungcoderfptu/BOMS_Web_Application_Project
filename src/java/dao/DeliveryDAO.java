@@ -28,7 +28,7 @@ public class DeliveryDAO extends DBContext {
                 list.add(task);
             }
         } catch (SQLException e) {
-            throw new ValidationException("Lỗi truy xuất cơ sở dữ liệu (getAllTasks): " + e.getMessage());
+            throw new ValidationException("DE0016");
         }
         return list;
     }
@@ -53,7 +53,7 @@ public class DeliveryDAO extends DBContext {
                 result.add(task);
             }
         } catch (SQLException e) {
-            throw new ValidationException("Lỗi truy xuất đơn của Shipper: " + e.getMessage());
+            throw new ValidationException("DE0016");
         }
         return result;
     }
@@ -71,7 +71,7 @@ public class DeliveryDAO extends DBContext {
                 return mapResultSetToTask(rs);
             }
         } catch (SQLException e) {
-            throw new ValidationException("Lỗi tìm kiếm đơn hàng (getTaskById): " + e.getMessage());
+            throw new ValidationException("DE0016");
         }
         return null;
     }
@@ -84,35 +84,41 @@ public class DeliveryDAO extends DBContext {
             st.setInt(2, taskId);
             st.executeUpdate();
         } catch (SQLException e) {
-            throw new ValidationException("Lỗi cập nhật trạng thái đơn (updateTaskStatus): " + e.getMessage());
+            throw new ValidationException("DE0017");
         }
     }
 
     public void updateTaskShipper(int taskId, String shipperUsername) throws ValidationException {
-        String sql = "UPDATE Orders SET ShipperID = (SELECT UserID FROM Users WHERE Username = ?) WHERE OrderID = ?";
+        String sql;
+        if (shipperUsername == null || shipperUsername.trim().isEmpty()) {
+            sql = "UPDATE Orders SET ShipperID = NULL WHERE OrderID = ?";
+        } else {
+            sql = "UPDATE Orders SET ShipperID = (SELECT UserID FROM Users WHERE Username = ?) WHERE OrderID = ?";
+        }
+
         try {
             PreparedStatement st = connection.prepareStatement(sql);
             if (shipperUsername == null || shipperUsername.trim().isEmpty()) {
-                st.setNull(1, java.sql.Types.INTEGER);
+                st.setInt(1, taskId);
             } else {
                 st.setString(1, shipperUsername);
+                st.setInt(2, taskId);
             }
-            st.setInt(2, taskId);
             st.executeUpdate();
         } catch (SQLException e) {
-            throw new ValidationException("Lỗi gán Shipper cho đơn (updateTaskShipper): " + e.getMessage());
+            throw new ValidationException("DE0017");
         }
     }
 
-private DeliveryTask mapResultSetToTask(ResultSet rs) throws SQLException {
+    private DeliveryTask mapResultSetToTask(ResultSet rs) throws SQLException {
         DeliveryTask task = new DeliveryTask();
-        task.setTaskId(rs.getInt("OrderID")); 
-        task.setOrderCode("ORD-" + rs.getInt("OrderID")); 
+        task.setTaskId(rs.getInt("OrderID"));
+        task.setOrderCode("ORD-" + rs.getInt("OrderID"));
         task.setCustomerAddress(rs.getString("DeliveryAddress"));
-        
+
         // Giữ nguyên bản chữ cái từ DB (Ví dụ: 'Returned', 'Delivered', 'Delivering')
-        task.setStatus(rs.getString("Status")); 
-        
+        task.setStatus(rs.getString("Status"));
+
         task.setShipperUsername(rs.getString("ShipperUsername"));
         return task;
     }

@@ -27,7 +27,6 @@ public class ShipperController extends HttpServlet {
     // =========================================================
     // 1. MAIN CONTROLLER (Nhạc trưởng điều phối luồng)
     // =========================================================
-    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -39,10 +38,10 @@ public class ShipperController extends HttpServlet {
 
         Map<String, String> loginUser = (Map<String, String>) request.getSession(false).getAttribute(Constants.USER_SESSION);
         String currentShipper = loginUser.get("username");
-        
+
         // Nhờ bộ phận kho nạp dữ liệu vào request
         loadDashboardData(request, currentShipper);
-        
+
         // Đẩy ra View
         request.getRequestDispatcher("shipper_dashboard.jsp").forward(request, response);
     }
@@ -52,7 +51,7 @@ public class ShipperController extends HttpServlet {
             throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
-        
+
         // Gọi ông bảo vệ
         if (!validateSessionAndRole(request, response)) {
             return;
@@ -82,7 +81,6 @@ public class ShipperController extends HttpServlet {
     // =========================================================
     // 2. HELPER: BẢO VỆ VÀ RẼ NHÁNH
     // =========================================================
-    
     private boolean validateSessionAndRole(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(Constants.USER_SESSION) == null) {
@@ -107,13 +105,17 @@ public class ShipperController extends HttpServlet {
     // =========================================================
     // 3. HELPER: NẠP DỮ LIỆU VIEW
     // =========================================================
-    
     private void loadDashboardData(HttpServletRequest request, String currentShipper) {
-        List<Map<String, String>> allTasks = deliveryService.getTasksForShipper(currentShipper);
-        
+        List<Map<String, String>> allTasks = new ArrayList<>();
+        try {
+            allTasks = deliveryService.getTasksForShipper(currentShipper);
+        } catch (ValidationException e) {
+            request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        }
+
         List<Map<String, String>> pendingTasks = new ArrayList<>();
         List<Map<String, String>> myTasks = new ArrayList<>();
-        
+
         for (Map<String, String> task : allTasks) {
             if (Constants.STATUS_PENDING.equals(task.get("status"))) {
                 pendingTasks.add(task);
@@ -129,7 +131,6 @@ public class ShipperController extends HttpServlet {
     // =========================================================
     // 4. HELPER: XỬ LÝ LOGIC NÚT BẤM (Băm nhỏ)
     // =========================================================
-    
     private void processAcceptTask(HttpServletRequest request, String currentShipper) throws ValidationException {
         String taskIdStr = request.getParameter("txtTaskId");
         deliveryService.updateShipperTaskStatus(taskIdStr, currentShipper, Constants.STATUS_DELIVERING);
@@ -138,8 +139,8 @@ public class ShipperController extends HttpServlet {
 
     private void processRejectTask(HttpServletRequest request, String currentShipper) throws ValidationException {
         String taskIdStr = request.getParameter("txtTaskId");
-        deliveryService.rejectTask(taskIdStr, currentShipper); 
-        request.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.reject_success"); 
+        deliveryService.rejectTask(taskIdStr, currentShipper);
+        request.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.reject_success");
     }
 
     private void processUpdateStatus(HttpServletRequest request, String currentShipper) throws ValidationException {

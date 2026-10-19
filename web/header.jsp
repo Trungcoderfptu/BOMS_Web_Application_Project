@@ -77,9 +77,10 @@
                     <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/InventoryManagementController"><fmt:message key="header.sidebar.inventory" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/DispatchController"><fmt:message key="header.sidebar.shipper" /></a></li>
                     </c:if>
-                    <c:if test="${sessionScope.USER_SESSION.role == 'Shipper' or sessionScope.USER_SESSION.role == 'Manager'}">
-                    <li><a href="#"><fmt:message key="header.sidebar.shipper" /></a></li>
+                    <c:if test="${sessionScope.USER_SESSION.role == 'Shipper'}">
+                    <li><a href="${pageContext.request.contextPath}/ShipperController"><fmt:message key="header.sidebar.my_tasks" /></a></li>
                     </c:if>
                     <c:if test="${sessionScope.USER_SESSION.role == 'Admin'}">
                     <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.admin_daskboard" /></a></li>

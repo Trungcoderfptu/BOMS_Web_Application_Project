@@ -133,6 +133,34 @@ function initMainApp() {
     }
 
     initCancelCountdowns();
+
+    // ================= ATTENDANCE SERVER CLOCK =================
+    const clockEl = document.getElementById('serverClockDisplay');
+    if (clockEl) {
+        const timeStr = clockEl.getAttribute('data-server-time');
+        if (timeStr) {
+            const parts = timeStr.split(':');
+            if (parts.length === 3) {
+                let hours = parseInt(parts[0], 10);
+                let minutes = parseInt(parts[1], 10);
+                let seconds = parseInt(parts[2], 10);
+
+                setInterval(function () {
+                    seconds++;
+                    if (seconds >= 60) {
+                        seconds = 0;
+                        minutes++;
+                        if (minutes >= 60) {
+                            minutes = 0;
+                            hours = (hours + 1) % 24;
+                        }
+                    }
+                    const pad = function (n) { return n < 10 ? '0' + n : n; };
+                    clockEl.textContent = pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+                }, 1000);
+            }
+        }
+    }
     initInventoryAlertPolling();
 }
 
@@ -386,6 +414,101 @@ function resetImageModalState() {
     if (previewBox) previewBox.classList.add('d-none');
 }
 
+function resetRecipeRows() {
+    const list = document.getElementById('recipeList');
+    const hint = document.getElementById('recipeEmptyHint');
+    if (list) list.innerHTML = '';
+    if (hint) hint.classList.remove('d-none');
+}
+
+function addRecipeRow(selectedIngId, qtyValue) {
+    const template = document.getElementById('ingredientMasterTemplate');
+    const list = document.getElementById('recipeList');
+    const hint = document.getElementById('recipeEmptyHint');
+    if (!template || !list) return;
+
+    if (hint) hint.classList.add('d-none');
+
+    const row = document.createElement('div');
+    row.className = 'recipe-row flex-align-center gap-10 mb-8';
+
+    const colIng = document.createElement('div');
+    colIng.className = 'recipe-col-ingredient flex-1';
+
+    const select = document.createElement('select');
+    select.name = 'recipeIngredientId';
+    select.className = 'filter-input w-100';
+    select.required = true;
+    select.innerHTML = template.innerHTML;
+
+    if (selectedIngId) {
+        select.value = String(selectedIngId);
+    }
+
+    colIng.appendChild(select);
+
+    const colQty = document.createElement('div');
+    colQty.className = 'recipe-col-qty flex-align-center gap-5';
+
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.name = 'recipeQuantity';
+    qtyInput.className = 'filter-input input-qty-sm text-right';
+    qtyInput.step = 'any';
+    qtyInput.min = '0.001';
+    qtyInput.placeholder = '0.0';
+    qtyInput.required = true;
+    if (qtyValue !== undefined && qtyValue !== null && qtyValue !== '') {
+        qtyInput.value = qtyValue;
+    }
+
+    const unitSpan = document.createElement('span');
+    unitSpan.className = 'recipe-unit-label font-bold text-muted';
+    unitSpan.textContent = '---';
+
+    colQty.appendChild(qtyInput);
+    colQty.appendChild(unitSpan);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-remove-recipe';
+    removeBtn.textContent = '\u2715';
+    removeBtn.onclick = function() {
+        removeRecipeRow(this);
+    };
+
+    row.appendChild(colIng);
+    row.appendChild(colQty);
+    row.appendChild(removeBtn);
+
+    select.onchange = function() {
+        onRecipeIngredientChange(this, unitSpan);
+    };
+
+    list.appendChild(row);
+    onRecipeIngredientChange(select, unitSpan);
+}
+
+function onRecipeIngredientChange(selectEl, unitSpanEl) {
+    if (!selectEl || !unitSpanEl) return;
+    const selectedOption = selectEl.options[selectEl.selectedIndex];
+    const unit = selectedOption ? selectedOption.getAttribute('data-unit') : '';
+    unitSpanEl.textContent = unit || '---';
+}
+
+function removeRecipeRow(btnEl) {
+    if (!btnEl) return;
+    const row = btnEl.closest('.recipe-row');
+    if (row && row.parentNode) {
+        row.parentNode.removeChild(row);
+    }
+    const list = document.getElementById('recipeList');
+    const hint = document.getElementById('recipeEmptyHint');
+    if (list && list.children.length === 0 && hint) {
+        hint.classList.remove('d-none');
+    }
+}
+
 function openCreateProductModal() {
     const modal = document.getElementById('productModal');
     if (!modal) return;
@@ -409,12 +532,13 @@ function openCreateProductModal() {
     if (statusGroup) statusGroup.classList.add('d-none');
 
     resetImageModalState();
+    resetRecipeRows();
 
     modal.classList.remove('d-none');
     if (nameEl) nameEl.focus();
 }
 
-function openEditProductModal(productId, productName, categoryId, price, imageUrl, isAvailable) {
+function openEditProductModal(productId, productName, categoryId, price, imageUrl, isAvailable, recipeData) {
     const modal = document.getElementById('productModal');
     if (!modal) return;
 
@@ -456,6 +580,17 @@ function openEditProductModal(productId, productName, categoryId, price, imageUr
     if (statusGroup) statusGroup.classList.remove('d-none');
     if (availableCb) availableCb.checked = (isAvailable === true || isAvailable === 'true');
 
+    resetRecipeRows();
+    if (recipeData && typeof recipeData === 'string' && recipeData.trim() !== '') {
+        const pairs = recipeData.trim().split(',');
+        for (let i = 0; i < pairs.length; i++) {
+            const parts = pairs[i].split(':');
+            if (parts.length === 2) {
+                addRecipeRow(parts[0], parts[1]);
+            }
+        }
+    }
+
     modal.classList.remove('d-none');
     if (nameEl) nameEl.focus();
 }
@@ -467,10 +602,30 @@ function closeProductModal() {
     }
 }
 
+// ================= ATTENDANCE OT MODAL =================
+function openOtReasonModal() {
+    const modal = document.getElementById('otReasonModal');
+    if (modal) {
+        modal.classList.remove('d-none');
+        const input = document.getElementById('otReasonInput');
+        if (input) {
+            input.focus();
+        }
+    }
+}
+
+function closeOtReasonModal() {
+    const modal = document.getElementById('otReasonModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
 // Listen for Escape key to close modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeProductModal();
+        closeOtReasonModal();
         closeInventoryModal();
         closeThresholdModal();
     }

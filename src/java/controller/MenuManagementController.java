@@ -62,11 +62,13 @@ public class MenuManagementController extends HttpServlet {
 
         try {
             List<Map<String, Object>> categoryList = productService.getAllCategoriesForView();
+            List<Map<String, Object>> ingredientList = productService.getAllActiveIngredientsForView();
             List<Map<String, Object>> allProducts = productService.getAllProductsForManagementView();
             List<Map<String, Object>> filteredProducts = filterProductsByCategory(allProducts, filterCategory);
 
             request.setAttribute("PRODUCT_LIST", filteredProducts);
             request.setAttribute("CATEGORY_LIST", categoryList);
+            request.setAttribute("INGREDIENT_LIST", ingredientList);
             request.setAttribute("CURRENT_FILTER_CATEGORY", filterCategory);
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
@@ -112,7 +114,10 @@ public class MenuManagementController extends HttpServlet {
                     }
                 }
 
-                productService.createProduct(categoryId, productName, price, imageUrl);
+                String[] recipeIngredientIds = request.getParameterValues("recipeIngredientId");
+                String[] recipeQuantities = request.getParameterValues("recipeQuantity");
+
+                productService.createProduct(categoryId, productName, price, imageUrl, recipeIngredientIds, recipeQuantities);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CREATE_PRODUCT);
                 redirectUrl = "MenuManagementController?filterCategory=ALL";
             } else if ("updateProduct".equals(action)) {
@@ -131,7 +136,10 @@ public class MenuManagementController extends HttpServlet {
                     }
                 }
 
-                productService.updateProduct(productId, categoryId, productName, price, imageUrl, isAvailable);
+                String[] recipeIngredientIds = request.getParameterValues("recipeIngredientId");
+                String[] recipeQuantities = request.getParameterValues("recipeQuantity");
+
+                productService.updateProduct(productId, categoryId, productName, price, imageUrl, isAvailable, recipeIngredientIds, recipeQuantities);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_PRODUCT);
             } else if ("toggleStatus".equals(action)) {
                 String productId = request.getParameter("productId");

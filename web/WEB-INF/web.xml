@@ -75,6 +75,8 @@
         <servlet-class>controller.ImageServingServlet</servlet-class>
     </servlet>
     <servlet>
+        <servlet-name>AttendanceController</servlet-name>
+        <servlet-class>controller.AttendanceController</servlet-class>
         <servlet-name>InventoryManagementController</servlet-name>
         <servlet-class>controller.InventoryManagementController</servlet-class>
     </servlet>
@@ -152,6 +154,8 @@
         <url-pattern>/uploads/*</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
+        <servlet-name>AttendanceController</servlet-name>
+        <url-pattern>/AttendanceController</url-pattern>
         <servlet-name>InventoryManagementController</servlet-name>
         <url-pattern>/InventoryManagementController</url-pattern>
     </servlet-mapping>

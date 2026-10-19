@@ -1,2 +1,5 @@
+# 1. THƯ MỤC BIÊN DỊCH (Tự sinh ra khi chạy NetBeans)
+/build
+/dist
 *.class
 /dist/

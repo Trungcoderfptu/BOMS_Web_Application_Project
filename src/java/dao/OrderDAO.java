@@ -225,48 +225,6 @@ public class OrderDAO extends DBContext {
         }
     }
 
-    public boolean replaceOrderItem(int orderId, int oldProductId, int newProductId, int newQuantity, double newUnitPrice, Product newProduct) throws ValidationException {
-        String sqlUpdateDetail = "UPDATE OrderDetails SET ProductID = ?, Quantity = ?, UnitPrice = ? WHERE OrderID = ? AND ProductID = ?";
-        String sqlRecalculateTotal = "UPDATE Orders SET TotalAmount = (SELECT COALESCE(SUM(Quantity * UnitPrice), 0) FROM OrderDetails WHERE OrderID = ?) WHERE OrderID = ?";
-
-        boolean originalAutoCommit = true;
-        try {
-            originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-
-            PreparedStatement stDetail = connection.prepareStatement(sqlUpdateDetail);
-            stDetail.setInt(1, newProductId);
-            stDetail.setInt(2, newQuantity);
-            stDetail.setDouble(3, newUnitPrice);
-            stDetail.setInt(4, orderId);
-            stDetail.setInt(5, oldProductId);
-            int updatedRows = stDetail.executeUpdate();
-
-            if (updatedRows > 0) {
-                PreparedStatement stTotal = connection.prepareStatement(sqlRecalculateTotal);
-                stTotal.setInt(1, orderId);
-                stTotal.setInt(2, orderId);
-                stTotal.executeUpdate();
-                connection.commit();
-                return true;
-            } else {
-                connection.rollback();
-                return false;
-            }
-        } catch (SQLException e) {
-            try {
-                connection.rollback();
-            } catch (SQLException ex) {
-            }
-            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
-        } finally {
-            try {
-                connection.setAutoCommit(originalAutoCommit);
-            } catch (SQLException ex) {
-            }
-        }
-    }
-
     private List<OrderDetail> loadOrderDetails(int orderId) throws SQLException {
         List<OrderDetail> details = new ArrayList<>();
         String sql = "SELECT od.OrderID, od.ProductID, od.Quantity, od.UnitPrice, "

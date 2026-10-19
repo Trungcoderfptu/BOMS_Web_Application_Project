@@ -1,0 +1,135 @@
+package controller;
+
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import service.AttendanceService;
+import utility.Constants;
+import utility.ValidationException;
+
+/**
+ * Controller điều phối phân hệ Chấm công (Time Attendance UC-05 & UC-06)
+ * Tuyệt đối không import Model hoặc DAO (tuân thủ Rule_BOMS.md)
+ */
+public class AttendanceController extends HttpServlet {
+
+    private AttendanceService attendanceService;
+
+    @Override
+    public void init() throws ServletException {
+        attendanceService = new AttendanceService();
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        HttpSession session = request.getSession();
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
+        if (userSession == null) {
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
+            return;
+        }
+
+        forwardFlashMessages(request, session);
+
+        int userId = Integer.parseInt(userSession.get("userId"));
+        LocalDate today = LocalDate.now();
+
+        int month = parseQueryInt(request.getParameter("month"), today.getMonthValue());
+        int year = parseQueryInt(request.getParameter("year"), today.getYear());
+
+        try {
+            Map<String, Object> todayAttendance = attendanceService.getTodayAttendanceForView(userId);
+            List<Map<String, Object>> historyList = attendanceService.getAttendanceHistoryForView(userId, month, year);
+            Map<String, Object> summary = attendanceService.getMonthlySummaryForView(userId, month, year);
+            List<Map<String, Object>> availableShifts = attendanceService.getAllAvailableShiftsForView();
+
+            request.setAttribute("TODAY_ATTENDANCE", todayAttendance);
+            request.setAttribute("ATTENDANCE_HISTORY", historyList);
+            request.setAttribute("ATTENDANCE_SUMMARY", summary);
+            request.setAttribute("AVAILABLE_SHIFTS", availableShifts);
+            request.setAttribute("CURRENT_MONTH", month);
+            request.setAttribute("CURRENT_YEAR", year);
+        } catch (ValidationException e) {
+            request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        }
+
+        request.getRequestDispatcher("attendance.jsp").forward(request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setContentType("text/html;charset=UTF-8");
+        HttpSession session = request.getSession();
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
+        if (userSession == null) {
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
+            return;
+        }
+
+        int userId = Integer.parseInt(userSession.get("userId"));
+        String action = request.getParameter("action");
+
+        try {
+            if ("checkIn".equals(action)) {
+                attendanceService.checkIn(userId);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ATTENDANCE_CHECK_IN);
+            } else if ("checkOut".equals(action)) {
+                String otReason = request.getParameter("otReason");
+                attendanceService.checkOut(userId, otReason);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ATTENDANCE_CHECK_OUT);
+            } else if ("assignDemoShift".equals(action)) {
+                int shiftId = parseQueryInt(request.getParameter("shiftId"), 0);
+                attendanceService.assignDefaultShiftIfNone(userId, shiftId);
+            } else if ("resetDemoShift".equals(action)) {
+                attendanceService.resetTodayShiftForTest(userId);
+            }
+        } catch (ValidationException e) {
+            session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        }
+
+        response.sendRedirect(request.getContextPath() + "/AttendanceController");
+    }
+
+    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
+        String flashSuccess = (String) session.getAttribute(Constants.SUCCESS_MESSAGE);
+        if (flashSuccess != null) {
+            request.setAttribute(Constants.SUCCESS_MESSAGE, flashSuccess);
+            session.removeAttribute(Constants.SUCCESS_MESSAGE);
+        }
+        String flashError = (String) session.getAttribute(Constants.ERROR_MESSAGE);
+        if (flashError != null) {
+            request.setAttribute(Constants.ERROR_MESSAGE, flashError);
+            session.removeAttribute(Constants.ERROR_MESSAGE);
+        }
+    }
+
+    private int parseQueryInt(String paramValue, int defaultValue) {
+        if (paramValue != null && !paramValue.trim().isEmpty()) {
+            try {
+                return Integer.parseInt(paramValue.trim());
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    @Override
+    public String getServletInfo() {
+        return "Time Attendance Controller for BOMS";
+    }
+}

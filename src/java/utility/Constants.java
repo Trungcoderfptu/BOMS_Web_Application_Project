@@ -50,6 +50,8 @@ public class Constants {
     public static final String SUCCESS_CREATE_PRODUCT = "S0208";
     public static final String SUCCESS_UPDATE_PRODUCT = "S0209";
     public static final String SUCCESS_CHANGE_PRODUCT_STATUS = "S0210";
+    public static final String SUCCESS_DISPATCH_ORDER = "S0211";
+    public static final String SUCCESS_REVERT_DELIVERY_ORDER = "S0212";
 
     // Dải S030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
     public static final String SUCCESS_ATTENDANCE_CHECK_IN = "S0301";
@@ -124,6 +126,12 @@ public class Constants {
     public static final String ERROR_PRODUCT_NAME_EXISTS = "E0210";
     public static final String ERROR_PRODUCT_NOT_FOUND = "E0211";
     public static final String ERROR_INVALID_RECIPE_QUANTITY = "E0212";
+    public static final String ERROR_EMPTY_CUSTOMER_NAME = "E0213";
+    public static final String ERROR_EMPTY_CUSTOMER_PHONE = "E0214";
+    public static final String ERROR_EMPTY_DELIVERY_ADDRESS = "E0215";
+    public static final String ERROR_INVALID_DELIVERY_AREA = "E0216";
+    public static final String ERROR_ORDER_CANNOT_DISPATCH = "E0217";
+    public static final String ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS = "E0218";
 
     // Dải E030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
     public static final String ERROR_ATTENDANCE_NO_SHIFT = "E0301";
@@ -229,12 +237,18 @@ public class Constants {
     public static final int REPORT_MAX_EVIDENCE_FILES = 5;
     public static final long REPORT_MAX_EVIDENCE_SIZE = 20L * 1024 * 1024; // 20 MB (7.0.E1)
     
-// ================= DELIVERY STATUSES
-    public static final String STATUS_PENDING = "Waiting for delivery"; // Hoặc 'Waiting for dispatch' tùy bạn chọn
+    // ================= DELIVERY STATUSES (CK_Order_Status) =================
+    public static final String STATUS_WAITING_DISPATCH = "Waiting for dispatch";
+    public static final String STATUS_WAITING_DELIVERY = "Waiting for delivery";
+    public static final String STATUS_PICKED_UP = "Picked up";
     public static final String STATUS_DELIVERING = "Delivering";
     public static final String STATUS_COMPLETED = "Delivered";
     public static final String STATUS_FAILED = "Returned";
-    public static final String STATUS_REJECTED = "Cancelled";
+    public static final String STATUS_PENDING = STATUS_WAITING_DELIVERY;
+
+    // ================= DELIVERY DATABASE ERROR CODES =================
+    public static final String ERROR_DATABASE_DELIVERY = "DE0040";
+    public static final String ERROR_DATABASE_INSERT_HISTORY = "DE0041";
     
     // ================= DELIVERY ERROR & VALIDATION KEYS =================
     public static final String ERROR_INVALID_TASK = "error.delivery.invalid_task";
@@ -243,6 +257,5 @@ public class Constants {
     public static final String ERROR_TASK_ALREADY_ASSIGNED = "error.delivery.task_assigned";
     public static final String ERROR_CANNOT_REJECT = "error.delivery.cannot_reject";
     public static final String ERROR_SHIPPER_FULL = "error.delivery.shipper_full";
-    
-    
+    public static final String ERROR_EMPTY_FAIL_REASON = "error.delivery.empty_fail_reason";
 }

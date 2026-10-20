@@ -68,3 +68,118 @@
 - [x] **Task 5.3: Sắp xếp và đồng bộ hóa các file `.properties` (`messages_vi.properties` & `messages_en.properties`):** **[DONE]**
   - Xếp lại thứ tự các cặp `Key=Value` của các mã `EXXX`, `DEXXX`, `SXXX` trong cả 2 file ngôn ngữ Việt - Anh sao cho khớp 100% với thứ tự phân mục mới trong `Constants.java`.
   - Kiểm tra chéo để đảm bảo không bị thiếu sót bất kỳ mã nào giữa `Constants.java` và 2 file `.properties`.
+
+## 🚚 TASK 6: TÍCH HỢP & NÂNG CẤP LUỒNG GIAO HÀNG (UC-09 & UC-10: SHIPPER & ORDER MANAGEMENT INTEGRATION)
+**Actor:** Nhân viên quầy (Floor & Counter Staff), Quản lý cửa hàng (Store Managers), Shipper
+**Mô tả:** Kết nối 2 luồng Quản lý đơn hàng (Order Management) và Giao hàng (Delivery/Shipper); sửa lỗi lệch chuẩn Model/CSDL, sửa lỗi trạng thái đơn hàng và bổ sung giao diện pop-up nhập thông tin giao hàng khi chuyển trạng thái đơn.
+**Quy tắc:** Thực hiện tuần tự từng task theo độ ưu tiên từ cao xuống thấp. Hoàn thành task trước mới chuyển sang task tiếp theo.
+
+### 🔴 MỨC ƯU TIÊN 1: NỀN TẢNG DỮ LIỆU & SỬA LỖI TRẠNG THÁI (DATA CONSISTENCY & BUG FIX)
+- [x] **Task 6.1: Chuẩn hóa Model & Khắc phục Lỗi Trạng Thái Đơn Hàng:** **[DONE]**
+  - **Tạo Entity Model chuẩn khớp với `BOMS_DATABASE.sql`:**
+    + `ShipperProfile.java` đại diện bảng `ShipperProfiles` (`userId`, `vehiclePlate`, `shipperStatus`, `activeOrders`, `maxOrders`).
+    + `DeliveryArea.java` đại diện bảng `DeliveryAreas` (`areaId`, `areaName`).
+    + `DeliveryStatusHistory.java` đại diện bảng `DeliveryStatusHistory` (`historyId`, `orderId`, `shipperId`, `status`, `failReason`, `proofImage`, `updatedAt`).
+    + Tái cấu trúc `DeliveryTask.java` về đúng vai trò DTO/View Object, không coi là Entity đại diện bảng.
+  - **Sửa lỗi nghiêm trọng về trạng thái trong `Constants.java` & `DeliveryService.java`:**
+    + Sửa lỗi Shipper từ chối đơn (`rejectTask`): Chuyển trạng thái về `'Waiting for dispatch'` (Chờ điều phối lại), **TUYỆT ĐỐI KHÔNG** dùng `'Cancelled'` (tránh gây nhầm lẫn và xung đột với nghiệp vụ hủy đơn hoàn kho của hệ thống).
+    + Ghi nhận bản ghi vào `DeliveryStatusHistory` khi Shipper từ chối đơn phục vụ quản lý hiệu suất theo quyết định phê duyệt.
+    + Chuẩn hóa các hằng số trạng thái khớp với ràng buộc `CK_Order_Status` của CSDL: `'Waiting for dispatch'`, `'Waiting for delivery'`, `'Picked up'`, `'Delivering'`, `'Delivered'`, `'Returned'`.
+  - **Sửa giới hạn gom đơn:** Đọc giới hạn `MaxOrders` từ `ShipperProfiles` (mặc định 3 theo UC-09 9.1), loại bỏ việc hardcode `activeCount >= 5` trong `DeliveryService`.
+
+### 🟠 MỨC ƯU TIÊN 2: CẦU NỐI ĐIỀU PHỐI TỪ QUẢN LÝ ĐƠN HÀNG (STAFF ORDER DISPATCHING)
+- [x] **Task 6.2 [DONE]: Modal Thu Thập Thông Tin Giao Hàng Khi Đổi Sang Trạng Thái Giao (`delivery_info_modal.jsp`):**
+  - **Tạo Component Modal:** Tạo file `web/components/delivery_info_modal.jsp` và nhúng vào `order_management.jsp`.
+  - **Kịch bản Client:** Khi Staff/Manager chọn cập nhật trạng thái đơn sang "Chờ giao hàng" (`Waiting for dispatch`):
+    + Không submit form ngay mà kích hoạt modal popup nổi.
+    + Modal hiển thị form nhập: Tên khách hàng (`customerName`), Số điện thoại (`customerPhone`), Địa chỉ nhận hàng (`deliveryAddress`), và Dropdown chọn Khu vực giao hàng (`areaId` nạp từ `DeliveryAreas`).
+  - **Xử lý Controller & Service:**
+    + `OrderManagementController` tiếp nhận action chuyển đơn sang giao hàng.
+    + Validation tầng 1 (kiểm tra rỗng địa chỉ, số điện thoại hợp lệ).
+    + `OrderService` cập nhật bản ghi `Orders`: Gán `OrderType = 'Delivery'`, nạp thông tin khách hàng/địa chỉ/khu vực và gán `Status = 'Waiting for dispatch'`.
+
+### 🟡 MỨC ƯU TIÊN 3: GIAO DIỆN QUẢN LÝ ĐƠN HÀNG GIAO CHO SHIPPER
+- [x] **Task 6.3 [DONE]: Tab "Đơn Hàng Giao Cho Shipper" Trên `order_management.jsp`:**
+  - **Thiết kế Tab chuyên biệt:** Bổ sung Tab "Đơn giao Shipper" (kế bên các tab Tất cả / Tại quầy / Tại bàn) trên `order_management.jsp`.
+  - **Hiển thị danh sách đơn vận chuyển:** Lọc các đơn có `OrderType = 'Delivery'` với các trạng thái thời gian thực: `Chờ điều phối`, `Chờ shipper nhận`, `Đang giao`, `Đã giao`, `Giao thất bại/Hoàn hàng`.
+  - **Thông tin chi tiết:** Hiển thị tên Shipper được gán (nếu có), khu vực giao hàng, số điện thoại khách, địa chỉ và mã đơn hàng.
+
+### 🟢 MỨC ƯU TIÊN 4: ĐỒNG BỘ HIỂN THỊ ĐƠN CHO SHIPPER & TÁC VỤ GIAO HÀNG
+- [x] **Task 6.4: Đồng Bộ Hiển Thị Đơn Chờ Giao & Nhận/Từ Chối Đơn Phía Shipper:** **[DONE]**
+  - **Đồng bộ hàng chờ:** Ngay khi Staff xác nhận chuyển đơn sang giao hàng (`Waiting for dispatch`), đơn hàng tự động xuất hiện trên `dispatch_dashboard.jsp` để điều phối gán Shipper, đồng thời xuất hiện trong bể đơn chờ tiếp nhận theo khu vực `ShipperAreas` trên `shipper_dashboard.jsp`.
+  - **Tác vụ Shipper (`shipper_dashboard.jsp`):**
+    + Shipper thấy đơn hàng mới chờ nhận trong khu vực và có thể bấm [Nhận giao đơn này] (`claimTask`).
+    + Shipper thấy đơn được điều phối gán trong bảng "Đơn chờ xác nhận": [Nhận đơn] (`acceptTask`) chuyển sang `Delivering`, tự động cập nhật `ActiveOrders` và `ShipperStatus`; [Từ chối] (`rejectTask`) gỡ Shipper, trả về `Waiting for dispatch` và ghi nhật ký `DeliveryStatusHistory`.
+    + Chuẩn hóa kiến trúc PRG và Session Flash Messages cho cả `DispatchController` và `ShipperController`.
+
+### 🔵 MỨC ƯU TIÊN 5: LỊCH SỬ GIAO HÀNG, BẰNG CHỨNG & HOÀN THIỆN ĐIỀU HƯỚNG
+- [x] **Task 6.5: Bằng Chứng Giao Hàng & Lý Do Giao Thất Bại (UC-10):** **[DONE]**
+  - **Upload ảnh bằng chứng (`ProofImage`):** Tận dụng `ImageUploadUtility.saveImage(part, "delivery")` khi Shipper chọn hoàn thành (`Delivered`), lưu ảnh xác nhận giao hàng vào thư mục công khai.
+  - **Nhập lý do thất bại (`FailReason`):** Khi Shipper chọn hoàn hàng (`Returned`), hiển thị modal bắt buộc nhập lý do (gợi ý sẵn các lý do phổ biến) và validate chặt chẽ ở tầng Service/DAO.
+  - **Ghi nhật ký:** Tự động lưu bản ghi vào bảng `DeliveryStatusHistory` ghi nhận mốc thời gian, người giao, trạng thái, ảnh bằng chứng hoặc lý do hoàn hàng.
+- [x] **Task 6.6: Hoàn Thiện Điều Hướng Header & Phân Quyền URL:** **[DONE]**
+  - Cập nhật `web/header.jsp`:
+    + Bổ sung liên kết "Điều phối giao hàng" trỏ tới `${pageContext.request.contextPath}/DispatchController` cho vai trò `Manager`.
+    + Kích hoạt liên kết "Nhiệm vụ giao hàng" trỏ tới `${pageContext.request.contextPath}/ShipperController` cho vai trò `Shipper`.
+
+
+### 🛡️ MỨC ƯU TIÊN 6: ĐỒNG BỘ HAI CHIỀU & BẢO TOÀN DỮ LIỆU ĐƠN HÀNG (BI-DIRECTIONAL SYNC & SAFETY REVERT)
+- [x] **Task 6.7: Khắc Phục Triệt Để Lỗi Đồng Bộ Khi Chuyển Ngược Trạng Thái Đơn Giao Hàng Về Phục Vụ Nội Bộ:** **[DONE]**
+  - **Phân tích lỗi:** Khi đơn chuyển sang `Delivery` rồi sau đó đổi ngược về `Accepted`/`Prepared` từ tab "Tất cả đơn", `OrderType` cũ vẫn giữ nguyên là `Delivery`, khiến đơn tiếp tục xuất hiện sai lệch ở tab "Đơn giao Shipper" và treo `ShipperID`.
+  - **Cơ chế Hoàn tác An toàn (Safe Revert):**
+    + Chặn hoàn tác nếu đơn đang hoặc đã giao (`Delivering`, `Delivered`, `Returned`).
+    + Phục hồi `OrderType` chuẩn xác: `'Table'` (nếu có `TableID`) hoặc `'Counter'`.
+    + Giải phóng `ShipperID = NULL`, ghi vết vào `DeliveryStatusHistory`, đồng bộ lại `ActiveOrders` và `ShipperStatus` của Shipper.
+    + Bổ sung modal cảnh báo xác nhận nguy cơ (`revert_delivery_modal.jsp`) trước khi thực hiện chuyển đổi.
+
+## TASK 7: CHIẾN DỊCH TÁI CẤU TRÚC VÀ DỌN DẸP MÃ NGUỒN (REFACTORING & CLEANUP)
+**Actor:** AI Agent / Developer
+**Mô tả:** Dự án đang tồn tại 6 điểm vi phạm nghiêm trọng quy tắc Rule_BOMS.md (rò rỉ Model, trùng lặp code, code rác hoang tưởng, hardcode chuỗi, sai chuẩn mã lỗi backend). Yêu cầu AI Agent thực hiện TUẦN TỰ từng task dưới đây theo thứ tự ưu tiên. Bắt buộc hoàn thành và báo cáo từng Sub-task trước khi chuyển sang Sub-task tiếp theo. Tuyệt đối không làm gộp.
+
+> [!IMPORTANT]
+> **LƯU Ý BÀN GIAO CHO TÁC GIẢ LUỒNG SHIPPER (BẮT BUỘC ĐỌC KỸ - XÓA GHI CHÚ NÀY KHI HOÀN THÀNH 100% TASK 7):**
+> 1. **Tuân thủ quy chuẩn Task 7.2 (Chống rò rỉ Model):** Model ảo `DeliveryTask.java` đã bị tiêu diệt hoàn toàn. Tuyệt đối **KHÔNG** tự ý tạo lại Model này trong `model/`. Mọi dữ liệu giao hàng phải trao đổi qua `Map<String, Object>` ở tầng DAO và `Map<String, String>` ở tầng Service để chống rò rỉ Model lên View.
+> 2. **Tuân thủ quy chuẩn mã thông báo Backend (`Rule_BOMS.md`):** Nghiêm cấm đặt và ném chuỗi tự do (như `error.delivery.*`, `dispatch.msg.*`). Bắt buộc dùng mã số chuẩn `S060X` (thành công) và `E060X` (lỗi nghiệp vụ) trong `Constants.java`, nạp nội dung hiển thị vào `messages_vi.properties` dưới chuẩn Unicode Escape (`\uXXXX`) và `messages_en.properties`.
+> 3. **Phạm vi hoàn thiện của tác giả:** Tiếp tục thực hiện tuần tự các task thuộc luồng Shipper: **Task 7.3** (UI dispatch status), **Task 7.4 (phần DispatchController)** và **Task 7.7 (chuẩn hóa toàn bộ mã lỗi Shipper)**.
+> 4. **Hành động khi hoàn thành:** Khi hoàn thành toàn bộ Task 7 và kiểm tra biên dịch đạt 0 lỗi, hãy **XÓA BỎ HOÀN TOÀN KHỐI GHI CHÚ BÀN GIAO NÀY** để xác nhận việc chuyển giao đã kết thúc sạch sẽ.
+
+### MỨC ƯU TIÊN 1: XÓA CODE HOANG TƯỞNG VÀ SỬA LỖI RÒ RỈ MODEL (CRITICAL)
+- [x] **Task 7.1: Xóa đoạn code dùng Reflection sai chuẩn trong IngredientAlertController.java** **[DONE]**
+  - Vị trí: Trong hàm doPost của IngredientAlertController.
+  - Hành động: Xóa sạch khối code dài 30 dòng cố gắng check `userObj instanceof Map` và dùng `java.lang.reflect.Method` để ép kiểu Session. 
+  - Giải pháp: Thay thế bằng 2 dòng code chuẩn hóa của dự án:
+    `Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);`
+    `int userId = Integer.parseInt(userSession.get("userId"));`
+
+- [x] **Task 7.2: Tiêu diệt Model DeliveryTask.java và chặn rò rỉ Model lên View** **[DONE]**
+  - Hành động 1: Xóa hoàn toàn file src/java/model/DeliveryTask.java.
+  - Hành động 2: Mở DeliveryDAO.java và DeliveryService.java, sửa đổi tất cả các hàm đang trả về kiểu List<DeliveryTask> (hoặc Object này) thành List<Map<String, Object>>. 
+  - Hành động 3: Bên trong các hàm DAO/Service, khởi tạo `Map<String, Object> map = new HashMap<>();` và nạp các key ("orderCode", "customerName", "customerAddress", "totalAmount", "status", "taskId") vào Map thay vì dùng Constructor của DeliveryTask. Controller sẽ tự động truyền List Map này ra View. Tuyệt đối không cần sửa file .jsp.
+
+### MỨC ƯU TIÊN 2: SỬA LỖI UI VÀ CHUẨN HÓA HẰNG SỐ (HIGH)
+- [ ] Task 7.3: Sửa lỗi hiển thị ???status.Waiting for dispatch??? trên dispatch_dashboard.jsp
+  - Nguyên nhân: File JSP đang dùng `<fmt:message key="status.${task.status}" />` nhưng thiếu key trong file properties.
+  - Hành động: Thay thẻ in trạng thái tại cột status-cell bằng cấu trúc `<c:choose>`. Bắt cứng trường hợp task.status == 'Waiting for dispatch' để in ra thẻ `<span class="badge-status-waiting">` gọi đúng key chuẩn `<fmt:message key="order.status.waiting_dispatch" />` (tương tự như trang delivery_orders_table.jsp). Các trạng thái khác đưa vào `<c:otherwise>`.
+
+- [ ] Task 7.4: Gỡ bỏ chuỗi Hardcode, tuân thủ Constants.java
+  - Vị trí 1: DispatchController.java đang hardcode chuỗi "dispatch.msg.assign_success" và "error.unauthorized".
+  - Vị trí 2: IngredientAlertController.java đang hardcode các chuỗi lỗi JSON "E0004", "E9000", "DE0020".
+  - Hành động: Bổ sung các chuỗi này thành biến `public static final String` tại file utility/Constants.java với comment phân vùng rõ ràng. Sau đó cập nhật lại các Controller để gọi biến hằng số.
+
+- [ ] Task 7.7: Chuẩn hóa toàn bộ hệ thống mã thông báo & mã lỗi phân hệ Shipper/Delivery theo chuẩn `Rule_BOMS.md`
+  - Vấn đề: `DeliveryService.java` và `DispatchController.java` đang dùng các chuỗi văn bản tự do dạng key (`error.delivery.*`, `dispatch.msg.*`), vi phạm quy chuẩn mã thông báo backend `EXXX` và `SXXX` trong `Rule_BOMS.md`.
+  - Hành động 1: Khai báo dải mã thành công mới `S060X` trong `Constants.java`: ví dụ `SUCCESS_ASSIGN_SHIPPER = "S0601"`.
+  - Hành động 2: Khai báo dải mã lỗi nghiệp vụ mới `E060X` trong `Constants.java` thay thế cho 7 chuỗi `error.delivery.*` (`E0601` đến `E0607`). Chuẩn hóa lỗi phân quyền về `E0004` (`ERROR_LOGIN_FAIL_ROLE`).
+  - Hành động 3: Khai báo nội dung đa ngôn ngữ tương ứng của các mã `S060X` và `E060X` trong `messages_vi.properties` (bắt buộc mã hóa Unicode Escape `\uXXXX`) và `messages_en.properties`.
+  - Hành động 4: Cập nhật đồng bộ trong `DeliveryService.java`, `DispatchController.java`, `ShipperController.java` để ném và hứng mã hằng số chuẩn từ `Constants.java`.
+
+### MỨC ƯU TIÊN 3: LOẠI BỎ TRÙNG LẶP (DRY) VÀ NỢ KỸ THUẬT (MEDIUM)
+- [ ] Task 7.5: Gom hàm Flash Messages đang bị copy-paste 6 lần
+  - Vị trí vi phạm: Cả 6 file AttendanceController, DispatchController, InventoryManagementController, ReportController, ReportManagementController, MenuController đều đang tự định nghĩa một hàm private void forwardFlashMessages(...).
+  - Hành động 1: Tạo một class tiện ích mới src/java/utility/FlashMessageUtil.java.
+  - Hành động 2: Cắt nội dung hàm lặp này đưa vào class Utility dưới dạng `public static void forwardFlashMessages(HttpServletRequest request, HttpSession session)`.
+  - Hành động 3: Xóa bỏ hàm private dư thừa ở 6 Controller và cập nhật lời gọi hàm ở đầu các phương thức doGet/doPost trỏ về FlashMessageUtil.forwardFlashMessages(...).
+
+- [ ] Task 7.6: Tái cấu trúc logic tạo chuỗi JSON (Chống Bad Practice)
+  - Vị trí: IngredientAlertController.java (hàm buildAlertsJson và escapeJson).
+  - Hành động: Thông báo cho người dùng biết cần tải thư viện Gson (gson-2.10.1.jar) vào thư mục WEB-INF/lib/ (nếu người dùng đồng ý). Sau đó, xóa bỏ hoàn toàn 2 hàm nối chuỗi JSON thủ công rườm rà, thay bằng cách khởi tạo `Gson gson = new Gson();` và dùng `gson.toJson(alerts)` để trả về Response. (Nếu người dùng chưa muốn thêm thư viện, bỏ qua Task này).

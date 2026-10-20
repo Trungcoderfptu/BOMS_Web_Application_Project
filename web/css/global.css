@@ -791,6 +791,10 @@ text-link-success {
     background: #ffebee;
     color: #d32f2f;
 }
+.order-badge-dispatch {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
 .order-items-summary {
     list-style: none;
     padding: 0;
@@ -1665,5 +1669,104 @@ text-link-success {
     background: var(--color-danger);
     color: #fff;
     border-color: var(--color-danger);
+}
+
+/* ================= SHIPPER & DISPATCH MODULE ================= */
+.dispatch-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px;
+}
+.task-section {
+    margin-bottom: 30px;
+}
+.dispatch-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.dispatch-table th, .dispatch-table td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+}
+.dispatch-table th {
+    background-color: var(--bg-tertiary);
+    font-weight: 600;
+}
+.empty-msg {
+    padding: 25px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+.inline-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+.assign-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.select-shipper, .status-select {
+    padding: 6px 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 13px;
+}
+.btn-assign, .btn-accept, .btn-claim {
+    background: var(--color-success);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.2s ease;
+}
+.btn-assign:hover, .btn-accept:hover, .btn-claim:hover {
+    opacity: 0.9;
+}
+.btn-reject {
+    background: var(--color-danger);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.2s ease;
+}
+.btn-reject:hover {
+    opacity: 0.9;
+}
+.btn-update {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.2s ease;
+}
+.btn-update:hover {
+    opacity: 0.9;
+}
+.section-divider {
+    border: 0;
+    height: 1px;
+    background: var(--border-light);
+    margin: 25px 0;
 }
 

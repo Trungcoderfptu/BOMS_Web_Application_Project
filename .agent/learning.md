@@ -1,5 +1,250 @@
 # BOMS LEARNING & PROGRESS LOG
 
+## [2026-10-20] - Hoàn thiện Task 7.2: Tiêu Diệt Model DeliveryTask.java & Triệt Tiêu Nguy Cơ Rò Rỉ Model Lên View
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Nguyên nhân gốc rễ:** CSDL hệ thống (`BOMS_DATABASE.sql`) không hề có bảng `DeliveryTask`. Toàn bộ dữ liệu giao hàng được lưu trực tiếp trong bảng `Orders` (phân loại `OrderType = 'Delivery'`) và bảng `DeliveryAreas`. Việc tự ý tạo class `src/java/model/DeliveryTask.java` vi phạm nghiêm trọng định nghĩa tầng Model (Model chỉ đại diện cho bảng vật lý trong CSDL).
+- **Hậu quả:** Gây nhầm lẫn vai trò thực thể CSDL, tạo nợ kỹ thuật và có nguy cơ rò rỉ trực tiếp Model lên tầng View (JSP), vi phạm quy chuẩn thiết kế của `Rule_BOMS.md`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tiêu diệt hoàn toàn Model thừa:** Xóa vĩnh viễn tệp `src/java/model/DeliveryTask.java` khỏi dự án.
+- **Tầng DAO (`DeliveryDAO.java`):**
+  - Cập nhật các hàm `getAllTasks()`, `getTasksByShipper()`, `getAvailableTasksForShipper()` chuyển sang trả về `List<Map<String, Object>>`.
+  - Cập nhật `getTaskById()` trả về `Map<String, Object>`.
+  - Cập nhật hàm phụ trợ `mapResultSetToTask(ResultSet rs)` khởi tạo `Map<String, Object>` với đúng 9 trường dữ liệu cần thiết: `taskId`, `orderCode`, `customerAddress`, `status`, `shipperUsername`, `customerName`, `customerPhone`, `areaName`, `totalAmount`.
+- **Tầng Service (`DeliveryService.java`):**
+  - Tiếp nhận `Map<String, Object>` từ DAO.
+  - Sử dụng hàm `buildTaskMap(Map<String, Object> task)` để định dạng an toàn toàn bộ giá trị sang `Map<String, String>` trước khi cung cấp cho Controller.
+  - Cập nhật các phương thức kiểm tra nghiệp vụ (`validateTaskIsFree`, `validateTaskIsPending`, `validateShipperAuthorization`, `validateStatusFlow`, `countActiveOrders`, `isTaskWaitingForShipper`) trích xuất dữ liệu trực tiếp từ `Map<String, Object>`.
+- **Bảo toàn giao diện View (JSP):** Do Expression Language (EL) trên JSP truy xuất `${task.orderCode}`, `${task.customerName}` đồng nhất giữa Map và Java Bean, giao diện `dispatch_dashboard.jsp` và `shipper_dashboard.jsp` hoạt động ổn định 100% mà không cần sửa đổi bất kỳ dòng code JSP nào.
+
+### 3. File bị tác động & Tiến độ:
+- `src/java/model/DeliveryTask.java`: Đã xóa hoàn toàn khỏi dự án.
+- `src/java/dao/DeliveryDAO.java`: Chuyển đổi toàn bộ phương thức truy vấn Task sang trả về `Map<String, Object>`.
+- `src/java/service/DeliveryService.java`: Xử lý nghiệp vụ với `Map<String, Object>`, loại bỏ hoàn toàn import `model.DeliveryTask`.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 7.2 **[DONE]**.
+- **Trạng thái Build:** Biên dịch qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi, 69 source files)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi (CRITICAL):
+- **Quy chuẩn tầng Model (Database Entity Only):** Package `model` chỉ chứa các POJO đại diện 1-1 cho các bảng trong CSDL (Users, Orders, Ingredients, ...). TUYỆT ĐỐI không tự ý tạo thêm các class Model "lai tạp" DTO/View Object trong package này để tránh làm ô nhiễm tầng thực thể.
+- **Kỹ thuật chống rò rỉ Model lên View (Model Leakage Prevention):** Khi cần tổng hợp dữ liệu từ nhiều bảng (JOIN SQL) để phục vụ hiển thị trên giao diện, quy chuẩn tối ưu là gom nhóm qua `Map<String, Object>` ở tầng DAO và chuyển hóa thành `Map<String, String>` ở tầng Service. View chỉ được phép đọc dữ liệu qua Map hoặc các kiểu dữ liệu nguyên thủy (primitive), tuyệt đối không nhận Model Entity thô.
+- **Tính tương thích của EL trong JSP:** Trong Jakarta/Java EE, cú pháp `${object.property}` sẽ tự động tìm kiếm getter trên Java Bean hoặc `map.get("property")` nếu đối tượng là `Map`. Tận dụng đặc tính này giúp chuyển đổi cấu trúc dữ liệu phía backend mà không gây bất kỳ tác dụng phụ (side-effect) nào lên giao diện người dùng.
+
+---
+
+## [2026-10-20] - Hoàn thiện Task 7.1: Xóa Bỏ Reflection Sai Chuẩn Trong IngredientAlertController
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Nguyên nhân gốc rễ:** Trong phương thức `doPost` của `IngredientAlertController.java`, mã nguồn cũ cố tình chèn hơn 30 dòng code phức tạp để kiểm tra `userObj instanceof Map` và sử dụng Reflection (`java.lang.reflect.Method`, `userObj.getClass().getMethod("getUserID")`, `m.invoke(userObj)`) nhằm trích xuất `userId` từ Session.
+- **Hậu quả:** Vi phạm nghiêm trọng quy chuẩn `Rule_BOMS.md`, làm phức tạp hóa code không cần thiết, tiềm ẩn rủi ro hiệu năng nghiêm trọng của Reflection và đi ngược lại cấu trúc Session chuẩn của toàn dự án.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Chuẩn hóa Session Extraction:** Loại bỏ toàn bộ khối code Reflection rườm rà. Thay thế bằng chuẩn thống nhất 100% của hệ thống:
+  ```java
+  @SuppressWarnings("unchecked")
+  Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
+  ```
+- **Xử lý An toàn trong Luồng Nghiệp vụ:** Đặt `int userId = Integer.parseInt(userSession.get("userId"));` trực tiếp bên trong khối `try-catch` của `doPost`. Mọi trường hợp ngoại lệ parsing hoặc dữ liệu không hợp lệ đều được khối `catch (Exception e)` chung của Controller đón bắt và trả về phản hồi JSON lỗi chuẩn cho client.
+
+### 3. File bị tác động & Tiến độ:
+- `src/java/controller/IngredientAlertController.java`: Rút gọn từ 164 dòng xuống còn 134 dòng (-30 dòng code rác), loại bỏ sạch 100% Reflection.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 7.1 **[DONE]**.
+- **Trạng thái Build:** Biên dịch qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi (CRITICAL):
+- **Tính thống nhất của Session Contract:** Toàn bộ hệ thống BOMS lưu trữ thông tin phiên đăng nhập tại `Constants.USER_SESSION` dưới dạng `Map<String, String>` (do `UserService.buildUserSessionMap` khởi tạo). Mọi Controller khi cần lấy dữ liệu người dùng BẮT BUỘC phải ép kiểu về `Map<String, String>` và truy xuất qua các key chuẩn (`userId`, `username`, `role`, `fullName`).
+- **Nghiêm cấm tuyệt đối Reflection trong Controller:** Không bao giờ sử dụng Reflection để giải quyết các vấn đề ép kiểu hoặc phỏng đoán kiểu dữ liệu trong Servlet. Mọi sự mơ hồ về kiểu dữ liệu phải được giải quyết dứt điểm tại tầng Service/Contract thay vì dùng Reflection để "chữa cháy".
+- **Quản lý ngoại lệ tập trung:** Khi trích xuất các giá trị số từ tham số hoặc session trong Controller, luôn dựa vào khối `try-catch` bao quanh để bắt `NumberFormatException`, đảm bảo hệ thống không bị crash (lỗi 500) mà luôn trả về mã lỗi JSON thân thiện cho giao diện.
+
+---
+
+## [2026-10-20] - Hoàn thiện Task 6.7: Khắc Phục Triệt Để Lỗi Đồng Bộ Hai Chiều Đơn Hàng & Shipper (Safe Revert Delivery Order)
+### 1. Phân tích Nguyên nhân Gốc rễ & Kiến trúc CSDL:
+- **Khảo sát Cơ sở Dữ liệu (BOMS_DATABASE.sql):**
+  - BOMS không có bảng riêng Delivery hay DeliveryTask. Bản thân bảng Orders lưu trữ toàn bộ đơn hàng của hệ thống, phân loại qua cột OrderType ('Table', 'Counter', 'Delivery'). Khi đơn chuyển sang giao hàng, các thông tin khách nhận được cập nhật trực tiếp vào các cột CustomerName, CustomerPhone, DeliveryAddress, AreaID, ShipperID trong bảng Orders.
+  - Tầng DTO DeliveryTask chỉ đóng vai trò View Object gom thông tin giao hàng để hiển thị cho Shipper và Điều phối.
+- **Nguyên nhân phát sinh lỗi bất đồng bộ:**
+  - Khi nhân viên chuyển đơn sang "Chờ giao hàng" (Waiting for dispatch), hệ thống cập nhật OrderType = 'Delivery'.
+  - Nếu sau đó nhân viên tại tab "Tất cả đơn" chọn chuyển ngược trạng thái về Accepted hoặc Prepared, hàm OrderDAO.updateOrderStatus trước đây chỉ thực hiện UPDATE Orders SET Status = ? WHERE OrderID = ? mà không cập nhật lại OrderType.
+  - Do tab "Đơn giao Shipper" truy vấn và phân loại theo điều kiện orderType == 'Delivery', đơn hàng này tiếp tục xuất hiện trên tab giao hàng dù trạng thái đã hiển thị là Accepted, đồng thời ShipperID (nếu đã gán) vẫn bị găm lại gây sai lệch tải công việc của Shipper.
+
+### 2. Giải pháp Kỹ thuật Triệt để & Tuân thủ Rule_BOMS:
+- **Nguyên tắc "Tái sử dụng - Không nhân bản" (DRY & Zero Duplication):**
+  - Không tạo thêm bảng hay file DAO khổng lồ dư thừa. Tận dụng tối đa OrderDAO làm nơi quản lý vòng đời đơn và DeliveryDAO làm nơi quản lý tác vụ shipper.
+  - Phục hồi lại toàn bộ 317 dòng code của DeliveryDAO (nhiệm vụ điều phối và shipper từ Task 6) cùng bổ sung hàm countActiveOrdersByShipperId(int shipperId).
+- **Cơ chế Hoàn tác An toàn Đa Tầng (Safe Revert Architecture):**
+  - **Tầng DAO (OrderDAO.rrevertOrderFromDelivery):**
+    Thực hiện câu lệnh cập nhật nguyên tử: UPDATE Orders SET OrderType = ?, Status = ?, ShipperID = NULL WHERE OrderID = ?.
+    Bảo lưu thông tin khách hàng và địa chỉ làm dữ liệu lịch sử/nhật ký phục vụ tra cứu thay vì xóa dữ liệu thô.
+  - **Tầng Nghiệp vụ (OrderService.rrevertDeliveryOrder):**
+    + *Kiểm tra tính an toàn:* Nếu đơn đang ở trạng thái vận chuyển nhạy cảm (Delivering, Delivered, Returned), nghiêm cấm hoàn tác và ném mã lỗi E0218 (ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS).
+    + *Giải phóng tài nguyên Shipper:* Nếu đơn đã được gán ShipperID, tự động ghi bản ghi vào DeliveryStatusHistory với trạng thái 'Cancelled', đếm lại số đơn đang xử lý qua DeliveryDAO.countActiveOrdersByShipperId và cập nhật ShipperProfiles.ActiveOrders / ShipperStatus.
+    + *Khôi phục loại đơn ban đầu:* Nếu TableID != null -> chuyển về 'Table'; ngược lại -> chuyển về 'Counter'.
+    + *Tích hợp hủy đơn an toàn:* Trong luồng cancelOrder, nếu đơn bị hủy là đơn Delivery có Shipper, tự động giải phóng Shipper và đồng bộ trạng thái tương tự.
+- **Giao diện & Trải nghiệm An toàn (Modal Cảnh Báo Nguy Cơ):**
+  - Tạo web/components/rrevert_delivery_modal.jsp: Hiển thị hộp thoại cảnh báo nguy cơ màu đỏ khi nhân viên chọn chuyển ngược trạng thái: "Hành động này sẽ hủy yêu cầu giao hàng của Shipper và chuyển đơn về phục vụ nội bộ (tại bàn/tại quầy). Thao tác này không thể tự động hoàn tác!".
+  - Phía Client (web/js/main.js): Bắt sự kiện chọn Accepted/Prepared trên đơn có data-order-type="Delivery", chặn submit mặc định và hiển thị modal xác nhận. Chỉ gửi form khi nhân viên bấm [Xác nhận hoàn tác].
+  - Bổ sung phím tắt Escape và click ngoài backdrop để đóng modal.
+- **Đa ngôn ngữ & Mã hóa Ký tự Chuẩn:**
+  - Bổ sung hằng số S0212 và E0218 trong utility/Constants.java.
+  - Khai báo đầy đủ các chuỗi thông báo và nhãn modal trong messages_vi.properties (100% mã hóa \uXXXX) và messages_en.properties.
+
+### 3. File bị tác động:
+- src/java/utility/Constants.java: Bổ sung SUCCESS_REVERT_DELIVERY_ORDER = "S0212" và ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS = "E0218".
+- src/java/resources/messages_vi.properties & messages_en.properties: Bổ sung bản dịch tiếng Việt (Unicode Escape) và tiếng Anh cho thông báo lỗi, thành công và modal cảnh báo.
+- src/java/dao/OrderDAO.java: Thêm hàm revertOrderFromDelivery(int orderId, String newOrderType, String newStatus).
+- src/java/dao/DeliveryDAO.java: Khôi phục toàn bộ các hàm nghiệp vụ Task 6 và bổ sung countActiveOrdersByShipperId(int shipperId).
+- src/java/service/OrderService.java: Bổ sung revertDeliveryOrder và tích hợp kiểm tra trong updateOrderStatus và cancelOrder.
+- web/components/rrevert_delivery_modal.jsp (Tạo mới): Component modal cảnh báo trước khi hoàn tác đơn giao hàng.
+- web/order_management.jsp: Include revert_delivery_modal.jsp.
+- web/components/standard_orders_table.jsp & delivery_orders_table.jsp: Bổ sung data-order-type, data-current-status và option chuyển trạng thái.
+- web/js/main.js: Bổ sung openRevertDeliveryModal, closeRevertDeliveryModal, confirmRevertDeliverySubmit, các modal helper và cập nhật handleStaffStatusSubmit.
+- .agent/WorkList.md: Bổ sung Task 6.7 và đánh dấu [DONE].
+
+
+## [2026-10-20] - Hoàn thiện Task 6.5 & Task 6.6: Upload Bằng Chứng Giao Hàng, Lý Do Thất Bại & Hoàn Thiện Điều Hướng Header
+### 1. Phân tích & Giải pháp:
+- **Tận dụng Tiện ích Tải ảnh Sẵn có (`ImageUploadUtility`):**
+  - Kế thừa và tái sử dụng `ImageUploadUtility.saveImage(filePart, "delivery")` để xử lý tải ảnh bằng chứng giao hàng khi Shipper xác nhận `Delivered`.
+  - Ảnh được lưu vào thư mục `boms_data/uploads/delivery/` nằm ngoài thư mục build để chống mất dữ liệu khi Clean & Build, đồng thời được phục vụ công khai qua ánh xạ URL `/uploads/*`.
+- **Thiết kế Component Modal Chuyên Biệt:**
+  - `web/components/shipper_complete_modal.jsp`: Hiển thị form tải tệp ảnh bằng chứng (`multipart/form-data`) kèm xem trước ảnh trước khi gửi.
+  - `web/components/shipper_fail_modal.jsp`: Hiển thị modal bắt buộc nhập lý do thất bại (`failReason`) khi trạng thái là `Returned`, cung cấp dropdown gợi ý các lý do thực tế (Khách không nghe máy, Sai địa chỉ, Khách đổi ý, Hàng hỏng hóc) kết hợp ô textarea nhập chi tiết.
+- **Xử lý Controller & Service:**
+  - `ShipperController`: Cấu hình `@MultipartConfig` với giới hạn tệp an toàn (fileSizeThreshold 1MB, maxFileSize 10MB, maxRequestSize 15MB). Xử lý 2 action `completeDelivery` và `failDelivery`, nạp `proofImage` hoặc `failReason` sang Service, áp dụng chuẩn PRG và Flash Message qua Session.
+  - `DeliveryService.updateShipperTaskStatus`: Validate chặt chẽ bắt buộc nhập `failReason` khi trạng thái là `Returned` (tránh ném rỗng), cập nhật bảng `Orders`, tự động ghi vết vào `DeliveryStatusHistory` đầy đủ `ProofImage` hoặc `FailReason`.
+  - Tự động đồng bộ `ShipperProfiles.ActiveOrders` và `ShipperStatus`: Khi đơn kết thúc (`Delivered` hoặc `Returned`), đếm lại số đơn `Delivering` còn lại của Shipper; nếu về 0 thì chuyển trạng thái Shipper về `'Ready'` giúp giải phóng ngay công suất gom đơn.
+- **Hoàn thiện Điều hướng Header (`web/header.jsp`):**
+  - Bổ sung liên kết `/DispatchController` cho tài khoản có vai trò `Manager` (Quản lý điều phối giao hàng).
+  - Kích hoạt liên kết `/ShipperController` cho tài khoản có vai trò `Shipper` (Bàn làm việc Shipper).
+  - Tuân thủ phân quyền chặt chẽ theo `user.role`, không để lộ endpoint không thuộc thẩm quyền.
+- **Đa ngôn ngữ & Mã hóa Unicode Escape:**
+  - Đồng bộ 100% nhãn modal và mã thông báo vào `messages_vi.properties` (chuẩn `\uXXXX`) và `messages_en.properties`.
+
+### 2. File bị tác động:
+- `web/components/shipper_complete_modal.jsp` (Tạo mới)
+- `web/components/shipper_fail_modal.jsp` (Tạo mới)
+- `src/java/controller/ShipperController.java`: Gắn `@MultipartConfig`, xử lý action `completeDelivery`, `failDelivery`.
+- `src/java/service/DeliveryService.java`: Cập nhật `updateShipperTaskStatus`, validate `failReason`, ghi vết `DeliveryStatusHistory`, đồng bộ `ShipperProfiles`.
+- `web/shipper_dashboard.jsp`: Tích hợp 2 modal và cập nhật các nút thao tác.
+- `web/header.jsp`: Cập nhật phân quyền hiển thị liên kết cho Manager và Shipper.
+- `web/js/main.js`: Bổ sung các hàm JavaScript mở/đóng modal `openShipperCompleteModal`, `openShipperFailModal`.
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`: Bổ sung nhãn modal và thông báo đa ngôn ngữ.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành toàn bộ Task 6.
+
+## [2026-10-20] - Hoàn thiện Task 6.4: Đồng Bộ Hiển Thị Đơn Chờ Giao & Nhận/Từ Chối Đơn Phía Shipper
+### 1. Phân tích & Giải pháp:
+- **Cơ chế Điều phối & Tiếp nhận Đơn kết hợp (Hybrid Dispatching & Claim Pool):**
+  - Thực hiện theo phương án phê duyệt: Manager có thể chủ động gán Shipper từ `dispatch_dashboard.jsp`, đồng thời Shipper có thể tự xem và bấm [Nhận giao đơn này] (`claimTask`) đối với các đơn `Waiting for dispatch` chưa gán trong khu vực phụ trách (`ShipperAreas`) trên `shipper_dashboard.jsp`.
+  - Phía DAO sử dụng câu lệnh `UPDATE ... WHERE OrderID = ? AND ShipperID IS NULL AND Status = 'Waiting for dispatch'` nguyên tử (atomic update) nhằm ngăn chặn triệt để tình trạng tranh chấp tài nguyên (race condition) khi nhiều Shipper cùng bấm nhận đơn một lúc.
+- **Tác vụ Nhận/Từ chối & Quản lý vòng đời đơn:**
+  - `acceptTask`: Khi Shipper bấm [Nhận đơn] từ bảng "Đơn chờ xác nhận", kiểm tra công suất qua `MaxOrders` động từ `ShipperProfile`, chuyển trạng thái đơn sang `Delivering`, tự động tăng số đơn đang xử lý và chuyển trạng thái Shipper sang `Delivering`, đồng thời ghi vết lịch sử `DeliveryStatusHistory`.
+  - `rejectTask`: Khi Shipper bấm [Từ chối], gỡ bỏ `ShipperID = NULL`, trả trạng thái đơn về `Waiting for dispatch`, ghi nhật ký lý do từ chối vào `DeliveryStatusHistory`, đơn lập tức quay lại hàng chờ điều phối và bể đơn chờ nhận.
+  - `claimTask`: Shipper chủ động nhận đơn trực tiếp từ hàng chờ khu vực, đơn chuyển thẳng sang `Delivering`.
+- **Chuẩn hóa Kiến trúc PRG (Post-Redirect-Get) & Flash Messages:**
+  - Loại bỏ hoàn toàn lỗi gọi trực tiếp `doGet()` sau `doPost()` trong `DispatchController` và `ShipperController`. Toàn bộ thông báo thành công/lỗi được lưu vào `HttpSession`, sau đó thực hiện `sendRedirect()` chuẩn PRG, giúp ngăn ngừa tình trạng resubmit form khi người dùng nhấn F5.
+- **Nâng cấp Giao diện & Trải nghiệm Người dùng (UI/UX):**
+  - Bổ sung thông tin chi tiết người nhận (Tên khách hàng, Số điện thoại, Địa chỉ, Khu vực giao hàng, Tổng tiền) trên cả 2 trang `dispatch_dashboard.jsp` và `shipper_dashboard.jsp`.
+  - Thay thế việc hardcode giới hạn gom đơn `activeOrders >= 5` bằng `activeOrders >= maxOrders` động được cấu hình theo từng Shipper trong `ShipperProfiles`.
+  - Chuẩn hóa CSS trong `global.css`, loại bỏ inline styles.
+- **Đa ngôn ngữ & Mã hóa Unicode Escape:**
+  - Bổ sung đầy đủ các nhãn giao diện và thông báo Flash Message vào `messages_vi.properties` (100% mã hóa `\uXXXX`) và `messages_en.properties`.
+
+### 2. File bị tác động:
+- `src/java/model/DeliveryTask.java`: Thêm các trường `customerName`, `customerPhone`, `areaName`, `totalAmount`.
+- `src/java/dao/DeliveryDAO.java`: Cập nhật truy vấn `getAllTasks()`, `getTasksByShipper()`, `getTaskById()`; bổ sung `getAvailableTasksForShipper()` và `claimTask()`.
+- `src/java/service/DeliveryService.java`: Nạp đầy đủ thông tin vào Task Map DTO, bổ sung `getAvailableTasksForShipper()`, `claimTask()`, `acceptTask()`, đồng bộ `maxOrders` động.
+- `src/java/controller/DispatchController.java`: Chuẩn hóa chuẩn PRG `sendRedirect()` và Session Flash Messages.
+- `src/java/controller/ShipperController.java`: Chuẩn hóa chuẩn PRG, bổ sung action `claimTask`, `acceptTask`, `rejectTask`, `updateStatus`.
+- `web/dispatch_dashboard.jsp`: Hiển thị chi tiết khách hàng/khu vực/giá trị đơn; kiểm tra sức chứa Shipper động theo `maxOrders`.
+- `web/shipper_dashboard.jsp`: Bổ sung 3 phân vùng rõ ràng (Đơn chờ nhận khu vực, Đơn được điều phối giao, Đơn hàng của tôi).
+- `web/css/global.css`: Bổ sung styles bảng và nút bấm nghiệp vụ điều phối và shipper.
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`: Bổ sung nhãn và thông báo hệ thống.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 6.4.
+
+## [2026-10-20] - Hoàn thiện Task 6.3: Thiết kế Tab chuyên biệt "Đơn Hàng Giao Cho Shipper" Trên `order_management.jsp`
+### 1. Phân tích & Giải pháp:
+- **Tách biệt Component & Chống lặp code (DRY - Single Responsibility Principle):**
+  - Tạo `web/components/standard_orders_table.jsp`: Tái sử dụng bảng chuẩn cho 3 tab "Tất cả đơn", "Tại quầy", "Tại bàn" với tham số `targetOrderType`, loại bỏ hoàn toàn việc nhân bản mã HTML.
+  - Tạo `web/components/delivery_orders_table.jsp`: Hiển thị bảng chuyên biệt cho tab "Đơn giao Shipper" với các cột nghiệp vụ đặc thù (Khách nhận & SĐT, Địa chỉ & Khu vực giao, Shipper đảm nhận, Trạng thái vận chuyển chi tiết).
+- **Cơ chế chuyển Tab tức thì phía Client (Instant Tab Switch):**
+  - Tích hợp thanh điều hướng tab chuẩn `.tab-nav`, `.tab-btn` và hàm `openTab()` của hệ thống.
+  - Hiển thị số lượng đếm thời gian thực trên từng tab (`${ORDER_COUNTS.all}`, `${ORDER_COUNTS.counter}`, `${ORDER_COUNTS.table}`, `${ORDER_COUNTS.delivery}`) giúp nhân viên nắm bắt nhanh số lượng đơn.
+  - Duy trì `ACTIVE_TAB` qua các lần submit form trạng thái và lọc ngày/trạng thái bằng Flash Attribute / URL param, giúp nhân viên không bị văng khỏi tab đang thao tác.
+- **Tối ưu Backend O(1) & Nạp dữ liệu liên kết:**
+  - `DeliveryDAO`: Bổ sung `getShipperNameMap()` truy vấn danh sách Shipper (`Role = 'Shipper'`) ánh xạ `UserID -> FullName/Username`.
+  - `OrderService`:
+    + Nạp `areaMap` và `shipperMap` một lần ở đầu luồng `convertOrdersToViewList` để gán `areaName`, `shipperName` vào Map đơn hàng trong thời gian O(1), không phát sinh N+1 query.
+    + Thêm hàm `calculateOrderCounts(orderList)` tính toán số lượng đơn phân bổ cho từng tab.
+  - `OrderManagementController`: Tính `ORDER_COUNTS`, nhận và chuyển tiếp `ACTIVE_TAB` sang View.
+- **Đa ngôn ngữ & Mã hóa Unicode Escape:**
+  - Bổ sung các nhãn tab và cột bảng đơn giao hàng vào `messages_vi.properties` (chuẩn `\uXXXX`) và `messages_en.properties`.
+
+### 2. File bị tác động:
+- `web/components/delivery_orders_table.jsp` (Tạo mới)
+- `web/components/standard_orders_table.jsp` (Tạo mới)
+- `src/java/dao/DeliveryDAO.java`: Bổ sung `getShipperNameMap()`.
+- `src/java/service/OrderService.java`: Bổ sung `calculateOrderCounts()`, nạp `areaName`, `shipperName` vào Map dữ liệu đơn.
+- `src/java/controller/OrderManagementController.java`: Nạp `ORDER_COUNTS` và xử lý duy trì `ACTIVE_TAB`.
+- `web/order_management.jsp`: Bổ sung thanh Tab điều hướng và include 2 components bảng đơn hàng.
+- `web/components/delivery_info_modal.jsp` & `staff_cancel_modal.jsp`: Ghi nhận `activeTab`.
+- `web/js/main.js`: Cập nhật `openStaffCancelModal` hỗ trợ giữ `activeTab`.
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`: Bổ sung nhãn tab và tiêu đề bảng.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 6.3.
+
+## [2026-10-20] - Hoàn thiện Task 6.2: Modal Thu Thập Thông Tin Giao Hàng Cho Shipper (Order Dispatching Modal)
+### 1. Phân tích & Giải pháp:
+- **Tách biệt Component Modal (`delivery_info_modal.jsp`):**
+  - Đóng gói giao diện modal thu thập thông tin khách nhận hàng (`CustomerName`, `CustomerPhone`, `DeliveryAddress`) và dropdown khu vực giao hàng (`DeliveryAreas`) thành component độc lập trong `web/components/`.
+  - Tuân thủ Rule_BOMS: Cấm scriptlet, cấm inline CSS/JS.
+- **Kịch bản Client (`main.js`):**
+  - Tích hợp vào `handleStaffStatusSubmit`: Khi nhân viên chọn trạng thái "Waiting for dispatch" (Chờ giao hàng) và bấm Cập nhật, JavaScript chặn gửi form mặc định, tự động trích xuất thông tin khách sẵn có (nếu có) từ `data-` attributes của đơn và hiển thị modal nổi.
+  - Hỗ trợ phím Escape và click ra ngoài backdrop để đóng modal an toàn.
+- **Xử lý MVC Backend:**
+  - `OrderDAO`: Bổ sung `updateOrderToDelivery(orderId, customerName, customerPhone, deliveryAddress, areaId)` cập nhật đồng thời `OrderType = 'Delivery'`, `Status = 'Waiting for dispatch'`, `ShipperID = NULL`, và lưu thông tin người nhận.
+  - `OrderService`:
+    + Thực hiện validation 2 tầng (Tầng 1: kiểm tra không rỗng, giới hạn độ dài ký tự, regex số điện thoại `0\d{9,10}`; Tầng 2: kiểm tra trạng thái đơn hợp lệ, không cho phép đổi các đơn đã hủy/đã thanh toán/đã giao).
+    + Cung cấp hàm `getAllDeliveryAreas()` đóng gói danh sách khu vực dạng DTO/Map trả về Controller/View.
+    + Bổ sung trường `deliveryAddress`, `areaId`, `shipperId` vào map dữ liệu đơn hàng `convertOrderToMap`.
+  - `OrderManagementController`:
+    + Nạp `DELIVERY_AREAS` vào `request` trong `doGet` phục vụ dropdown.
+    + Xử lý action `convertToDelivery` trong `doPost`, điều phối Flash Message `SUCCESS_DISPATCH_ORDER` (S0211) theo chuẩn PRG.
+- **Đa ngôn ngữ & Mã hóa:**
+  - Khai báo mã thành công `SUCCESS_DISPATCH_ORDER` (S0211) và các mã lỗi `E0213` -> `E0217` trong `Constants.java`.
+  - Toàn bộ nhãn và thông báo tiếng Việt trong `messages_vi.properties` được mã hóa Unicode Escape (`\uXXXX`) nghiêm ngặt.
+
+### 2. File bị tác động:
+- `web/components/delivery_info_modal.jsp` (Tạo mới)
+- `src/java/utility/Constants.java`: Bổ sung mã `S0211`, `E0213` - `E0217`.
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`: Bổ sung bản dịch đa ngôn ngữ cho modal và mã thông báo.
+- `src/java/dao/OrderDAO.java`: Thêm hàm `updateOrderToDelivery`.
+- `src/java/service/OrderService.java`: Bổ sung `updateOrderToDelivery`, `getAllDeliveryAreas()`, cập nhật `convertOrderToMap`.
+- `src/java/controller/OrderManagementController.java`: Nạp danh sách khu vực và tiếp nhận action `convertToDelivery`.
+- `web/order_management.jsp`: Bổ sung lựa chọn `Waiting for dispatch`, hiển thị badge và nhúng modal component.
+- `web/css/global.css`: Thêm class `.order-badge-dispatch`.
+- `web/js/main.js`: Thêm `openDeliveryInfoModal`, `closeDeliveryInfoModal`, tích hợp chặn form trong `handleStaffStatusSubmit`.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 6.2.
+
+## [2026-10-20] - Hoàn thiện Task 6.1: Chuẩn hóa Model & Khắc phục Lỗi Trạng Thái Đơn Hàng Giao Hàng
+### 1. Phân tích & Giải pháp:
+- **Chuẩn hóa Model theo CSDL SQL Server:**
+  - Bổ sung 3 entity model tương ứng các bảng mới trong DB: `ShipperProfile.java` (bảng `ShipperProfiles`), `DeliveryArea.java` (bảng `DeliveryAreas`), `DeliveryStatusHistory.java` (bảng `DeliveryStatusHistory`).
+  - Đảm bảo các thuộc tính và quan hệ khóa ngoại (UserId, OrderId, ShipperId, AreaId) khớp chính xác với `BOMS_DATABASE.sql`.
+- **Khắc phục lỗi trạng thái giao hàng & Ràng buộc Check Constraint:**
+  - Ràng buộc `CK_Order_Status` trong CSDL chỉ chấp nhận: `'Accepted', 'Paid', 'Prepared', 'Waiting for dispatch', 'Waiting for delivery', 'Picked up', 'Delivering', 'Delivered', 'Returned', 'Cancelled'`.
+  - Mã nguồn cũ trước đây gán `STATUS_REJECTED = "Cancelled"` khi Shipper từ chối đơn hàng, gây lỗi nghiêm trọng vì "Cancelled" kích hoạt nghiệp vụ hoàn kho của bếp/quầy.
+  - Chuẩn hóa: Khi Shipper từ chối đơn, đơn hàng chuyển về `Waiting for dispatch` (gỡ bỏ ShipperID để điều phối lại hoặc cho Shipper khác nhận), đồng thời ghi vết lịch sử vào `DeliveryStatusHistory` kèm `failReason`.
+- **Nâng cấp DAO & Service tầng Giao hàng:**
+  - `DeliveryDAO`: Bổ sung `insertStatusHistory`, `getShipperProfileByUserId`, `getShipperProfileByUsername`, `getUserIdByUsername`, `updateShipperStatusAndCount`, `getAllDeliveryAreas`.
+  - `DeliveryService`: Tích hợp ghi vết lịch sử `insertStatusHistory` tại mọi điểm chuyển dịch trạng thái (`assignTaskToShipper`, `updateShipperTaskStatus`, `rejectTask`). Đọc trần tải đơn động từ `ShipperProfile.getMaxOrders()` (mặc định 3 đơn theo DB) thay vì hardcode 5 đơn.
+
+### 2. File bị tác động:
+- `src/java/model/ShipperProfile.java` (Tạo mới)
+- `src/java/model/DeliveryArea.java` (Tạo mới)
+- `src/java/model/DeliveryStatusHistory.java` (Tạo mới)
+- `src/java/utility/Constants.java`: Chuẩn hóa các hằng số trạng thái giao hàng, bỏ map sai trạng thái Rejected.
+- `src/java/dao/DeliveryDAO.java`: Thêm các phương thức truy vấn Profile, Area và ghi lịch sử trạng thái.
+- `src/java/service/DeliveryService.java`: Tích hợp ghi log lịch sử, chuẩn hóa luồng từ chối đơn về `Waiting for dispatch`.
+- `.agent/WorkList.md`: Cập nhật checklist hoàn thành Task 6.1.
+
 ## [2026-10-19] - Khắc phục Triệt để Lỗi Khóa Cứng Thực Đơn (Hết hàng) và Sập Luồng Đặt Món Khi Vượt Quá Tồn Kho Hoặc Hủy Đơn
 ### 1. Phân tích Nguyên nhân Gốc rễ (Root Cause Analysis):
 - **Lỗi 1 (Sai lầm can thiệp CSDL trong pha Validation):**
@@ -925,3 +1170,59 @@
 - Giao diện View tuân thủ 100% JSTL/EL, không Scriptlet, không CSS/JS inline.
 - Phân quyền giao diện đọc từ `sessionScope.USER_SESSION.role` an toàn.
 - Dự án biên dịch thành công qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi)**.
+
+---
+
+## [2026-10-20] - Hoàn thiện Task 7.1: Xóa Bỏ Reflection Sai Chuẩn Trong IngredientAlertController
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Nguyên nhân gốc rễ:** Trong phương thức `doPost` của `IngredientAlertController.java`, mã nguồn cũ cố tình chèn hơn 30 dòng code phức tạp để kiểm tra `userObj instanceof Map` và sử dụng Reflection (`java.lang.reflect.Method`, `userObj.getClass().getMethod("getUserID")`, `m.invoke(userObj)`) nhằm trích xuất `userId` từ Session.
+- **Hậu quả:** Vi phạm nghiêm trọng quy chuẩn `Rule_BOMS.md`, làm phức tạp hóa code không cần thiết, tiềm ẩn rủi ro hiệu năng nghiêm trọng của Reflection và đi ngược lại cấu trúc Session chuẩn của toàn dự án.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Chuẩn hóa Session Extraction:** Loại bỏ toàn bộ khối code Reflection rườm rà. Thay thế bằng chuẩn thống nhất 100% của hệ thống:
+  ```java
+  @SuppressWarnings("unchecked")
+  Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
+  ```
+- **Xử lý An toàn trong Luồng Nghiệp vụ:** Đặt `int userId = Integer.parseInt(userSession.get("userId"));` trực tiếp bên trong khối `try-catch` của `doPost`. Mọi trường hợp ngoại lệ parsing hoặc dữ liệu không hợp lệ đều được khối `catch (Exception e)` chung của Controller đón bắt và trả về phản hồi JSON lỗi chuẩn cho client.
+
+### 3. File bị tác động & Tiến độ:
+- `src/java/controller/IngredientAlertController.java`: Rút gọn từ 164 dòng xuống còn 134 dòng (-30 dòng code rác), loại bỏ sạch 100% Reflection.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 7.1 **[DONE]**.
+- **Trạng thái Build:** Biên dịch qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi (CRITICAL):
+- **Tính thống nhất của Session Contract:** Toàn bộ hệ thống BOMS lưu trữ thông tin phiên đăng nhập tại `Constants.USER_SESSION` dưới dạng `Map<String, String>` (do `UserService.buildUserSessionMap` khởi tạo). Mọi Controller khi cần lấy dữ liệu người dùng BẮT BUỘC phải ép kiểu về `Map<String, String>` và truy xuất qua các key chuẩn (`userId`, `username`, `role`, `fullName`).
+- **Nghiêm cấm tuyệt đối Reflection trong Controller:** Không bao giờ sử dụng Reflection để giải quyết các vấn đề ép kiểu hoặc phỏng đoán kiểu dữ liệu trong Servlet. Mọi sự mơ hồ về kiểu dữ liệu phải được giải quyết dứt điểm tại tầng Service/Contract thay vì dùng Reflection để "chữa cháy".
+- **Quản lý ngoại lệ tập trung:** Khi trích xuất các giá trị số từ tham số hoặc session trong Controller, luôn dựa vào khối `try-catch` bao quanh để bắt `NumberFormatException`, đảm bảo hệ thống không bị crash (lỗi 500) mà luôn trả về mã lỗi JSON thân thiện cho giao diện.
+
+---
+
+## [2026-10-20] - Hoàn thiện Task 7.2: Tiêu Diệt Model DeliveryTask.java & Triệt Tiêu Nguy Cơ Rò Rỉ Model Lên View
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Nguyên nhân gốc rễ:** CSDL hệ thống (`BOMS_DATABASE.sql`) không hề có bảng `DeliveryTask`. Toàn bộ dữ liệu giao hàng được lưu trực tiếp trong bảng `Orders` (phân loại `OrderType = 'Delivery'`) và bảng `DeliveryAreas`. Việc tự ý tạo class `src/java/model/DeliveryTask.java` vi phạm nghiêm trọng định nghĩa tầng Model (Model chỉ đại diện cho bảng vật lý trong CSDL).
+- **Hậu quả:** Gây nhầm lẫn vai trò thực thể CSDL, tạo nợ kỹ thuật và có nguy cơ rò rỉ trực tiếp Model lên tầng View (JSP), vi phạm quy chuẩn thiết kế của `Rule_BOMS.md`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tiêu diệt hoàn toàn Model thừa:** Xóa vĩnh viễn tệp `src/java/model/DeliveryTask.java` khỏi dự án.
+- **Tầng DAO (`DeliveryDAO.java`):**
+  - Cập nhật các hàm `getAllTasks()`, `getTasksByShipper()`, `getAvailableTasksForShipper()` chuyển sang trả về `List<Map<String, Object>>`.
+  - Cập nhật `getTaskById()` trả về `Map<String, Object>`.
+  - Cập nhật hàm phụ trợ `mapResultSetToTask(ResultSet rs)` khởi tạo `Map<String, Object>` với đúng 9 trường dữ liệu cần thiết: `taskId`, `orderCode`, `customerAddress`, `status`, `shipperUsername`, `customerName`, `customerPhone`, `areaName`, `totalAmount`.
+- **Tầng Service (`DeliveryService.java`):**
+  - Tiếp nhận `Map<String, Object>` từ DAO.
+  - Sử dụng hàm `buildTaskMap(Map<String, Object> task)` để định dạng an toàn toàn bộ giá trị sang `Map<String, String>` trước khi cung cấp cho Controller.
+  - Cập nhật các phương thức kiểm tra nghiệp vụ (`validateTaskIsFree`, `validateTaskIsPending`, `validateShipperAuthorization`, `validateStatusFlow`, `countActiveOrders`, `isTaskWaitingForShipper`) trích xuất dữ liệu trực tiếp từ `Map<String, Object>`.
+- **Bảo toàn giao diện View (JSP):** Do Expression Language (EL) trên JSP truy xuất `${task.orderCode}`, `${task.customerName}` đồng nhất giữa Map và Java Bean, giao diện `dispatch_dashboard.jsp` và `shipper_dashboard.jsp` hoạt động ổn định 100% mà không cần sửa đổi bất kỳ dòng code JSP nào.
+
+### 3. File bị tác động & Tiến độ:
+- `src/java/model/DeliveryTask.java`: Đã xóa hoàn toàn khỏi dự án.
+- `src/java/dao/DeliveryDAO.java`: Chuyển đổi toàn bộ phương thức truy vấn Task sang trả về `Map<String, Object>`.
+- `src/java/service/DeliveryService.java`: Xử lý nghiệp vụ với `Map<String, Object>`, loại bỏ hoàn toàn import `model.DeliveryTask`.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 7.2 **[DONE]**.
+- **Trạng thái Build:** Biên dịch qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi, 69 source files)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi (CRITICAL):
+- **Quy chuẩn tầng Model (Database Entity Only):** Package `model` chỉ chứa các POJO đại diện 1-1 cho các bảng trong CSDL (Users, Orders, Ingredients, ...). TUYỆT ĐỐI không tự ý tạo thêm các class Model "lai tạp" DTO/View Object trong package này để tránh làm ô nhiễm tầng thực thể.
+- **Kỹ thuật chống rò rỉ Model lên View (Model Leakage Prevention):** Khi cần tổng hợp dữ liệu từ nhiều bảng (JOIN SQL) để phục vụ hiển thị trên giao diện, quy chuẩn tối ưu là gom nhóm qua `Map<String, Object>` ở tầng DAO và chuyển hóa thành `Map<String, String>` ở tầng Service. View chỉ được phép đọc dữ liệu qua Map hoặc các kiểu dữ liệu nguyên thủy (primitive), tuyệt đối không nhận Model Entity thô.
+- **Tính tương thích của EL trong JSP:** Trong Jakarta/Java EE, cú pháp `${object.property}` sẽ tự động tìm kiếm getter trên Java Bean hoặc `map.get("property")` nếu đối tượng là `Map`. Tận dụng đặc tính này giúp chuyển đổi cấu trúc dữ liệu phía backend mà không gây bất kỳ tác dụng phụ (side-effect) nào lên giao diện người dùng.

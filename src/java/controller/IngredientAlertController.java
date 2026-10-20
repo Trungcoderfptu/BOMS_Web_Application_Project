@@ -64,41 +64,11 @@ public class IngredientAlertController extends HttpServlet {
         String action = request.getParameter("action");
         String alertId = request.getParameter("alertId");
 
-        // Lấy UserID an toàn từ session (hỗ trợ cả String từ UserService.buildUserSessionMap và Number)
-        int userId = 0;
-        Object userObj = session.getAttribute(Constants.USER_SESSION);
-        if (userObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> userMap = (Map<String, Object>) userObj;
-            Object idVal = userMap.get("userId");
-            if (idVal instanceof Number) {
-                userId = ((Number) idVal).intValue();
-            } else if (idVal != null) {
-                try {
-                    userId = Integer.parseInt(idVal.toString().trim());
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        } else if (userObj != null) {
-            try {
-                java.lang.reflect.Method m = userObj.getClass().getMethod("getUserID");
-                Object val = m.invoke(userObj);
-                if (val instanceof Number) {
-                    userId = ((Number) val).intValue();
-                }
-            } catch (Exception ignored) {
-                try {
-                    java.lang.reflect.Method m = userObj.getClass().getMethod("getUserId");
-                    Object val = m.invoke(userObj);
-                    if (val instanceof Number) {
-                        userId = ((Number) val).intValue();
-                    }
-                } catch (Exception ignored2) {
-                }
-            }
-        }
+        @SuppressWarnings("unchecked")
+        Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
 
         try {
+            int userId = Integer.parseInt(userSession.get("userId"));
             if ("confirm".equalsIgnoreCase(action)) {
                 ingredientService.confirmAlert(alertId, userId);
                 response.getWriter().write("{\"success\":true,\"message\":\"" + Constants.SUCCESS_CONFIRM_ALERT + "\"}");

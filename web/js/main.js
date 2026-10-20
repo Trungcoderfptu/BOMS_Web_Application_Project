@@ -132,6 +132,42 @@ function initMainApp() {
         });
     }
 
+    const revertModal = document.getElementById('revertDeliveryModal');
+    if (revertModal) {
+        revertModal.addEventListener('click', function (e) {
+            if (e.target === revertModal) {
+                closeRevertDeliveryModal();
+            }
+        });
+    }
+
+    const deliveryModal = document.getElementById('deliveryInfoModal');
+    if (deliveryModal) {
+        deliveryModal.addEventListener('click', function (e) {
+            if (e.target === deliveryModal) {
+                closeDeliveryInfoModal();
+            }
+        });
+    }
+
+    const shipperCompModal = document.getElementById('shipperCompleteModal');
+    if (shipperCompModal) {
+        shipperCompModal.addEventListener('click', function (e) {
+            if (e.target === shipperCompModal) {
+                closeShipperCompleteModal();
+            }
+        });
+    }
+
+    const shipperFlModal = document.getElementById('shipperFailModal');
+    if (shipperFlModal) {
+        shipperFlModal.addEventListener('click', function (e) {
+            if (e.target === shipperFlModal) {
+                closeShipperFailModal();
+            }
+        });
+    }
+
     initCancelCountdowns();
 
     // ================= ATTENDANCE SERVER CLOCK =================
@@ -259,15 +295,18 @@ function closeOrderConfirmModal() {
 }
 
 // Modal staff cancel order confirmation handlers
-function openStaffCancelModal(orderId) {
+function openStaffCancelModal(orderId, activeTab) {
     const modal = document.getElementById('staffCancelModal');
     const orderIdInput = document.getElementById('staffCancelModalOrderId');
     const orderIdText = document.getElementById('staffCancelModalOrderIdText');
+    const activeTabInput = document.getElementById('staffCancelModalActiveTab');
     if (modal) {
         if (orderIdInput)
             orderIdInput.value = orderId;
         if (orderIdText)
             orderIdText.textContent = '#' + orderId;
+        if (activeTabInput && activeTab)
+            activeTabInput.value = activeTab;
         modal.classList.remove('d-none');
     }
 }
@@ -279,13 +318,145 @@ function closeStaffCancelModal() {
     }
 }
 
+let __pendingRevertForm = null;
+
+function openRevertDeliveryModal(form, orderId) {
+    __pendingRevertForm = form;
+    const modal = document.getElementById('revertDeliveryModal');
+    const textEl = document.getElementById('revertDeliveryModalOrderIdText');
+    if (modal) {
+        if (textEl) {
+            textEl.textContent = '#' + (orderId || '');
+        }
+        modal.classList.remove('d-none');
+    }
+}
+
+function closeRevertDeliveryModal() {
+    __pendingRevertForm = null;
+    const modal = document.getElementById('revertDeliveryModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function confirmRevertDeliverySubmit() {
+    if (__pendingRevertForm) {
+        const formToSubmit = __pendingRevertForm;
+        __pendingRevertForm = null;
+        closeRevertDeliveryModal();
+        formToSubmit.submit();
+    }
+}
+
+function openDeliveryInfoModal(orderId, customerName, customerPhone, address, areaId) {
+    const modal = document.getElementById('deliveryInfoModal');
+    if (!modal) return;
+    const orderIdInput = document.getElementById('deliveryModalOrderId');
+    const orderIdText = document.getElementById('deliveryModalOrderIdText');
+    const nameInput = document.getElementById('deliveryCustomerName');
+    const phoneInput = document.getElementById('deliveryCustomerPhone');
+    const addrInput = document.getElementById('deliveryAddress');
+    const areaSelect = document.getElementById('deliveryAreaId');
+
+    if (orderIdInput) orderIdInput.value = orderId || '';
+    if (orderIdText) orderIdText.textContent = '#' + (orderId || '');
+    if (nameInput) nameInput.value = customerName || '';
+    if (phoneInput) phoneInput.value = customerPhone || '';
+    if (addrInput) addrInput.value = address || '';
+    if (areaSelect) areaSelect.value = areaId || '';
+
+    modal.classList.remove('d-none');
+}
+
+function closeDeliveryInfoModal() {
+    const modal = document.getElementById('deliveryInfoModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function openShipperCompleteModal(taskId, orderCode) {
+    const modal = document.getElementById('shipperCompleteModal');
+    const taskIdInput = document.getElementById('completeModalTaskId');
+    const orderCodeText = document.getElementById('completeModalOrderCodeText');
+    const fileInput = document.getElementById('completeProofImage');
+    if (modal) {
+        if (taskIdInput) taskIdInput.value = taskId;
+        if (orderCodeText) orderCodeText.textContent = orderCode || ('#' + taskId);
+        if (fileInput) fileInput.value = '';
+        modal.classList.remove('d-none');
+    }
+}
+
+function closeShipperCompleteModal() {
+    const modal = document.getElementById('shipperCompleteModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function openShipperFailModal(taskId, orderCode) {
+    const modal = document.getElementById('shipperFailModal');
+    const taskIdInput = document.getElementById('failModalTaskId');
+    const orderCodeText = document.getElementById('failModalOrderCodeText');
+    const reasonText = document.getElementById('failReason');
+    const presetSelect = document.getElementById('presetFailReason');
+    if (modal) {
+        if (taskIdInput) taskIdInput.value = taskId;
+        if (orderCodeText) orderCodeText.textContent = orderCode || ('#' + taskId);
+        if (reasonText) reasonText.value = '';
+        if (presetSelect) presetSelect.value = '';
+        modal.classList.remove('d-none');
+    }
+}
+
+function closeShipperFailModal() {
+    const modal = document.getElementById('shipperFailModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
 function handleStaffStatusSubmit(event, form, orderId) {
     const select = form.querySelector("select[name='newStatus']");
-    if (select && select.value === 'Cancelled') {
+    if (!select) return true;
+    const newStatus = select.value;
+    const activeTabInput = form.querySelector("input[name='activeTab']");
+    const activeTab = activeTabInput ? activeTabInput.value : '';
+    const currentOrderType = form.getAttribute('data-order-type') || '';
+    const currentStatus = form.getAttribute('data-current-status') || '';
+
+    if (newStatus === 'Cancelled') {
         event.preventDefault();
-        openStaffCancelModal(orderId);
+        openStaffCancelModal(orderId, activeTab);
         return false;
     }
+
+    if (newStatus === 'Waiting for dispatch') {
+        const custName = form.getAttribute('data-customer-name') || '';
+        const custPhone = form.getAttribute('data-customer-phone') || '';
+        const addr = form.getAttribute('data-delivery-address') || '';
+        const areaId = form.getAttribute('data-area-id') || '';
+
+        if (currentOrderType !== 'Delivery' || !custName || !custPhone || !addr) {
+            event.preventDefault();
+            openDeliveryInfoModal(orderId, custName, custPhone, addr, areaId);
+            return false;
+        }
+    }
+
+    if (currentOrderType === 'Delivery' && (newStatus === 'Accepted' || newStatus === 'Prepared')) {
+        if (currentStatus === 'Delivering' || currentStatus === 'Delivered' || currentStatus === 'Returned') {
+            event.preventDefault();
+            alert('Kh\u00F4ng th\u1EC3 chuy\u1EC3n tr\u1EA1ng th\u00E1i \u0111\u01A1n h\u00E0ng \u0111ang ho\u1EB7c \u0111\u00E3 giao v\u1EC1 tr\u1EA1ng th\u00E1i n\u00E0y!');
+            return false;
+        }
+        event.preventDefault();
+        openRevertDeliveryModal(form, orderId);
+        return false;
+    }
+
     return true;
 }
 
@@ -624,10 +795,17 @@ function closeOtReasonModal() {
 // Listen for Escape key to close modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-        closeProductModal();
-        closeOtReasonModal();
-        closeInventoryModal();
-        closeThresholdModal();
+        if (typeof closeProductModal === 'function') closeProductModal();
+        if (typeof closeOtReasonModal === 'function') closeOtReasonModal();
+        if (typeof closeInventoryModal === 'function') closeInventoryModal();
+        if (typeof closeThresholdModal === 'function') closeThresholdModal();
+        if (typeof closeStaffCancelModal === 'function') closeStaffCancelModal();
+        if (typeof closeOrderConfirmModal === 'function') closeOrderConfirmModal();
+        if (typeof closeInventoryAlertModal === 'function') closeInventoryAlertModal();
+        if (typeof closeRevertDeliveryModal === 'function') closeRevertDeliveryModal();
+        if (typeof closeDeliveryInfoModal === 'function') closeDeliveryInfoModal();
+        if (typeof closeShipperCompleteModal === 'function') closeShipperCompleteModal();
+        if (typeof closeShipperFailModal === 'function') closeShipperFailModal();
     }
 });
 

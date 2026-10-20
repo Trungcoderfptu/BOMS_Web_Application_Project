@@ -30,6 +30,9 @@ public class DispatchController extends HttpServlet {
             return; 
         }
 
+        HttpSession session = request.getSession(false);
+        forwardFlashMessages(request, session);
+
         loadDashboardData(request);
         request.getRequestDispatcher("dispatch_dashboard.jsp").forward(request, response);
     }
@@ -45,7 +48,7 @@ public class DispatchController extends HttpServlet {
         }
 
         processAssignShipper(request);
-        doGet(request, response);
+        response.sendRedirect(request.getContextPath() + "/DispatchController");
     }
 
     private boolean validateSessionAndRole(HttpServletRequest request, HttpServletResponse response)
@@ -85,12 +88,27 @@ public class DispatchController extends HttpServlet {
     private void processAssignShipper(HttpServletRequest request) {
         String shipperUsername = request.getParameter("shipperUsername");
         String taskIdStr = request.getParameter("taskId");
+        HttpSession session = request.getSession();
 
         try {
             deliveryService.assignTaskToShipper(taskIdStr, shipperUsername);
-            request.setAttribute(Constants.SUCCESS_MESSAGE, "dispatch.msg.assign_success");
+            session.setAttribute(Constants.SUCCESS_MESSAGE, "dispatch.msg.assign_success");
         } catch (ValidationException e) {
-            request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+            session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        }
+    }
+
+    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
+        if (session == null) {
+            return;
+        }
+        if (session.getAttribute(Constants.SUCCESS_MESSAGE) != null) {
+            request.setAttribute(Constants.SUCCESS_MESSAGE, session.getAttribute(Constants.SUCCESS_MESSAGE));
+            session.removeAttribute(Constants.SUCCESS_MESSAGE);
+        }
+        if (session.getAttribute(Constants.ERROR_MESSAGE) != null) {
+            request.setAttribute(Constants.ERROR_MESSAGE, session.getAttribute(Constants.ERROR_MESSAGE));
+            session.removeAttribute(Constants.ERROR_MESSAGE);
         }
     }
 }

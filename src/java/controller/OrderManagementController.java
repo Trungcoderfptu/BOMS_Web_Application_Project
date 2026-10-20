@@ -59,9 +59,17 @@ public class OrderManagementController extends HttpServlet {
 
         try {
             List<Map<String, Object>> orderList = orderService.getOrdersForView(filterDate, filterStatus);
+            List<Map<String, Object>> deliveryAreas = orderService.getAllDeliveryAreas();
+            Map<String, Integer> orderCounts = orderService.calculateOrderCounts(orderList);
             request.setAttribute("ORDER_LIST", orderList);
+            request.setAttribute("DELIVERY_AREAS", deliveryAreas);
+            request.setAttribute("ORDER_COUNTS", orderCounts);
             request.setAttribute("CURRENT_FILTER_DATE", filterDate);
             request.setAttribute("CURRENT_FILTER_STATUS", filterStatus);
+            String activeTab = request.getParameter("activeTab");
+            if (activeTab != null && !activeTab.trim().isEmpty()) {
+                request.setAttribute("ACTIVE_TAB", activeTab.trim());
+            }
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
         }
@@ -85,8 +93,7 @@ public class OrderManagementController extends HttpServlet {
 
         String filterDate = request.getParameter("filterDate");
         String filterStatus = request.getParameter("filterStatus");
-        String redirectUrl = "OrderManagementController?filterDate=" + (filterDate != null ? filterDate : "")
-                + "&filterStatus=" + (filterStatus != null ? filterStatus : "ALL");
+        String activeTab = request.getParameter("activeTab");
 
         try {
             String action = request.getParameter("action");
@@ -99,12 +106,32 @@ public class OrderManagementController extends HttpServlet {
                 int orderId = Integer.parseInt(request.getParameter("orderId"));
                 orderService.cancelOrder(orderId);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CANCEL_ORDER);
+            } else if ("convertToDelivery".equals(action)) {
+                int orderId = Integer.parseInt(request.getParameter("orderId"));
+                String customerName = request.getParameter("customerName");
+                String customerPhone = request.getParameter("customerPhone");
+                String deliveryAddress = request.getParameter("deliveryAddress");
+                int areaId = 0;
+                try {
+                    areaId = Integer.parseInt(request.getParameter("areaId"));
+                } catch (NumberFormatException e) {
+                    areaId = 0;
+                }
+                orderService.updateOrderToDelivery(orderId, customerName, customerPhone, deliveryAddress, areaId);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_DISPATCH_ORDER);
+                if (activeTab == null || activeTab.trim().isEmpty()) {
+                    activeTab = "tab-delivery-orders";
+                }
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
         } catch (Exception e) {
             session.setAttribute(Constants.ERROR_MESSAGE, Constants.SERROR_INVALID_SETTING_TAB);
         }
+
+        String redirectUrl = "OrderManagementController?filterDate=" + (filterDate != null ? filterDate : "")
+                + "&filterStatus=" + (filterStatus != null ? filterStatus : "ALL")
+                + (activeTab != null && !activeTab.trim().isEmpty() ? "&activeTab=" + activeTab.trim() : "");
 
         response.sendRedirect(request.getContextPath() + "/" + redirectUrl);
     }

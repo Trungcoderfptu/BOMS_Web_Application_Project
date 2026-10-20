@@ -74,9 +74,10 @@
                     <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.admin_daskboard" /></a></li>
                 </c:if>
 
-                <%-- Manager: Quản lý đơn hàng, Quản lý thực đơn, Quản lý kho, Quản lý báo cáo, Quản lý nhân sự --%>
+                <%-- Manager: Quản lý đơn hàng, Quản lý thực đơn, Quản lý kho, Quản lý báo cáo, Quản lý nhân sự, Điều phối shipper --%>
                 <c:if test="${sessionScope.USER_SESSION.role == 'Manager'}">
                     <li><a href="${pageContext.request.contextPath}/OrderManagementController"><fmt:message key="header.sidebar.order" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/DispatchController"><fmt:message key="header.sidebar.dispatch" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/InventoryManagementController"><fmt:message key="header.sidebar.inventory" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/ReportManagementController"><fmt:message key="header.sidebar.reports" /></a></li>

@@ -225,6 +225,40 @@ public class OrderDAO extends DBContext {
         }
     }
 
+    public boolean revertOrderFromDelivery(int orderId, String newOrderType, String newStatus) throws ValidationException {
+        String sql;
+        boolean isCooking = "Prepared".equalsIgnoreCase(newStatus);
+        if (isCooking) {
+            sql = "UPDATE Orders SET OrderType = ?, Status = ?, ShipperID = NULL, CookingStartedAt = COALESCE(CookingStartedAt, GETDATE()) WHERE OrderID = ?";
+        } else {
+            sql = "UPDATE Orders SET OrderType = ?, Status = ?, ShipperID = NULL WHERE OrderID = ?";
+        }
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setString(1, newOrderType);
+            st.setString(2, newStatus);
+            st.setInt(3, orderId);
+            return st.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
+        }
+    }
+
+    public boolean updateOrderToDelivery(int orderId, String customerName, String customerPhone, String deliveryAddress, int areaId) throws ValidationException {
+        String sql = "UPDATE Orders SET OrderType = 'Delivery', CustomerName = ?, CustomerPhone = ?, DeliveryAddress = ?, AreaID = ?, Status = 'Waiting for dispatch', ShipperID = NULL WHERE OrderID = ?";
+        try {
+            PreparedStatement st = connection.prepareStatement(sql);
+            st.setString(1, customerName);
+            st.setString(2, customerPhone);
+            st.setString(3, deliveryAddress);
+            st.setInt(4, areaId);
+            st.setInt(5, orderId);
+            return st.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
+        }
+    }
+
     private List<OrderDetail> loadOrderDetails(int orderId) throws SQLException {
         List<OrderDetail> details = new ArrayList<>();
         String sql = "SELECT od.OrderID, od.ProductID, od.Quantity, od.UnitPrice, "

@@ -28,6 +28,7 @@
                 <input type="hidden" name="newStatus" value="Cancelled" />
                 <input type="hidden" name="filterDate" value="${CURRENT_FILTER_DATE}" />
                 <input type="hidden" name="filterStatus" value="${CURRENT_FILTER_STATUS}" />
+                <input type="hidden" id="staffCancelModalActiveTab" name="activeTab" value="${curActiveTab}" />
                 <button type="submit" class="btn-order-cancel">
                     <fmt:message key="order.cancel.modal.btn_confirm" />
                 </button>

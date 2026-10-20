@@ -4,6 +4,7 @@
  */
 package service;
 
+import dao.DeliveryDAO;
 import dao.IngredientDAO;
 import dao.OrderDAO;
 import java.text.SimpleDateFormat;
@@ -11,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import model.DeliveryArea;
+import model.DeliveryStatusHistory;
 import model.Order;
 import model.OrderDetail;
 import model.Product;
@@ -27,11 +30,13 @@ public class OrderService {
 
     private OrderDAO orderDAO;
     private IngredientDAO ingredientDAO;
+    private DeliveryDAO deliveryDAO;
     private SimpleDateFormat dateTimeFormat;
 
     public OrderService() {
         this.orderDAO = new OrderDAO();
         this.ingredientDAO = new IngredientDAO();
+        this.deliveryDAO = new DeliveryDAO();
         this.dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     }
 
@@ -89,6 +94,13 @@ public class OrderService {
             throw new ValidationException(Constants.ERROR_ORDER_NOT_FOUND);
         }
 
+        // Xử lý thu hồi đơn giao hàng về phục vụ tại quầy / tại bàn
+        if ("Delivery".equalsIgnoreCase(currentOrder.getOrderType())
+                && ("Accepted".equalsIgnoreCase(newStatus) || "Prepared".equalsIgnoreCase(newStatus))) {
+            revertDeliveryOrder(currentOrder, newStatus);
+            return;
+        }
+
         // Kiểm tra điều kiện khóa 5 phút nếu đơn đang ở trạng thái Cancelled
         if ("Cancelled".equalsIgnoreCase(currentOrder.getStatus())) {
             validateCancelModificationWindow(currentOrder);
@@ -98,6 +110,14 @@ public class OrderService {
                 deductOrderIngredients(currentOrder);
             }
         } else if ("Cancelled".equalsIgnoreCase(newStatus)) {
+            if ("Delivery".equalsIgnoreCase(currentOrder.getOrderType()) && currentOrder.getShipperId() != null && currentOrder.getShipperId() > 0) {
+                int sId = currentOrder.getShipperId();
+                deliveryDAO.insertStatusHistory(new DeliveryStatusHistory(
+                        0, orderId, sId, "Cancelled", "Don hang bi huy boi nhan vien", null, new java.sql.Timestamp(System.currentTimeMillis())
+                ));
+                int activeCount = deliveryDAO.countActiveOrdersByShipperId(sId);
+                deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? "Ready" : "Delivering"), activeCount);
+            }
             // Chuyển sang Cancelled -> hoàn trả kho nguyên liệu
             restoreOrderIngredients(currentOrder);
         }
@@ -116,6 +136,14 @@ public class OrderService {
 
     public void cancelOrder(int orderId) throws ValidationException {
         Order order = validateAndGetOrderForModification(orderId);
+        if ("Delivery".equalsIgnoreCase(order.getOrderType()) && order.getShipperId() != null && order.getShipperId() > 0) {
+            int sId = order.getShipperId();
+            deliveryDAO.insertStatusHistory(new DeliveryStatusHistory(
+                    0, orderId, sId, "Cancelled", "Don hang bi huy boi nhan vien", null, new java.sql.Timestamp(System.currentTimeMillis())
+            ));
+            int activeCount = deliveryDAO.countActiveOrdersByShipperId(sId);
+            deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? "Ready" : "Delivering"), activeCount);
+        }
         restoreOrderIngredients(order);
         boolean cancelled = orderDAO.cancelOrder(orderId);
         if (!cancelled) {
@@ -124,20 +152,139 @@ public class OrderService {
         utility.OrderRuntimeCache.recordCancelTime(orderId);
     }
 
+    private void revertDeliveryOrder(Order order, String newStatus) throws ValidationException {
+        String curStatus = order.getStatus();
+        if ("Delivering".equalsIgnoreCase(curStatus) || "Delivered".equalsIgnoreCase(curStatus) || "Returned".equalsIgnoreCase(curStatus)) {
+            throw new ValidationException(Constants.ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS);
+        }
+
+        // Xác định loại đơn gốc: nếu có TableID -> Table, ngược lại -> Counter
+        String targetType = (order.getTableId() != null && order.getTableId() > 0) ? "Table" : "Counter";
+
+        // Giải phóng Shipper nếu đã gán
+        Integer shipperId = order.getShipperId();
+        if (shipperId != null && shipperId > 0) {
+            DeliveryStatusHistory history = new DeliveryStatusHistory(
+                    0, order.getOrderId(), shipperId, newStatus,
+                    "Thu hoi don giao hang ve phuc vu tai cho", null, new java.sql.Timestamp(System.currentTimeMillis())
+            );
+            deliveryDAO.insertStatusHistory(history);
+
+            int activeCount = deliveryDAO.countActiveOrdersByShipperId(shipperId);
+            String shipperStatus = (activeCount == 0) ? "Ready" : "Delivering";
+            deliveryDAO.updateShipperStatusAndCount(shipperId, shipperStatus, activeCount);
+        }
+
+        boolean updated = orderDAO.revertOrderFromDelivery(order.getOrderId(), targetType, newStatus);
+        if (!updated) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
+        }
+        utility.OrderRuntimeCache.clearCancelTime(order.getOrderId());
+    }
+
+    public List<Map<String, Object>> getAllDeliveryAreas() throws ValidationException {
+        List<DeliveryArea> areas = deliveryDAO.getAllDeliveryAreas();
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (areas != null) {
+            for (DeliveryArea a : areas) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("areaId", a.getAreaId());
+                map.put("areaName", a.getAreaName());
+                result.add(map);
+            }
+        }
+        return result;
+    }
+
+    public void updateOrderToDelivery(int orderId, String customerName, String customerPhone, String deliveryAddress, int areaId) throws ValidationException {
+        utility.Validator.checkEmpty(customerName, Constants.ERROR_EMPTY_CUSTOMER_NAME);
+        utility.Validator.checkMaxLength(customerName, 100, Constants.ERROR_EMPTY_CUSTOMER_NAME);
+        utility.Validator.checkEmpty(customerPhone, Constants.ERROR_EMPTY_CUSTOMER_PHONE);
+        utility.Validator.checkPhoneFormat(customerPhone, Constants.ERROR_EMPTY_CUSTOMER_PHONE);
+        utility.Validator.checkEmpty(deliveryAddress, Constants.ERROR_EMPTY_DELIVERY_ADDRESS);
+        utility.Validator.checkMaxLength(deliveryAddress, 255, Constants.ERROR_EMPTY_DELIVERY_ADDRESS);
+        if (areaId <= 0) {
+            throw new ValidationException(Constants.ERROR_INVALID_DELIVERY_AREA);
+        }
+
+        Order order = orderDAO.getOrderById(orderId);
+        if (order == null) {
+            throw new ValidationException(Constants.ERROR_ORDER_NOT_FOUND);
+        }
+
+        String curStatus = order.getStatus();
+        if ("Delivered".equalsIgnoreCase(curStatus) || "Paid".equalsIgnoreCase(curStatus) || "Cancelled".equalsIgnoreCase(curStatus)) {
+            throw new ValidationException(Constants.ERROR_ORDER_CANNOT_DISPATCH);
+        }
+
+        boolean updated = orderDAO.updateOrderToDelivery(orderId, customerName.trim(), customerPhone.trim(), deliveryAddress.trim(), areaId);
+        if (!updated) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
+        }
+
+        utility.OrderRuntimeCache.clearCancelTime(orderId);
+    }
+
+    public Map<String, Integer> calculateOrderCounts(List<Map<String, Object>> orders) {
+        Map<String, Integer> counts = new HashMap<>();
+        int all = 0;
+        int counter = 0;
+        int table = 0;
+        int delivery = 0;
+
+        if (orders != null) {
+            for (Map<String, Object> o : orders) {
+                all++;
+                String type = (String) o.get("orderType");
+                if ("Counter".equalsIgnoreCase(type)) {
+                    counter++;
+                } else if ("Table".equalsIgnoreCase(type)) {
+                    table++;
+                } else if ("Delivery".equalsIgnoreCase(type)) {
+                    delivery++;
+                }
+            }
+        }
+
+        counts.put("all", all);
+        counts.put("counter", counter);
+        counts.put("table", table);
+        counts.put("delivery", delivery);
+        return counts;
+    }
+
     // ==========================================
     // ========== 2. DTO/MAP CONVERSION =========
     // ==========================================
     private List<Map<String, Object>> convertOrdersToViewList(List<Order> orders) {
         List<Map<String, Object>> result = new ArrayList<>();
+        Map<Integer, String> areaMap = new HashMap<>();
+        Map<Integer, String> shipperMap = new HashMap<>();
+        try {
+            List<DeliveryArea> areas = deliveryDAO.getAllDeliveryAreas();
+            if (areas != null) {
+                for (DeliveryArea a : areas) {
+                    areaMap.put(a.getAreaId(), a.getAreaName());
+                }
+            }
+            shipperMap = deliveryDAO.getShipperNameMap();
+        } catch (Exception e) {
+            // Keep empty maps if error occurs
+        }
+
         if (orders != null) {
             for (Order o : orders) {
-                result.add(convertOrderToMap(o));
+                result.add(convertOrderToMap(o, areaMap, shipperMap));
             }
         }
         return result;
     }
 
     private Map<String, Object> convertOrderToMap(Order order) {
+        return convertOrderToMap(order, null, null);
+    }
+
+    private Map<String, Object> convertOrderToMap(Order order, Map<Integer, String> areaMap, Map<Integer, String> shipperMap) {
         Map<String, Object> map = new HashMap<>();
         map.put("orderId", order.getOrderId());
         map.put("orderType", order.getOrderType());
@@ -145,6 +292,17 @@ public class OrderService {
         map.put("staffId", order.getStaffId());
         map.put("customerName", order.getCustomerName());
         map.put("customerPhone", order.getCustomerPhone());
+        map.put("deliveryAddress", order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "");
+        map.put("areaId", order.getAreaId());
+        String areaName = (order.getAreaId() != null && areaMap != null && areaMap.containsKey(order.getAreaId()))
+                ? areaMap.get(order.getAreaId()) : "";
+        map.put("areaName", areaName);
+
+        map.put("shipperId", order.getShipperId());
+        String shipperName = (order.getShipperId() != null && shipperMap != null && shipperMap.containsKey(order.getShipperId()))
+                ? shipperMap.get(order.getShipperId()) : "";
+        map.put("shipperName", shipperName);
+
         map.put("status", order.getStatus());
         map.put("totalAmount", order.getTotalAmount());
         map.put("createdAt", formatTimestamp(order.getCreatedAt()));

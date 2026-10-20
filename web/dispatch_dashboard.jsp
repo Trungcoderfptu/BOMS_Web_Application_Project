@@ -22,7 +22,9 @@
             <thead>
                 <tr>
                     <th><fmt:message key="dispatch.table.ordercode" /></th>
+                    <th><fmt:message key="dispatch.table.customer" /></th>
                     <th><fmt:message key="dispatch.table.address" /></th>
+                    <th><fmt:message key="dispatch.table.amount" /></th>
                     <th><fmt:message key="dispatch.table.status" /></th>
                     <th><fmt:message key="dispatch.table.action" /></th>
                 </tr>
@@ -31,14 +33,26 @@
                 <c:choose>
                     <c:when test="${empty UNASSIGNED_TASKS}">
                         <tr>
-                            <td colspan="4" class="text-center empty-msg"><fmt:message key="dispatch.msg.empty" /></td>
+                            <td colspan="6" class="text-center empty-msg"><fmt:message key="dispatch.msg.empty" /></td>
                         </tr>
                     </c:when>
                     <c:otherwise>
                         <c:forEach var="task" items="${UNASSIGNED_TASKS}">
                             <tr>
-                                <td>${task.orderCode}</td>
-                                <td>${task.customerAddress}</td>
+                                <td><strong>${task.orderCode}</strong></td>
+                                <td>
+                                    ${task.customerName}
+                                    <c:if test="${not empty task.customerPhone}">
+                                        <br><small class="text-muted">${task.customerPhone}</small>
+                                    </c:if>
+                                </td>
+                                <td>
+                                    ${task.customerAddress}
+                                    <c:if test="${not empty task.areaName}">
+                                        <br><small class="badge badge-info">${task.areaName}</small>
+                                    </c:if>
+                                </td>
+                                <td>${task.totalAmount} đ</td>
                                 <td class="status-cell">
                                     <fmt:message key="status.${task.status}" />
                                 </td>
@@ -51,14 +65,14 @@
                                             
                                             <c:forEach var="shipper" items="${SHIPPER_LIST}">
                                                 <c:choose>
-                                                    <c:when test="${shipper.activeOrders >= 5}">
+                                                    <c:when test="${shipper.activeOrders >= shipper.maxOrders}">
                                                         <option value="${shipper.username}" disabled>
-                                                            ${shipper.fullName} (<fmt:message key="dispatch.shipper.busy" />: ${shipper.activeOrders})
+                                                            ${shipper.fullName} (<fmt:message key="dispatch.shipper.busy" />: ${shipper.activeOrders}/${shipper.maxOrders})
                                                         </option>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <option value="${shipper.username}">
-                                                            ${shipper.fullName} (<fmt:message key="dispatch.shipper.free" />: ${shipper.activeOrders})
+                                                            ${shipper.fullName} (<fmt:message key="dispatch.shipper.free" />: ${shipper.activeOrders}/${shipper.maxOrders})
                                                         </option>
                                                     </c:otherwise>
                                                 </c:choose>
@@ -93,7 +107,7 @@
                 <c:choose>
                     <c:when test="${empty SHIPPER_LIST}">
                         <tr>
-                            <td colspan="5" class="text-center empty-msg">Không có Shipper nào đang hoạt động.</td>
+                            <td colspan="5" class="text-center empty-msg"><fmt:message key="dispatch.msg.no_active_shippers" /></td>
                         </tr>
                     </c:when>
                     <c:otherwise>
@@ -105,7 +119,7 @@
                                 <td class="status-cell">
                                     <strong><fmt:message key="shipper.work.${shipper.workingStatus}" /></strong>
                                 </td>
-                                <td>${shipper.activeOrders} đơn</td>
+                                <td>${shipper.activeOrders} / ${shipper.maxOrders} đơn</td>
                             </tr>
                         </c:forEach>
                     </c:otherwise>

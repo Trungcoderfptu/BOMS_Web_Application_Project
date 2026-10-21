@@ -1,6 +1,8 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
+<fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
 
 <jsp:include page="header.jsp" />
@@ -15,7 +17,7 @@
                     <fmt:message key="${ERROR_MESSAGE}" />
                 </c:when>
                 <c:otherwise>
-                    <fmt:message key="error.unauthorized" />
+                    <fmt:message key="E0004" />
                 </c:otherwise>
             </c:choose>
         </p>

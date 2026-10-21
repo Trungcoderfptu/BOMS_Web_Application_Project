@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import service.ReportService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 /**
@@ -39,7 +40,8 @@ public class ReportController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         HttpSession session = request.getSession();
-        forwardFlashMessages(request, session);
+        FlashMessageUtil.forwardFlashMessages(request, session);
+        moveSessionToRequest(request, session, "LAST_TICKET_ID");
 
         String ticketId = request.getParameter("ticketId");
         if (ticketId != null) {
@@ -108,13 +110,10 @@ public class ReportController extends HttpServlet {
         request.getRequestDispatcher("report.jsp").forward(request, response);
     }
 
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        moveSessionToRequest(request, session, Constants.SUCCESS_MESSAGE);
-        moveSessionToRequest(request, session, Constants.ERROR_MESSAGE);
-        moveSessionToRequest(request, session, "LAST_TICKET_ID");
-    }
-
     private void moveSessionToRequest(HttpServletRequest request, HttpSession session, String key) {
+        if (session == null || request == null) {
+            return;
+        }
         Object value = session.getAttribute(key);
         if (value != null) {
             request.setAttribute(key, value);

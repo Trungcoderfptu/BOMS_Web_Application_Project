@@ -15,6 +15,7 @@ import jakarta.servlet.http.Part;
 import service.DeliveryService;
 import utility.Constants;
 import utility.ImageUploadUtility;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 @WebServlet(name = "ShipperController", urlPatterns = {"/ShipperController"})
@@ -44,7 +45,7 @@ public class ShipperController extends HttpServlet {
         }
 
         HttpSession session = request.getSession(false);
-        forwardFlashMessages(request, session);
+        FlashMessageUtil.forwardFlashMessages(request, session);
 
         Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
         String currentShipper = loginUser.get("username");
@@ -80,8 +81,10 @@ public class ShipperController extends HttpServlet {
                 processCompleteDelivery(request, session, currentShipper);
             } else if ("failDelivery".equals(action)) {
                 processFailDelivery(request, session, currentShipper);
-            } else {
+            } else if ("updateStatus".equals(action)) {
                 processUpdateStatus(request, session, currentShipper);
+            } else {
+                throw new ValidationException(Constants.ERROR_INVALID_ACTION);
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
@@ -107,7 +110,7 @@ public class ShipperController extends HttpServlet {
             response.sendRedirect("DispatchController");
             return false;
         } else if (!"Shipper".equalsIgnoreCase(role)) {
-            request.setAttribute(Constants.ERROR_MESSAGE, "error.unauthorized");
+            request.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_LOGIN_FAIL_ROLE);
             request.getRequestDispatcher("delivery_unauthorized.jsp").forward(request, response);
             return false;
         }
@@ -153,19 +156,19 @@ public class ShipperController extends HttpServlet {
     private void processClaimTask(HttpServletRequest request, HttpSession session, String currentShipper) throws ValidationException {
         String taskIdStr = request.getParameter("txtTaskId");
         deliveryService.claimTask(taskIdStr, currentShipper);
-        session.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.claim_success");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CLAIM_TASK);
     }
 
     private void processAcceptTask(HttpServletRequest request, HttpSession session, String currentShipper) throws ValidationException {
         String taskIdStr = request.getParameter("txtTaskId");
         deliveryService.acceptTask(taskIdStr, currentShipper);
-        session.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.accept_success");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ACCEPT_TASK);
     }
 
     private void processRejectTask(HttpServletRequest request, HttpSession session, String currentShipper) throws ValidationException {
         String taskIdStr = request.getParameter("txtTaskId");
         deliveryService.rejectTask(taskIdStr, currentShipper);
-        session.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.reject_success");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_REJECT_TASK);
     }
 
     private void processCompleteDelivery(HttpServletRequest request, HttpSession session, String currentShipper) throws ValidationException {
@@ -182,34 +185,21 @@ public class ShipperController extends HttpServlet {
             // Part read exception fallback
         }
         deliveryService.updateShipperTaskStatus(taskIdStr, currentShipper, Constants.STATUS_COMPLETED, null, proofImage);
-        session.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.complete_success");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_COMPLETE_DELIVERY);
     }
 
     private void processFailDelivery(HttpServletRequest request, HttpSession session, String currentShipper) throws ValidationException {
         String taskIdStr = request.getParameter("txtTaskId");
         String failReason = request.getParameter("failReason");
         deliveryService.updateShipperTaskStatus(taskIdStr, currentShipper, Constants.STATUS_FAILED, failReason, null);
-        session.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.fail_success");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_FAIL_DELIVERY);
     }
 
     private void processUpdateStatus(HttpServletRequest request, HttpSession session, String currentShipper) throws ValidationException {
         String taskIdStr = request.getParameter("txtTaskId");
         String newStatus = request.getParameter("txtStatus");
         deliveryService.updateShipperTaskStatus(taskIdStr, currentShipper, newStatus);
-        session.setAttribute(Constants.SUCCESS_MESSAGE, "shipper.msg.update_success");
+        session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_DELIVERY_STATUS);
     }
 
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        if (session == null) {
-            return;
-        }
-        if (session.getAttribute(Constants.SUCCESS_MESSAGE) != null) {
-            request.setAttribute(Constants.SUCCESS_MESSAGE, session.getAttribute(Constants.SUCCESS_MESSAGE));
-            session.removeAttribute(Constants.SUCCESS_MESSAGE);
-        }
-        if (session.getAttribute(Constants.ERROR_MESSAGE) != null) {
-            request.setAttribute(Constants.ERROR_MESSAGE, session.getAttribute(Constants.ERROR_MESSAGE));
-            session.removeAttribute(Constants.ERROR_MESSAGE);
-        }
-    }
 }

@@ -27,15 +27,14 @@ public class DeliveryDAO extends DBContext {
                 + "WHERE o.OrderType = 'Delivery' "
                 + "ORDER BY o.OrderID DESC";
 
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+        try (PreparedStatement st = connection.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
                 Map<String, Object> task = mapResultSetToTask(rs);
                 list.add(task);
             }
         } catch (SQLException e) {
-            throw new ValidationException("DE0016");
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
         }
         return list;
     }
@@ -53,16 +52,16 @@ public class DeliveryDAO extends DBContext {
                 + "JOIN Users u ON o.ShipperID = u.UserID "
                 + "WHERE o.OrderType = 'Delivery' AND u.Username = ? "
                 + "ORDER BY o.OrderID DESC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, shipperUsername);
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                Map<String, Object> task = mapResultSetToTask(rs);
-                result.add(task);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> task = mapResultSetToTask(rs);
+                    result.add(task);
+                }
             }
         } catch (SQLException e) {
-            throw new ValidationException("DE0016");
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
         }
         return result;
     }
@@ -95,17 +94,17 @@ public class DeliveryDAO extends DBContext {
                 + "  ) "
                 + "ORDER BY o.OrderID DESC";
 
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, shipperUsername);
             st.setString(2, shipperUsername);
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                Map<String, Object> task = mapResultSetToTask(rs);
-                list.add(task);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> task = mapResultSetToTask(rs);
+                    list.add(task);
+                }
             }
         } catch (SQLException e) {
-            throw new ValidationException("DE0016");
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
         }
         return list;
     }
@@ -117,28 +116,27 @@ public class DeliveryDAO extends DBContext {
                 + "LEFT JOIN DeliveryAreas da ON o.AreaID = da.AreaID "
                 + "LEFT JOIN Users u ON o.ShipperID = u.UserID "
                 + "WHERE o.OrderID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, taskId);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                return mapResultSetToTask(rs);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToTask(rs);
+                }
             }
         } catch (SQLException e) {
-            throw new ValidationException("DE0016");
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
         }
         return null;
     }
 
     public void updateTaskStatus(int taskId, String newStatus) throws ValidationException {
         String sql = "UPDATE Orders SET Status = ? WHERE OrderID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, newStatus);
             st.setInt(2, taskId);
             st.executeUpdate();
         } catch (SQLException e) {
-            throw new ValidationException("DE0017");
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
         }
     }
 
@@ -150,8 +148,7 @@ public class DeliveryDAO extends DBContext {
             sql = "UPDATE Orders SET ShipperID = (SELECT UserID FROM Users WHERE Username = ?) WHERE OrderID = ?";
         }
 
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             if (shipperUsername == null || shipperUsername.trim().isEmpty()) {
                 st.setInt(1, taskId);
             } else {
@@ -160,7 +157,7 @@ public class DeliveryDAO extends DBContext {
             }
             st.executeUpdate();
         } catch (SQLException e) {
-            throw new ValidationException("DE0017");
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
         }
     }
 
@@ -177,7 +174,7 @@ public class DeliveryDAO extends DBContext {
                 throw new ValidationException(Constants.ERROR_TASK_ALREADY_ASSIGNED);
             }
         } catch (SQLException e) {
-            throw new ValidationException("DE0017");
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ORDER);
         }
     }
 

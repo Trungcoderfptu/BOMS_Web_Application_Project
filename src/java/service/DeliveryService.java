@@ -48,7 +48,7 @@ public class DeliveryService {
 
         if (allUsers != null) {
             for (User u : allUsers) {
-                if ("Shipper".equalsIgnoreCase(u.getRole())) {
+                if (Constants.ROLE_SHIPPER.equalsIgnoreCase(u.getRole())) {
                     Map<String, String> statusInfo = buildShipperStatusMap(u.getUsername());
                     resultList.add(buildShipperMap(u, statusInfo));
                 }
@@ -82,7 +82,7 @@ public class DeliveryService {
         if (shipperId > 0) {
             DeliveryStatusHistory history = new DeliveryStatusHistory(
                     0, taskId, shipperId, Constants.STATUS_WAITING_DELIVERY,
-                    "Dieu phoi gan shipper", null, new Timestamp(System.currentTimeMillis())
+                    Constants.NOTE_DISPATCH_ASSIGN, null, new Timestamp(System.currentTimeMillis())
             );
             deliveryDAO.insertStatusHistory(history);
         }
@@ -99,7 +99,7 @@ public class DeliveryService {
         validateShipperAuthorization(shipperUsername, (String) task.get("shipperUsername"));
         validateStatusFlow((String) task.get("status"));
 
-        if (Constants.STATUS_FAILED.equals(newStatus) || "Returned".equalsIgnoreCase(newStatus)) {
+        if (Constants.STATUS_FAILED.equals(newStatus)) {
             if (failReason == null || failReason.trim().isEmpty()) {
                 throw new ValidationException(Constants.ERROR_EMPTY_FAIL_REASON);
             }
@@ -132,7 +132,7 @@ public class DeliveryService {
         if (shipperId > 0) {
             DeliveryStatusHistory history = new DeliveryStatusHistory(
                     0, taskId, shipperId, Constants.STATUS_DELIVERING,
-                    "Shipper chu dong tiep nhan don", null, new Timestamp(System.currentTimeMillis())
+                    Constants.NOTE_SHIPPER_CLAIM, null, new Timestamp(System.currentTimeMillis())
             );
             deliveryDAO.insertStatusHistory(history);
             syncShipperProfileStatus(shipperId, shipperUsername);
@@ -153,7 +153,7 @@ public class DeliveryService {
         if (shipperId > 0) {
             DeliveryStatusHistory history = new DeliveryStatusHistory(
                     0, taskId, shipperId, Constants.STATUS_DELIVERING,
-                    "Shipper xac nhan nhan don", null, new Timestamp(System.currentTimeMillis())
+                    Constants.NOTE_SHIPPER_ACCEPT, null, new Timestamp(System.currentTimeMillis())
             );
             deliveryDAO.insertStatusHistory(history);
             syncShipperProfileStatus(shipperId, shipperUsername);
@@ -171,7 +171,7 @@ public class DeliveryService {
         if (shipperId > 0) {
             DeliveryStatusHistory history = new DeliveryStatusHistory(
                     0, taskId, shipperId, Constants.STATUS_WAITING_DISPATCH,
-                    "Shipper tu choi nhan don", null, new Timestamp(System.currentTimeMillis())
+                    Constants.NOTE_SHIPPER_REJECT, null, new Timestamp(System.currentTimeMillis())
             );
             deliveryDAO.insertStatusHistory(history);
             syncShipperProfileStatus(shipperId, shipperUsername);
@@ -199,10 +199,10 @@ public class DeliveryService {
     private Map<String, String> buildShipperStatusMap(String username) throws ValidationException {
         int activeOrders = countActiveOrders(username); 
         ShipperProfile profile = deliveryDAO.getShipperProfileByUsername(username);
-        int maxOrders = (profile != null && profile.getMaxOrders() > 0) ? profile.getMaxOrders() : 3;
+        int maxOrders = (profile != null && profile.getMaxOrders() > 0) ? profile.getMaxOrders() : Constants.DEFAULT_SHIPPER_MAX_ORDERS;
 
         Map<String, String> statusMap = new HashMap<>();
-        statusMap.put("workingStatus", (activeOrders == 0) ? "READY" : "DELIVERING");
+        statusMap.put("workingStatus", (activeOrders == 0) ? Constants.SHIPPER_WORK_READY : Constants.SHIPPER_WORK_DELIVERING);
         statusMap.put("activeOrders", String.valueOf(activeOrders));
         statusMap.put("maxOrders", String.valueOf(maxOrders));
         return statusMap;
@@ -275,7 +275,7 @@ public class DeliveryService {
 
     private void validateShipperCapacity(String shipperUsername) throws ValidationException {
         ShipperProfile profile = deliveryDAO.getShipperProfileByUsername(shipperUsername);
-        int maxAllowed = (profile != null && profile.getMaxOrders() > 0) ? profile.getMaxOrders() : 3;
+        int maxAllowed = (profile != null && profile.getMaxOrders() > 0) ? profile.getMaxOrders() : Constants.DEFAULT_SHIPPER_MAX_ORDERS;
         int activeCount = countActiveOrders(shipperUsername);
         if (activeCount >= maxAllowed) { 
             throw new ValidationException(Constants.ERROR_SHIPPER_FULL); 
@@ -293,7 +293,7 @@ public class DeliveryService {
 
     private void syncShipperProfileStatus(int shipperId, String username) throws ValidationException {
         int activeCount = countActiveOrders(username);
-        String status = (activeCount == 0) ? "Ready" : "Delivering";
+        String status = (activeCount == 0) ? Constants.SHIPPER_STATUS_READY : Constants.SHIPPER_STATUS_DELIVERING;
         deliveryDAO.updateShipperStatusAndCount(shipperId, status, activeCount);
     }
 

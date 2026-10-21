@@ -73,6 +73,15 @@ public class Constants {
     // Dải S9XXX: Nghiệp vụ Quản trị hệ thống (Admin)
     public static final String SUCCESS_ACCOUNT_STATE_CHANGE = "S9000";
 
+    // Dải S060X: Điều phối & Giao hàng (Dispatch & Shipper - UC-09 & UC-10)
+    public static final String SUCCESS_ASSIGN_SHIPPER = "S0601";
+    public static final String SUCCESS_CLAIM_TASK = "S0602";
+    public static final String SUCCESS_ACCEPT_TASK = "S0603";
+    public static final String SUCCESS_REJECT_TASK = "S0604";
+    public static final String SUCCESS_COMPLETE_DELIVERY = "S0605";
+    public static final String SUCCESS_FAIL_DELIVERY = "S0606";
+    public static final String SUCCESS_UPDATE_DELIVERY_STATUS = "S0607";
+
     // =========================================================================
     // 4. DẢI MÃ LỖI NGHIỆP VỤ & XÁC THỰC (EXCEPTION CODES - EXXX)
     // =========================================================================
@@ -81,6 +90,7 @@ public class Constants {
     public static final String ERROR_PASSWORD = "E0002";
     public static final String ERROR_ROLE = "E0003";
     public static final String ERROR_LOGIN_FAIL_ROLE = "E0004";
+    public static final String ERROR_UNAUTHORIZED = "E0004";
     public static final String ERROR_LOGIN_FALL = "E0005";
 
     // Dải E001X: Bảo mật tài khoản & Đăng ký
@@ -174,6 +184,7 @@ public class Constants {
 
     // Dải E9XXX: Cấu hình & Nghiệp vụ Quản trị (Admin / System)
     public static final String SERROR_INVALID_SETTING_TAB = "E9000";
+    public static final String ERROR_INVALID_ACTION = "E9000";
 
     // =========================================================================
     // 5. DẢI MÃ LỖI CƠ SỞ DỮ LIỆU (DATABASE EXCEPTION CODES - DEXXX)
@@ -246,16 +257,31 @@ public class Constants {
     public static final String STATUS_FAILED = "Returned";
     public static final String STATUS_PENDING = STATUS_WAITING_DELIVERY;
 
+    // ================= DELIVERY CONFIG & ROLES =================
+    public static final int DEFAULT_SHIPPER_MAX_ORDERS = 3;
+    public static final String ROLE_SHIPPER = "Shipper";
+    public static final String SHIPPER_STATUS_OFFLINE = "Offline";
+    public static final String SHIPPER_STATUS_READY = "Ready";
+    public static final String SHIPPER_STATUS_DELIVERING = "Delivering";
+    public static final String SHIPPER_WORK_READY = "READY";
+    public static final String SHIPPER_WORK_DELIVERING = "DELIVERING";
+
+    // ================= DELIVERY STATUS HISTORY NOTES =================
+    public static final String NOTE_DISPATCH_ASSIGN = "Dieu phoi gan shipper";
+    public static final String NOTE_SHIPPER_CLAIM = "Shipper chu dong tiep nhan don";
+    public static final String NOTE_SHIPPER_ACCEPT = "Shipper xac nhan nhan don";
+    public static final String NOTE_SHIPPER_REJECT = "Shipper tu choi nhan don";
+
     // ================= DELIVERY DATABASE ERROR CODES =================
     public static final String ERROR_DATABASE_DELIVERY = "DE0040";
     public static final String ERROR_DATABASE_INSERT_HISTORY = "DE0041";
     
-    // ================= DELIVERY ERROR & VALIDATION KEYS =================
-    public static final String ERROR_INVALID_TASK = "error.delivery.invalid_task";
-    public static final String ERROR_UNAUTHORIZED_SHIPPER = "error.delivery.unauthorized";
-    public static final String ERROR_INVALID_STATUS_FLOW = "error.delivery.invalid_flow";
-    public static final String ERROR_TASK_ALREADY_ASSIGNED = "error.delivery.task_assigned";
-    public static final String ERROR_CANNOT_REJECT = "error.delivery.cannot_reject";
-    public static final String ERROR_SHIPPER_FULL = "error.delivery.shipper_full";
-    public static final String ERROR_EMPTY_FAIL_REASON = "error.delivery.empty_fail_reason";
+    // ================= DELIVERY ERROR & VALIDATION CODES (Dải E060X) =================
+    public static final String ERROR_INVALID_TASK = "E0601";
+    public static final String ERROR_UNAUTHORIZED_SHIPPER = "E0602";
+    public static final String ERROR_INVALID_STATUS_FLOW = "E0603";
+    public static final String ERROR_TASK_ALREADY_ASSIGNED = "E0604";
+    public static final String ERROR_CANNOT_REJECT = "E0605";
+    public static final String ERROR_SHIPPER_FULL = "E0606";
+    public static final String ERROR_EMPTY_FAIL_REASON = "E0607";
 }

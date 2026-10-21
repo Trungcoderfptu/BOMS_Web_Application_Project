@@ -1,6 +1,8 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
+<fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
 
 <jsp:include page="header.jsp" />
@@ -54,7 +56,14 @@
                                 </td>
                                 <td>${task.totalAmount} đ</td>
                                 <td class="status-cell">
-                                    <fmt:message key="status.${task.status}" />
+                                    <c:choose>
+                                        <c:when test="${task.status == 'Waiting for dispatch'}">
+                                            <span class="order-badge order-badge-dispatch"><fmt:message key="order.status.waiting_dispatch" /></span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <fmt:message key="status.${task.status}" />
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td class="action-cell">
                                     <form action="DispatchController" method="POST" class="assign-form">
@@ -89,7 +98,7 @@
             </tbody>
         </table>
 
-        <hr class="section-divider" style="margin: 30px 0;" />
+        <hr class="section-divider" />
 
         <!-- BẢNG 2: DANH SÁCH SHIPPER TRỰC CHIẾN -->
         <h3 class="section-title"><fmt:message key="dispatch.shipper_list_title" /></h3>
@@ -119,7 +128,7 @@
                                 <td class="status-cell">
                                     <strong><fmt:message key="shipper.work.${shipper.workingStatus}" /></strong>
                                 </td>
-                                <td>${shipper.activeOrders} / ${shipper.maxOrders} đơn</td>
+                                <td>${shipper.activeOrders} / ${shipper.maxOrders} <fmt:message key="dispatch.label.orders" /></td>
                             </tr>
                         </c:forEach>
                     </c:otherwise>

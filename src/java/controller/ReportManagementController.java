@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Map;
 import service.ReportService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 /**
@@ -40,7 +41,7 @@ public class ReportManagementController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/index.jsp");
             return;
         }
-        forwardFlashMessages(request, session);
+        FlashMessageUtil.forwardFlashMessages(request, session);
 
         String reportId = request.getParameter("reportId");
         if (reportId != null) {
@@ -110,19 +111,6 @@ public class ReportManagementController extends HttpServlet {
 
     private String defaultIfEmpty(String value, String defaultValue) {
         return (value == null || value.trim().isEmpty()) ? defaultValue : value.trim();
-    }
-
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        moveSessionToRequest(request, session, Constants.SUCCESS_MESSAGE);
-        moveSessionToRequest(request, session, Constants.ERROR_MESSAGE);
-    }
-
-    private void moveSessionToRequest(HttpServletRequest request, HttpSession session, String key) {
-        Object value = session.getAttribute(key);
-        if (value != null) {
-            request.setAttribute(key, value);
-            session.removeAttribute(key);
-        }
     }
 
     @Override

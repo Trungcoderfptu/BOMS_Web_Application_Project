@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import service.IngredientService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 @WebServlet(name = "InventoryManagementController", urlPatterns = {"/InventoryManagementController"})
@@ -28,7 +29,7 @@ public class InventoryManagementController extends HttpServlet {
         }
 
         try {
-            forwardFlashMessages(request, session);
+            FlashMessageUtil.forwardFlashMessages(request, session);
             String searchTerm = request.getParameter("search");
             List<Map<String, Object>> ingredients = ingredientService.getAllIngredientsForView(searchTerm);
             List<Map<String, Object>> categories = ingredientService.getCategoriesForView();
@@ -101,21 +102,6 @@ public class InventoryManagementController extends HttpServlet {
             return null;
         }
         return (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
-    }
-
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        if (session != null) {
-            Object flashSuccess = session.getAttribute(Constants.SUCCESS_MESSAGE);
-            if (flashSuccess != null) {
-                request.setAttribute(Constants.SUCCESS_MESSAGE, flashSuccess);
-                session.removeAttribute(Constants.SUCCESS_MESSAGE);
-            }
-            Object flashError = session.getAttribute(Constants.ERROR_MESSAGE);
-            if (flashError != null) {
-                request.setAttribute(Constants.ERROR_MESSAGE, flashError);
-                session.removeAttribute(Constants.ERROR_MESSAGE);
-            }
-        }
     }
 
     private void handleUpdateThreshold(HttpServletRequest request, HttpSession session, String userRole)

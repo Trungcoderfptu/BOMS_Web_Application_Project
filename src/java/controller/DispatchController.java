@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import service.DeliveryService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 @WebServlet(name = "DispatchController", urlPatterns = {"/DispatchController"})
@@ -31,7 +32,7 @@ public class DispatchController extends HttpServlet {
         }
 
         HttpSession session = request.getSession(false);
-        forwardFlashMessages(request, session);
+        FlashMessageUtil.forwardFlashMessages(request, session);
 
         loadDashboardData(request);
         request.getRequestDispatcher("dispatch_dashboard.jsp").forward(request, response);
@@ -68,7 +69,7 @@ public class DispatchController extends HttpServlet {
             return false;
         } 
         else if (!"Manager".equalsIgnoreCase(currentRole) && !"Staff".equalsIgnoreCase(currentRole)) {
-            request.setAttribute(Constants.ERROR_MESSAGE, "error.unauthorized");
+            request.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_LOGIN_FAIL_ROLE);
             request.getRequestDispatcher("delivery_unauthorized.jsp").forward(request, response);
             return false;
         }
@@ -92,23 +93,9 @@ public class DispatchController extends HttpServlet {
 
         try {
             deliveryService.assignTaskToShipper(taskIdStr, shipperUsername);
-            session.setAttribute(Constants.SUCCESS_MESSAGE, "dispatch.msg.assign_success");
+            session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ASSIGN_SHIPPER);
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
-        }
-    }
-
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        if (session == null) {
-            return;
-        }
-        if (session.getAttribute(Constants.SUCCESS_MESSAGE) != null) {
-            request.setAttribute(Constants.SUCCESS_MESSAGE, session.getAttribute(Constants.SUCCESS_MESSAGE));
-            session.removeAttribute(Constants.SUCCESS_MESSAGE);
-        }
-        if (session.getAttribute(Constants.ERROR_MESSAGE) != null) {
-            request.setAttribute(Constants.ERROR_MESSAGE, session.getAttribute(Constants.ERROR_MESSAGE));
-            session.removeAttribute(Constants.ERROR_MESSAGE);
         }
     }
 }

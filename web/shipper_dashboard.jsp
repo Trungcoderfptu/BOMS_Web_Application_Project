@@ -1,6 +1,8 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
+<fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
 
 <jsp:include page="header.jsp" />
@@ -174,7 +176,26 @@
                                     </td>
                                     <td>${task.totalAmount} đ</td>
                                     <td class="status-cell">
-                                        <strong><fmt:message key="status.${task.status}" /></strong>
+                                        <c:choose>
+                                            <c:when test="${task.status == 'Waiting for dispatch'}">
+                                                <span class="order-badge order-badge-dispatch"><fmt:message key="status.Waiting for dispatch" /></span>
+                                            </c:when>
+                                            <c:when test="${task.status == 'Waiting for delivery'}">
+                                                <span class="order-badge order-badge-prepared"><fmt:message key="status.Waiting for delivery" /></span>
+                                            </c:when>
+                                            <c:when test="${task.status == 'Delivering'}">
+                                                <span class="order-badge order-badge-delivering"><fmt:message key="status.Delivering" /></span>
+                                            </c:when>
+                                            <c:when test="${task.status == 'Delivered'}">
+                                                <span class="order-badge order-badge-delivered"><fmt:message key="status.Delivered" /></span>
+                                            </c:when>
+                                            <c:when test="${task.status == 'Returned'}">
+                                                <span class="order-badge order-badge-cancelled"><fmt:message key="status.Returned" /></span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="order-badge"><fmt:message key="status.${task.status}" /></span>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </td>
                                     <td class="action-cell">
                                         <c:if test="${task.status != 'Delivered' && task.status != 'Returned'}">

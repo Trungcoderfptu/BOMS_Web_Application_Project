@@ -1,5 +1,205 @@
 # BOMS LEARNING & PROGRESS LOG
 
+## [2026-10-21] - Hoàn thiện Toàn diện Task 8 (Task 8.5, 8.6, 8.7): Triệt tiêu Hardcode, Chuẩn hóa Controller & Bảo đảm An toàn JDBC Phân hệ Shipper/Delivery
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Tồn đọng Hardcode & Magic Number trong DeliveryService:** Các chuỗi ghi chú lịch sử giao hàng (`"Dieu phoi gan shipper"`, `"Shipper chu dong tiep nhan don"`, v.v.), chuỗi trạng thái hoạt động (`"READY"`, `"DELIVERING"`, `"Ready"`, `"Delivering"`), vai trò `"Shipper"` và con số magic `3` làm giá trị fallback của `maxOrders` bị hardcode trực tiếp trong code Java.
+- **Vi phạm DRY & Rủi ro Routing trong ShipperController:** Hàm `forwardFlashMessages` bị khai báo lặp lại dưới dạng private method (13 dòng code) thay vì gọi `FlashMessageUtil`. Nhánh `else` trong `doPost` mặc định kích hoạt cập nhật trạng thái đơn, tiềm ẩn rủi ro khi client gửi action rỗng hoặc không hợp lệ.
+- **Nguy cơ rò rỉ kết nối JDBC (Connection Leak) & Hardcode mã lỗi trong DeliveryDAO:** 4 phương thức truy vấn danh sách (`getAllTasks`, `getTasksByShipper`, `getAvailableTasksForShipper`, `getTaskById`) và 2 phương thức cập nhật (`updateTaskStatus`, `updateTaskShipper`) mở `PreparedStatement` và `ResultSet` nhưng không bọc trong cú pháp `try-with-resources`. Đồng thời hardcode các chuỗi mã lỗi CSDL `"DE0016"` và `"DE0017"` tại 7 vị trí thay vì dùng `Constants`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Task 8.5 (Triệt tiêu Hardcode & Magic Number):**
+  - Khai báo các hằng số chuẩn trong `Constants.java`: `DEFAULT_SHIPPER_MAX_ORDERS = 3`, `ROLE_SHIPPER = "Shipper"`, `SHIPPER_STATUS_*`, `SHIPPER_WORK_*`, và `NOTE_*` cho nhật ký giao hàng.
+  - Tái cấu trúc `DeliveryService.java`: Thay thế 100% chuỗi hardcode và số magic bằng hằng số từ `Constants`. Bảo toàn 100% logic ưu tiên đọc động `profile.getMaxOrders()` từ CSDL, chỉ fallback về `DEFAULT_SHIPPER_MAX_ORDERS` khi profile rỗng. Xóa bỏ điều kiện kiểm tra dư thừa `"Returned".equalsIgnoreCase(newStatus)`.
+- **Task 8.6 (Tối ưu Controller & Thắt chặt Whitelist Routing):**
+  - Trong `ShipperController.java`: Import và gọi `FlashMessageUtil.forwardFlashMessages(request, session)` tại `doGet`, xóa bỏ hoàn toàn hàm private trùng lặp.
+  - Thắt chặt cấu trúc rẽ nhánh `doPost`: Bắt rõ ràng `else if ("updateStatus".equals(action))`. Tại nhánh `else` cuối cùng, ném `throw new ValidationException(Constants.ERROR_INVALID_ACTION)` (mã lỗi `E9000`) để bắt giữ an toàn qua Session Flash Message và chuyển hướng bảo vệ.
+- **Task 8.7 (Bảo đảm An toàn Tài nguyên JDBC & Chuẩn hóa Mã lỗi CSDL):**
+  - Trong `DeliveryDAO.java`: Thay thế 100% (7 vị trí) mã lỗi hardcode `"DE0016"` và `"DE0017"` bằng `Constants.ERROR_DATABASE_GET_ORDER` và `Constants.ERROR_DATABASE_UPDATE_ORDER`.
+  - Tái cấu trúc toàn bộ 6 phương thức JDBC sang cú pháp `try-with-resources` (`try (PreparedStatement st = ...; ResultSet rs = ...)`), đảm bảo tự động đóng tài nguyên khi kết thúc khối lệnh, triệt tiêu hoàn toàn rủi ro rò rỉ Connection Pool.
+
+### 3. File tác động & Biên dịch:
+- `src/java/utility/Constants.java`
+- `src/java/service/DeliveryService.java`
+- `src/java/controller/ShipperController.java`
+- `src/java/dao/DeliveryDAO.java`
+- `.agent/WorkList.md`: Đã hoàn thành 100% các mục của **TASK 8** (`Task 8.1` đến `Task 8.7` đều đạt `[DONE]`).
+- **Trạng thái Build:** Toàn bộ dự án biên dịch qua JDK 17 đạt **BUILD SUCCESSFUL (0 errors)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi:
+- **Luôn ưu tiên Dữ liệu CSDL, chỉ dùng Hằng số làm Fallback phòng thủ:** Các thuộc tính cá nhân hóa của người dùng (như `MaxOrders` của từng Shipper) bắt buộc phải đọc động từ bảng `ShipperProfiles`. Hằng số Java `DEFAULT_SHIPPER_MAX_ORDERS` chỉ đóng vai trò dự phòng (Defensive Fallback) phòng ngừa lỗi thiếu dữ liệu, không bao giờ được ghi đè logic nghiệp vụ CSDL.
+- **Quản lý Vòng đời Tài nguyên JDBC bằng try-with-resources:** Mọi đối tượng triển khai `AutoCloseable` (`Connection`, `PreparedStatement`, `ResultSet`) bắt buộc phải được khởi tạo bên trong khai báo `try (...)`. Tuyệt đối không mở statement/resultset trần trụi để bảo vệ kết nối máy chủ CSDL trong môi trường tải cao.
+- **Kiểm soát Định tuyến theo Danh sách trắng (Whitelist Routing):** Tầng Controller tiếp nhận HTTP POST bắt buộc phải phân định rõ ràng các action được phép; nhánh `else` phải ném ngoại lệ hoặc điều hướng an toàn, tuyệt đối không âm thầm fallback vào một tác vụ cập nhật dữ liệu quan trọng.
+
+---
+
+## [2026-10-21] - Hoàn thiện Khắc phục Dứt điểm Tồn đọng UI & Locale Phân hệ Shipper / Delivery
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Mất liên kết Locale ở các trang con và Modals:** Do Tomcat tạo `PageContext` riêng cho mỗi `jsp:include`, hai modal (`shipper_complete_modal.jsp`, `shipper_fail_modal.jsp`) và trang `delivery_unauthorized.jsp` nếu thiếu `<fmt:setLocale>` trước `<fmt:setBundle>` sẽ không kế thừa được ngôn ngữ đang chọn từ trang cha.
+- **Hardcode chuỗi mã lỗi tại View:** Tại `delivery_unauthorized.jsp:18`, chuỗi `error.unauthorized` được gọi tự do thay vì dùng mã chuẩn toàn hệ thống `Constants.ERROR_LOGIN_FAIL_ROLE` (`E0004`).
+- **Badge trạng thái tĩnh tiếng Anh:** Tại `web/components/delivery_orders_table.jsp:76-94`, các nhãn trạng thái `Waiting for delivery`, `Picked up`, `Delivering`, `Delivered`, `Returned`, `Paid`, `Cancelled` bị viết cứng bằng tiếng Anh, khiến người dùng chuyển sang tiếng Việt vẫn thấy hiển thị tiếng Anh thô.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Bổ sung JSTL Locale động 3 tầng (Session -> Cookie -> 'vi'):** Đã chèn trực tiếp trên `<fmt:setBundle>` tại cả 3 file:
+  - `web/components/shipper_complete_modal.jsp`
+  - `web/components/shipper_fail_modal.jsp`
+  - `web/delivery_unauthorized.jsp`
+- **Chuẩn hóa mã lỗi phân quyền:** Tại `web/delivery_unauthorized.jsp`, đổi fallback `error.unauthorized` thành `E0004` (đã có sẵn trong cả 2 file properties).
+- **Đa ngôn ngữ hóa 100% Badge trạng thái đơn Delivery:** Tại `web/components/delivery_orders_table.jsp`, thay thế toàn bộ text tĩnh tiếng Anh trong các badge bằng `<fmt:message key="status.${order.status}" />`.
+- **Bổ sung các key trạng thái phụ trợ (Unicode Escape `\uXXXX`):**
+  - `messages_vi.properties`: `status.Picked\ up=\u0110\u00e3 l\u1ea5y h\u00e0ng`, `status.Paid=\u0110\u00e3 thanh to\u00e1n`.
+  - `messages_en.properties`: `status.Picked\ up=Picked up`, `status.Paid=Paid`.
+
+### 3. File tác động & Biên dịch:
+- `web/components/shipper_complete_modal.jsp`
+- `web/components/shipper_fail_modal.jsp`
+- `web/delivery_unauthorized.jsp`
+- `web/components/delivery_orders_table.jsp`
+- `src/java/resources/messages_vi.properties` & `src/java/resources/messages_en.properties`
+- **Trạng thái Build:** `BUILD SUCCESSFUL (0 errors)`.
+
+---
+
+## [2026-10-21] - Bổ sung Cấu hình JSTL Locale động cho dispatch_dashboard.jsp và shipper_dashboard.jsp
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Cơ chế JSTL i18n:** Khi JSP chỉ khai báo `<fmt:setBundle basename="resources.messages" />` mà không khai báo `<fmt:setLocale>`, JSTL sẽ fallback về Locale mặc định của trình duyệt client (Accept-Language header) hoặc JVM của Web Server.
+- **Mất liên kết với LanguageController:** Hệ thống điều khiển ngôn ngữ qua `LanguageController.java` (lưu đồng thời vào `sessionScope.LANG` và `cookie.LANG`). Do thiếu `<fmt:setLocale>`, cả hai trang `dispatch_dashboard.jsp` và `shipper_dashboard.jsp` hoàn toàn không nhận diện được khi người dùng click chuyển đổi ngôn ngữ.
+- **Thứ tự thẻ JSTL:** `<fmt:setLocale>` BẮT BUỘC phải nằm trước `<fmt:setBundle>` thì ResourceBundle mới nạp đúng tệp `messages_xx.properties` tương ứng với Locale được chọn.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- Chèn trực tiếp trước `<fmt:setBundle>` tại cả `web/dispatch_dashboard.jsp` và `web/shipper_dashboard.jsp`:
+  `jsp
+  <c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
+  <fmt:setLocale value="${currentLang}" />
+  `
+- Biểu thức EL này thực hiện cơ chế fallback 3 tầng: `Session -> Cookie -> Default ('vi')`, đồng bộ chuẩn 100% với các trang `settings.jsp` và `report.jsp`.
+
+### 3. File tác động & Biên dịch:
+- `web/dispatch_dashboard.jsp` & `web/shipper_dashboard.jsp`
+- **Trạng thái Build:** `BUILD SUCCESSFUL (0 errors)`.
+
+---
+
+## [2026-10-21] - Hoàn thiện Tinh chỉnh Hạng mục 4 & 5 Phân hệ Shipper/Dispatch (Đa ngôn ngữ & Xóa CSS Inline)
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Thiếu key i18n & nguy cơ vỡ giao diện:** Tại `shipper_dashboard.jsp`, cột trạng thái bảng "Đơn hàng của tôi" dùng `status.${task.status}` nhưng file properties thiếu key `status.Waiting\ for\ dispatch`. Đồng thời, nhãn trạng thái này chưa có badge màu chuẩn CSS `.order-badge` như `delivery_orders_table.jsp`.
+- **Hardcode chuỗi tiếng Việt & Inline CSS:** Tại `dispatch_dashboard.jsp`, chuỗi `"đơn"` bị hardcode tiếng Việt thô, và thẻ `<hr>` chứa `style="margin: 30px 0;"` vi phạm quy chuẩn cấm inline CSS theo `Rule_BOMS.md`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Đa ngôn ngữ hóa (i18n):**
+  - Thêm `status.Waiting\ for\ dispatch=Ch\u1edd \u0111i\u1ec1u ph\u1ed1i` vào `messages_vi.properties` (chuẩn Unicode Escape `\uXXXX`) và `status.Waiting\ for\ dispatch=Waiting for dispatch` vào `messages_en.properties`.
+  - Thêm `dispatch.label.orders=\u0111\u01a1n` vào `messages_vi.properties` và `dispatch.label.orders=orders` vào `messages_en.properties`.
+- **Tầng View JSP:**
+  - `web/dispatch_dashboard.jsp`: Xóa bỏ `style="margin: 30px 0;"`, chuyển `<td>... đơn</td>` sang dùng `<fmt:message key="dispatch.label.orders" />`.
+  - `web/shipper_dashboard.jsp`: Bọc cột trạng thái vào cấu trúc `<c:choose>`, gán đồng bộ các class CSS badge `.order-badge` (`order-badge-dispatch`, `order-badge-prepared`, `order-badge-delivering`, `order-badge-delivered`, `order-badge-cancelled`).
+
+### 3. File tác động & Biên dịch:
+- `src/java/resources/messages_vi.properties` & `src/java/resources/messages_en.properties`
+- `web/dispatch_dashboard.jsp` & `web/shipper_dashboard.jsp`
+- **Trạng thái Build:** `BUILD SUCCESSFUL (0 errors)`.
+
+---
+
+## [2026-10-21] - Hoàn thiện Task 7.6: Tái cấu trúc logic tạo chuỗi JSON bằng thư viện Gson (IngredientAlertController)
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Nối chuỗi JSON thủ công (Anti-pattern / Bad Practice):** Trong `IngredientAlertController.java`, hai phương thức private `buildAlertsJson` và `escapeJson` được viết để ghép nối chuỗi JSON bằng `StringBuilder` thủ công. Cách tiếp cận này rất dễ gây lỗi cú pháp JSON khi trường dữ liệu chứa ký tự đặc biệt, dấu ngoặc kép, ký tự điều khiển hoặc dấu xuống dòng.
+- **Hardcode chuỗi mã lỗi và thông báo:** `IngredientAlertController.java` đang hardcode các chuỗi `"E0004"`, `"E9000"`, `"DE0020"`, vi phạm quy chuẩn sử dụng `Constants.java` theo `Rule_BOMS.md`.
+- **Đồng bộ thư viện dự án:** Dự án cần bổ sung thư viện `gson-2.10.1.jar` vào cả `lib/` và `web/WEB-INF/lib/`, đồng thời cấu hình classpath trong NetBeans `nbproject/project.properties` để hỗ trợ serialization JSON chuẩn mực.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tích hợp thư viện Gson:**
+  - Bổ sung `gson-2.10.1.jar` vào `lib/` và `web/WEB-INF/lib/`.
+  - Cập nhật thuộc tính `file.reference.gson-2.10.1.jar` và `javac.classpath` trong `nbproject/project.properties`.
+- **Tái cấu trúc IngredientAlertController:**
+  - Khai báo trường hằng số `private final Gson gson = new Gson();`.
+  - Xóa bỏ triệt để 100% hai phương thức thủ công `buildAlertsJson` và `escapeJson`.
+  - Trong `doGet` (polling alerts): gom kết quả trả về vào `Map<String, Object>` chuẩn gồm các key `success`, `count`, `alerts` (hoặc `error` nếu có ngoại lệ) và tuần tự hóa bằng `gson.toJson(res)`.
+  - Trong `doPost` (confirm/close alert): đóng gói kết quả phản hồi vào `Map<String, Object>` với các key `success`, `message`, `error` và tuần tự hóa bằng `gson.toJson(res)`.
+  - Chuẩn hóa toàn bộ mã lỗi và thông báo thành công: dùng `Constants.ERROR_LOGIN_FAIL_ROLE` ("E0004"), `Constants.ERROR_INVALID_ACTION` ("E9000"), `Constants.ERROR_DATABASE_UPDATE_ALERT` ("DE0020"), `Constants.SUCCESS_CONFIRM_ALERT` ("S0007"), `Constants.SUCCESS_CLOSE_ALERT` ("S0008").
+- **Dọn dẹp tài liệu dự án:**
+  - Đánh dấu hoàn thành toàn bộ TASK 7 trong `.agent/WorkList.md`.
+  - Xóa bỏ khối ghi chú bàn giao cho tác giả luồng Shipper sau khi toàn bộ 7 task của TASK 7 hoàn tất và biên dịch đạt 0 lỗi.
+
+### 3. File bị tác động & Tiến độ:
+- `lib/gson-2.10.1.jar`: Thư viện Gson cho môi trường dev/IDE.
+- `web/WEB-INF/lib/gson-2.10.1.jar`: Thư viện Gson runtime cho Servlet container (Tomcat).
+- `nbproject/project.properties`: Khai báo thư viện Gson vào classpath dự án NetBeans.
+- `src/java/controller/IngredientAlertController.java`: Tái cấu trúc dùng `Gson`, xóa bỏ 2 hàm thủ công, thay hardcode bằng `Constants`.
+- `.agent/WorkList.md`: Đánh dấu `Task 7.6 [DONE]`, hoàn thành 100% TASK 7, xóa bỏ khối ghi chú bàn giao tạm thời.
+- **Trạng thái Build:** Biên dịch qua JDK 17 và Tomcat 10.1 đạt **BUILD SUCCESSFUL (0 errors, 70 source files)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi (CRITICAL):
+- **Tuyệt đối không nối chuỗi JSON thủ công trong Controller:** Luôn sử dụng thư viện chuẩn (`Gson`) kết hợp với Data Structures (`Map<String, Object>`, `List<Map<...>>`) để serialize dữ liệu trả về cho client. Điều này đảm bảo an toàn injection, tự động escape ký tự đặc biệt, chuẩn hóa định dạng UTF-8 và giữ mã nguồn ngắn gọn, dễ bảo trì.
+- **Bảo toàn Contract với Frontend (main.js):** Khi refactor cơ chế tạo JSON ở backend, luôn phải đối chiếu với client script (`web/js/main.js`) để đảm bảo schema JSON (tên key, kiểu dữ liệu boolean/number/array) không thay đổi, tránh làm gãy luồng AJAX Polling hoặc Notification badge trên giao diện người dùng.
+
+---
+
+## [2026-10-21] - Hoàn thiện Task 7.5: Tái Cấu Trúc Hàm Flash Messages Trùng Lặp (DRY) Sang FlashMessageUtil
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Vấn đề trùng lặp mã nguồn (Code Duplication):** Cả 6 Controller (`AttendanceController`, `DispatchController`, `InventoryManagementController`, `MenuController`, `ReportController`, `ReportManagementController`) đều tự khai báo hàm `private void forwardFlashMessages(...)` để chuyển `SUCCESS_MESSAGE` và `ERROR_MESSAGE` từ `session` sang `request` sau đó xóa khỏi `session` (chuẩn PRG), vi phạm nghiêm trọng nguyên tắc DRY và làm phình to mã nguồn các Controller.
+- **Hành vi riêng biệt của một số Controller:** `MenuController` có thêm `"LAST_ORDER_ID"` và `ReportController` có thêm `"LAST_TICKET_ID"` cần được bảo lưu xử lý an toàn để không ảnh hưởng đến nghiệp vụ hiện tại.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tạo mới lớp tiện ích (`utility/FlashMessageUtil.java`):**
+  - Chứa phương thức tĩnh `public static void forwardFlashMessages(HttpServletRequest request, HttpSession session)`.
+  - Kiểm tra an toàn `session != null && request != null`, trích xuất `SUCCESS_MESSAGE` và `ERROR_MESSAGE` sang `request.setAttribute` và dọn dẹp `session.removeAttribute`.
+  - Constructor private để ngăn việc khởi tạo sai mục đích theo chuẩn Utility.
+- **Tầng Controller:**
+  - Nhúng `FlashMessageUtil.forwardFlashMessages(request, session)` vào phương thức `doGet` của cả 6 Controller.
+  - Xóa bỏ triệt để 100% các hàm private `forwardFlashMessages` (và hàm phụ trợ `moveSessionToRequest` không còn dùng) tại 6 Controller.
+  - Đối với các biến đặc thù (`LAST_ORDER_ID` tại `MenuController`, `LAST_TICKET_ID` tại `ReportController`), giữ lại dòng xử lý trực tiếp tại Controller, bảo toàn toàn vẹn hành vi nghiệp vụ.
+
+### 3. File bị tác động & Tiến độ:
+- `src/java/utility/FlashMessageUtil.java`: Tạo mới class tiện ích chứa hàm tĩnh dùng chung.
+- `src/java/controller/AttendanceController.java`: Dùng `FlashMessageUtil`, xóa hàm private thừa.
+- `src/java/controller/DispatchController.java`: Dùng `FlashMessageUtil`, xóa hàm private thừa.
+- `src/java/controller/InventoryManagementController.java`: Dùng `FlashMessageUtil`, xóa hàm private thừa.
+- `src/java/controller/MenuController.java`: Dùng `FlashMessageUtil`, giữ `LAST_ORDER_ID`, xóa hàm private thừa.
+- `src/java/controller/ReportController.java`: Dùng `FlashMessageUtil`, giữ `LAST_TICKET_ID`, xóa hàm private thừa.
+- `src/java/controller/ReportManagementController.java`: Dùng `FlashMessageUtil`, xóa hàm private thừa.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 7.5 **[DONE]**.
+- **Trạng thái Build:** Biên dịch qua JDK 17 và Tomcat 10.1 đạt **`BUILD SUCCESSFUL` (0 lỗi, 70 source files)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi (CRITICAL):
+- **Nguyên tắc thiết kế tầng Utility (`Rule_BOMS.md`):** Các logic chuyển tiếp dữ liệu chung (cross-cutting concerns) giữa Request/Session phải được quy hoạch vào package `utility` dưới dạng phương thức tĩnh (`public static`), tuyệt đối không lặp lại code phụ trợ bên trong Controller.
+- **Bảo toàn nghiệp vụ đặc thù khi tái cấu trúc:** Khi gom các hàm lặp lại về tiện ích dùng chung, cần phân tích kỹ lưỡng các thuộc tính mở rộng (như `LAST_ORDER_ID`, `LAST_TICKET_ID`) để đảm bảo không làm mất dữ liệu điều hướng của các phân hệ khác.
+
+---
+
+## [2026-10-21] - Hoàn thiện Tasks 7.3, 7.4 (DispatchController), 7.7: Chuẩn hóa UI Badge, Mã Lỗi & Thông báo Shipper/Delivery
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Task 7.3 (Lỗi hiển thị status dispatch):** File `dispatch_dashboard.jsp` dùng `<fmt:message key="status.${task.status}" />` bị vỡ nhãn `???status.Waiting for dispatch???` do thiếu key tương ứng. Cần thay bằng cấu trúc `<c:choose>` và đồng bộ hoàn toàn với component `delivery_orders_table.jsp` bằng class CSS `.order-badge.order-badge-dispatch`.
+- **Task 7.4 & 7.7 (Hardcode & Chuẩn hóa mã lỗi Shipper):** `DispatchController.java`, `ShipperController.java` và `DeliveryService.java` dùng các chuỗi hardcode (`"dispatch.msg.assign_success"`, `"error.unauthorized"`, `"error.delivery.*"`, `"shipper.msg.*"`), vi phạm quy chuẩn backend notification `EXXX` và `SXXX` trong `Rule_BOMS.md`.
+- **Lỗi phân quyền:** Cần quy về mã chuẩn toàn hệ thống `E0004` (`ERROR_LOGIN_FAIL_ROLE`).
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tầng View (`dispatch_dashboard.jsp`):**
+  - Cập nhật cột `status-cell`: sử dụng `<c:choose>`, bắt đúng trạng thái `'Waiting for dispatch'` để in `<span class="order-badge order-badge-dispatch"><fmt:message key="order.status.waiting_dispatch" /></span>`.
+- **Tầng Utility (`Constants.java`):**
+  - Khai báo dải `S060X` cho điều phối & shipper: `SUCCESS_ASSIGN_SHIPPER = "S0601"`, `SUCCESS_CLAIM_TASK = "S0602"`, `SUCCESS_ACCEPT_TASK = "S0603"`, `SUCCESS_REJECT_TASK = "S0604"`, `SUCCESS_COMPLETE_DELIVERY = "S0605"`, `SUCCESS_FAIL_DELIVERY = "S0606"`, `SUCCESS_UPDATE_DELIVERY_STATUS = "S0607"`.
+  - Khai báo dải `E060X` cho lỗi nghiệp vụ giao hàng: `E0601` -> `E0607` thay thế hoàn toàn các chuỗi `error.delivery.*`.
+  - Khai báo hằng số `ERROR_UNAUTHORIZED = "E0004"`.
+- **Tầng Controller (`DispatchController.java`, `ShipperController.java`):**
+  - Thay thế toàn bộ chuỗi hardcode bằng `Constants.SUCCESS_*` và `Constants.ERROR_LOGIN_FAIL_ROLE`.
+- **Tầng Tài nguyên (`messages_vi.properties`, `messages_en.properties`):**
+  - Khai báo đầy đủ nội dung cho `S0601` -> `S0607` và `E0601` -> `E0607`. Trong `messages_vi.properties` tuân thủ 100% mã hóa **Unicode Escape (`\uXXXX`)**.
+  - Dọn sạch dứt điểm các key cũ `dispatch.msg.assign_success`, `shipper.msg.*`, `error.delivery.*`, `success.delivery.update`.
+
+### 3. File bị tác động & Tiến độ:
+- `web/dispatch_dashboard.jsp`: Cập nhật render badge chuẩn `order-badge order-badge-dispatch`.
+- `src/java/utility/Constants.java`: Bổ sung dải mã `S060X` và `E060X`, thêm `ERROR_UNAUTHORIZED`.
+- `src/java/controller/DispatchController.java`: Gỡ bỏ hardcode, gọi `Constants.SUCCESS_ASSIGN_SHIPPER` và `Constants.ERROR_LOGIN_FAIL_ROLE`.
+- `src/java/controller/ShipperController.java`: Đồng bộ gọi `Constants.SUCCESS_*` và `Constants.ERROR_LOGIN_FAIL_ROLE`.
+- `src/java/resources/messages_vi.properties`: Thêm `S060X`, `E060X` chuẩn `\uXXXX`, xóa key cũ.
+- `src/java/resources/messages_en.properties`: Thêm `S060X`, `E060X` tiếng Anh, xóa key cũ.
+- `.agent/WorkList.md`: Đánh dấu hoàn thành Task 7.3, Task 7.4 (phần DispatchController), và Task 7.7 **[DONE]**.
+- **Trạng thái Build:** Biên dịch với JDK 17 và Tomcat 10.1 thư viện dự án đạt **`BUILD SUCCESSFUL` (0 lỗi, 69 source files)**.
+
+### 4. Bài học kinh nghiệm & Lỗi sai kiến trúc bị nhắc nhở (CRITICAL):
+- **Kiểm tra chéo class CSS thực tế của Component:** Không giả định hoặc sao chép tên class từ các module khác (như `.badge-status-waiting` của Chấm công). Bắt buộc phải đối chiếu trực tiếp file component mẫu (`delivery_orders_table.jsp`) và `global.css` để dùng đúng class `.order-badge.order-badge-dispatch`, đảm bảo trải nghiệm giao diện người dùng đồng bộ 100%.
+- **Quy chuẩn mã hóa thông báo Backend:** Mọi luồng thông báo Flash Message hoặc ngoại lệ nghiệp vụ phải sử dụng mã hằng số chuẩn (`EXXX`/`SXXX`), tuyệt đối không dùng text tự do hay chuỗi dạng key làm giá trị runtime.
+
+---
+
 ## [2026-10-20] - Hoàn thiện Task 7.2: Tiêu Diệt Model DeliveryTask.java & Triệt Tiêu Nguy Cơ Rò Rỉ Model Lên View
 ### 1. Phân tích & Vấn đề Kỹ thuật:
 - **Nguyên nhân gốc rễ:** CSDL hệ thống (`BOMS_DATABASE.sql`) không hề có bảng `DeliveryTask`. Toàn bộ dữ liệu giao hàng được lưu trực tiếp trong bảng `Orders` (phân loại `OrderType = 'Delivery'`) và bảng `DeliveryAreas`. Việc tự ý tạo class `src/java/model/DeliveryTask.java` vi phạm nghiêm trọng định nghĩa tầng Model (Model chỉ đại diện cho bảng vật lý trong CSDL).

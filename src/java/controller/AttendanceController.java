@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import service.AttendanceService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 /**
@@ -39,7 +40,7 @@ public class AttendanceController extends HttpServlet {
             return;
         }
 
-        forwardFlashMessages(request, session);
+        FlashMessageUtil.forwardFlashMessages(request, session);
 
         int userId = Integer.parseInt(userSession.get("userId"));
         LocalDate today = LocalDate.now();
@@ -102,19 +103,6 @@ public class AttendanceController extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/AttendanceController");
-    }
-
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        String flashSuccess = (String) session.getAttribute(Constants.SUCCESS_MESSAGE);
-        if (flashSuccess != null) {
-            request.setAttribute(Constants.SUCCESS_MESSAGE, flashSuccess);
-            session.removeAttribute(Constants.SUCCESS_MESSAGE);
-        }
-        String flashError = (String) session.getAttribute(Constants.ERROR_MESSAGE);
-        if (flashError != null) {
-            request.setAttribute(Constants.ERROR_MESSAGE, flashError);
-            session.removeAttribute(Constants.ERROR_MESSAGE);
-        }
     }
 
     private int parseQueryInt(String paramValue, int defaultValue) {

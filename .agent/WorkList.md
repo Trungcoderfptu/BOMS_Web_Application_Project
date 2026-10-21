@@ -136,12 +136,6 @@
 **Actor:** AI Agent / Developer
 **Mô tả:** Dự án đang tồn tại 6 điểm vi phạm nghiêm trọng quy tắc Rule_BOMS.md (rò rỉ Model, trùng lặp code, code rác hoang tưởng, hardcode chuỗi, sai chuẩn mã lỗi backend). Yêu cầu AI Agent thực hiện TUẦN TỰ từng task dưới đây theo thứ tự ưu tiên. Bắt buộc hoàn thành và báo cáo từng Sub-task trước khi chuyển sang Sub-task tiếp theo. Tuyệt đối không làm gộp.
 
-> [!IMPORTANT]
-> **LƯU Ý BÀN GIAO CHO TÁC GIẢ LUỒNG SHIPPER (BẮT BUỘC ĐỌC KỸ - XÓA GHI CHÚ NÀY KHI HOÀN THÀNH 100% TASK 7):**
-> 1. **Tuân thủ quy chuẩn Task 7.2 (Chống rò rỉ Model):** Model ảo `DeliveryTask.java` đã bị tiêu diệt hoàn toàn. Tuyệt đối **KHÔNG** tự ý tạo lại Model này trong `model/`. Mọi dữ liệu giao hàng phải trao đổi qua `Map<String, Object>` ở tầng DAO và `Map<String, String>` ở tầng Service để chống rò rỉ Model lên View.
-> 2. **Tuân thủ quy chuẩn mã thông báo Backend (`Rule_BOMS.md`):** Nghiêm cấm đặt và ném chuỗi tự do (như `error.delivery.*`, `dispatch.msg.*`). Bắt buộc dùng mã số chuẩn `S060X` (thành công) và `E060X` (lỗi nghiệp vụ) trong `Constants.java`, nạp nội dung hiển thị vào `messages_vi.properties` dưới chuẩn Unicode Escape (`\uXXXX`) và `messages_en.properties`.
-> 3. **Phạm vi hoàn thiện của tác giả:** Tiếp tục thực hiện tuần tự các task thuộc luồng Shipper: **Task 7.3** (UI dispatch status), **Task 7.4 (phần DispatchController)** và **Task 7.7 (chuẩn hóa toàn bộ mã lỗi Shipper)**.
-> 4. **Hành động khi hoàn thành:** Khi hoàn thành toàn bộ Task 7 và kiểm tra biên dịch đạt 0 lỗi, hãy **XÓA BỎ HOÀN TOÀN KHỐI GHI CHÚ BÀN GIAO NÀY** để xác nhận việc chuyển giao đã kết thúc sạch sẽ.
 
 ### MỨC ƯU TIÊN 1: XÓA CODE HOANG TƯỞNG VÀ SỬA LỖI RÒ RỈ MODEL (CRITICAL)
 - [x] **Task 7.1: Xóa đoạn code dùng Reflection sai chuẩn trong IngredientAlertController.java** **[DONE]**
@@ -157,16 +151,16 @@
   - Hành động 3: Bên trong các hàm DAO/Service, khởi tạo `Map<String, Object> map = new HashMap<>();` và nạp các key ("orderCode", "customerName", "customerAddress", "totalAmount", "status", "taskId") vào Map thay vì dùng Constructor của DeliveryTask. Controller sẽ tự động truyền List Map này ra View. Tuyệt đối không cần sửa file .jsp.
 
 ### MỨC ƯU TIÊN 2: SỬA LỖI UI VÀ CHUẨN HÓA HẰNG SỐ (HIGH)
-- [ ] Task 7.3: Sửa lỗi hiển thị ???status.Waiting for dispatch??? trên dispatch_dashboard.jsp
+- [x] **Task 7.3: Sửa lỗi hiển thị ???status.Waiting for dispatch??? trên dispatch_dashboard.jsp** **[DONE]**
   - Nguyên nhân: File JSP đang dùng `<fmt:message key="status.${task.status}" />` nhưng thiếu key trong file properties.
-  - Hành động: Thay thẻ in trạng thái tại cột status-cell bằng cấu trúc `<c:choose>`. Bắt cứng trường hợp task.status == 'Waiting for dispatch' để in ra thẻ `<span class="badge-status-waiting">` gọi đúng key chuẩn `<fmt:message key="order.status.waiting_dispatch" />` (tương tự như trang delivery_orders_table.jsp). Các trạng thái khác đưa vào `<c:otherwise>`.
+  - Hành động: Thay thẻ in trạng thái tại cột status-cell bằng cấu trúc `<c:choose>`. Bắt cứng trường hợp task.status == 'Waiting for dispatch' để in ra thẻ `<span class="order-badge order-badge-dispatch">` gọi đúng key chuẩn `<fmt:message key="order.status.waiting_dispatch" />` (đồng bộ hoàn toàn với trang delivery_orders_table.jsp). Các trạng thái khác đưa vào `<c:otherwise>`.
 
-- [ ] Task 7.4: Gỡ bỏ chuỗi Hardcode, tuân thủ Constants.java
+- [x] **Task 7.4: Gỡ bỏ chuỗi Hardcode, tuân thủ Constants.java (Hoàn tất phần DispatchController)** **[DONE]**
   - Vị trí 1: DispatchController.java đang hardcode chuỗi "dispatch.msg.assign_success" và "error.unauthorized".
   - Vị trí 2: IngredientAlertController.java đang hardcode các chuỗi lỗi JSON "E0004", "E9000", "DE0020".
   - Hành động: Bổ sung các chuỗi này thành biến `public static final String` tại file utility/Constants.java với comment phân vùng rõ ràng. Sau đó cập nhật lại các Controller để gọi biến hằng số.
 
-- [ ] Task 7.7: Chuẩn hóa toàn bộ hệ thống mã thông báo & mã lỗi phân hệ Shipper/Delivery theo chuẩn `Rule_BOMS.md`
+- [x] **Task 7.7: Chuẩn hóa toàn bộ hệ thống mã thông báo & mã lỗi phân hệ Shipper/Delivery theo chuẩn `Rule_BOMS.md`** **[DONE]**
   - Vấn đề: `DeliveryService.java` và `DispatchController.java` đang dùng các chuỗi văn bản tự do dạng key (`error.delivery.*`, `dispatch.msg.*`), vi phạm quy chuẩn mã thông báo backend `EXXX` và `SXXX` trong `Rule_BOMS.md`.
   - Hành động 1: Khai báo dải mã thành công mới `S060X` trong `Constants.java`: ví dụ `SUCCESS_ASSIGN_SHIPPER = "S0601"`.
   - Hành động 2: Khai báo dải mã lỗi nghiệp vụ mới `E060X` trong `Constants.java` thay thế cho 7 chuỗi `error.delivery.*` (`E0601` đến `E0607`). Chuẩn hóa lỗi phân quyền về `E0004` (`ERROR_LOGIN_FAIL_ROLE`).
@@ -174,12 +168,79 @@
   - Hành động 4: Cập nhật đồng bộ trong `DeliveryService.java`, `DispatchController.java`, `ShipperController.java` để ném và hứng mã hằng số chuẩn từ `Constants.java`.
 
 ### MỨC ƯU TIÊN 3: LOẠI BỎ TRÙNG LẶP (DRY) VÀ NỢ KỸ THUẬT (MEDIUM)
-- [ ] Task 7.5: Gom hàm Flash Messages đang bị copy-paste 6 lần
+- [x] **Task 7.5: Gom hàm Flash Messages đang bị copy-paste 6 lần** **[DONE]**
   - Vị trí vi phạm: Cả 6 file AttendanceController, DispatchController, InventoryManagementController, ReportController, ReportManagementController, MenuController đều đang tự định nghĩa một hàm private void forwardFlashMessages(...).
   - Hành động 1: Tạo một class tiện ích mới src/java/utility/FlashMessageUtil.java.
   - Hành động 2: Cắt nội dung hàm lặp này đưa vào class Utility dưới dạng `public static void forwardFlashMessages(HttpServletRequest request, HttpSession session)`.
   - Hành động 3: Xóa bỏ hàm private dư thừa ở 6 Controller và cập nhật lời gọi hàm ở đầu các phương thức doGet/doPost trỏ về FlashMessageUtil.forwardFlashMessages(...).
 
-- [ ] Task 7.6: Tái cấu trúc logic tạo chuỗi JSON (Chống Bad Practice)
+- [x] **Task 7.6: Tái cấu trúc logic tạo chuỗi JSON (Chống Bad Practice)** **[DONE]**
   - Vị trí: IngredientAlertController.java (hàm buildAlertsJson và escapeJson).
   - Hành động: Thông báo cho người dùng biết cần tải thư viện Gson (gson-2.10.1.jar) vào thư mục WEB-INF/lib/ (nếu người dùng đồng ý). Sau đó, xóa bỏ hoàn toàn 2 hàm nối chuỗi JSON thủ công rườm rà, thay bằng cách khởi tạo `Gson gson = new Gson();` và dùng `gson.toJson(alerts)` để trả về Response. (Nếu người dùng chưa muốn thêm thư viện, bỏ qua Task này).
+
+## 🛵 TASK 8: HOÀN THIỆN ĐA NGÔN NGỮ, TỐI ƯU GIAO DIỆN & TIÊU DIỆT NỢ KỸ THUẬT PHÂN HỆ SHIPPER / DELIVERY
+**Actor:** Điều phối viên (Floor & Counter Staff / Store Managers), Shipper & Developer
+**Mô tả:** Tiếp tục củng cố và hoàn thiện toàn diện phân hệ Giao hàng (Shipper & Dispatch) sau Task 7. Xử lý triệt để cấu hình Locale đa ngôn ngữ JSTL động 3 tầng, chuẩn hóa hiển thị giao diện, xóa bỏ inline CSS, và loại bỏ toàn bộ các nợ kỹ thuật tồn đọng ở tầng Backend (triệt tiêu chuỗi/số hardcode, đóng an toàn tài nguyên JDBC với `try-with-resources`, áp dụng tiện ích dùng chung `FlashMessageUtil`) tuân thủ nghiêm ngặt 100% nguyên tắc `Rule_BOMS.md`.
+
+### 🟢 MỨC ƯU TIÊN 1: ĐA NGÔN NGỮ & GIAO DIỆN (UI / VIEW) - [ĐÃ HOÀN THÀNH]
+- [x] **Task 8.1: Bổ sung cấu hình JSTL Locale động 3 tầng cho các trang và Modal luồng Shipper** **[DONE]**
+  - **Vấn đề:** Các trang và modal JSP của luồng giao hàng không nhận diện được biến đổi ngôn ngữ khi người dùng chuyển đổi ngôn ngữ/cờ. Lệnh `<jsp:include>` tạo `PageContext` độc lập khiến các modal con mất cấu hình Locale nếu không được khai báo riêng.
+  - **Hành động:**
+    + Thiết lập cấu hình JSTL Locale động 3 tầng ưu tiên (`Session` -> `Cookie` -> Mặc định `'vi'`):
+      `<c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />`
+      `<fmt:setLocale value="${currentLang}" />`
+      ngay phía trên dòng `<fmt:setBundle basename="resources.messages" />` tại các file:
+      * `web/dispatch_dashboard.jsp`
+      * `web/shipper_dashboard.jsp`
+      * `web/delivery_unauthorized.jsp`
+      * `web/components/shipper_complete_modal.jsp`
+      * `web/components/shipper_fail_modal.jsp`
+    + Đảm bảo cơ chế hiển thị đa ngôn ngữ i18n chính xác và đồng bộ 100% toàn hệ thống.
+
+- [x] **Task 8.2: Chuẩn hóa nhãn hiển thị và loại bỏ CSS inline trên `dispatch_dashboard.jsp`** **[DONE]**
+  - **Vấn đề:** Vi phạm `Rule_BOMS.md` về việc sử dụng inline CSS (`style="margin: 30px 0;"` trên thẻ `<hr class="section-divider" />`) và hardcode chuỗi tiếng Việt `"đơn"` cạnh chỉ số gom đơn của Shipper.
+  - **Hành động:**
+    + Xóa bỏ hoàn toàn thuộc tính inline CSS trên thẻ `<hr class="section-divider" />` và tận dụng class CSS chung `section-divider`.
+    + Thay thế chuỗi hardcode `"đơn"` bằng thẻ đa ngôn ngữ `<fmt:message key="dispatch.label.orders" />`.
+    + Bổ sung key `dispatch.label.orders` vào `messages_vi.properties` (chuẩn mã hóa Unicode Escape `\uXXXX`) và `messages_en.properties`.
+
+- [x] **Task 8.3: Chuẩn hóa mã lỗi phân quyền trang `delivery_unauthorized.jsp`** **[DONE]**
+  - **Vấn đề:** Trang `delivery_unauthorized.jsp` hardcode fallback string `"error.unauthorized"`, vi phạm quy chuẩn định danh mã lỗi thống nhất toàn hệ thống.
+  - **Hành động:**
+    + Thay thế chuỗi hardcode `"error.unauthorized"` bằng mã lỗi phân quyền chuẩn toàn hệ thống `E0004` (`Constants.ERROR_LOGIN_FAIL_ROLE`).
+
+- [x] **Task 8.4: Đa ngôn ngữ hóa 100% Badge trạng thái đơn Delivery trên `delivery_orders_table.jsp`** **[DONE]**
+  - **Vấn đề:** Trong bảng đơn hàng `web/components/delivery_orders_table.jsp`, các badge trạng thái đang hiển thị chuỗi tiếng Anh tĩnh (`Waiting for delivery`, `Picked up`, `Delivering`, `Delivered`, `Returned`, `Paid`, `Cancelled`), gây lệch ngôn ngữ khi người dùng chọn tiếng Việt.
+  - **Hành động:**
+    + Chuyển đổi toàn bộ nội dung hiển thị text cứng trong các thẻ `span.order-badge` thành cú pháp động `<fmt:message key="status.${order.status}" />`.
+    + Khai báo bổ sung các key tương ứng còn thiếu trong `messages_vi.properties` (Unicode Escape `\uXXXX`) và `messages_en.properties` (`status.Waiting\ for\ dispatch`, `status.Picked\ up`, `status.Paid`).
+
+### 🟡 MỨC ƯU TIÊN 2: TIÊU DIỆT HARDCODE VÀ NỢ KỸ THUẬT BACKEND (CẦN LÀM)
+- [x] **Task 8.5: Triệt tiêu toàn bộ chuỗi & số Magic Hardcode trong `DeliveryService.java`** **[DONE]**
+  - **Vấn đề tồn đọng:**
+    + Hardcode chuỗi tiếng Việt không dấu trong nhật ký lịch sử (`DeliveryStatusHistory`): `"Dieu phoi gan shipper"`, `"Shipper chu dong tiep nhan don"`, `"Shipper xac nhan nhan don"`, `"Shipper tu choi nhan don"`.
+    + Hardcode các chuỗi trạng thái hoạt động của Shipper: `"READY"`, `"DELIVERING"`, `"Ready"`, `"Delivering"`, và chuỗi kiểm tra vai trò `"Shipper"`.
+    + Hardcode magic number `3` làm giới hạn số đơn gom tối đa khi ShipperProfile chưa có cấu hình (`maxOrders = 3`).
+    + Tồn tại điều kiện kiểm tra logic dư thừa: `"Returned".equalsIgnoreCase(newStatus)` tại dòng 102 (đã được bao hàm bởi `Constants.STATUS_FAILED`).
+  - **Hành động dự kiến:**
+    + Bổ sung vào `Constants.java`:
+      * Hằng số ghi chú nhật ký: `NOTE_DISPATCH_ASSIGN`, `NOTE_SHIPPER_CLAIM`, `NOTE_SHIPPER_ACCEPT`, `NOTE_SHIPPER_REJECT`.
+      * Hằng số trạng thái Shipper & phân quyền: `ROLE_SHIPPER = "Shipper"`, `SHIPPER_STATUS_AVAILABLE = "Ready"`, `SHIPPER_STATUS_BUSY = "Delivering"`, `SHIPPER_WORK_READY = "READY"`, `SHIPPER_WORK_DELIVERING = "DELIVERING"`.
+      * Hằng số giới hạn gom đơn mặc định: `DEFAULT_SHIPPER_MAX_ORDERS = 3`.
+    + Tái cấu trúc `DeliveryService.java` sử dụng toàn bộ các hằng số chuẩn từ `Constants.java`, triệt tiêu 100% chuỗi/số hardcode và dọn sạch điều kiện dư thừa.
+
+- [x] **Task 8.6: Áp dụng `FlashMessageUtil` và thắt chặt routing action trong `ShipperController.java`** **[DONE]**
+  - **Vấn đề tồn đọng:**
+    + `ShipperController.java` vẫn còn giữ một hàm private `forwardFlashMessages(...)` tự viết (dài 13 dòng), vi phạm nguyên tắc DRY (Don't Repeat Yourself) và chưa áp dụng tiện ích dùng chung đã tạo ở Task 7.5.
+    + Nhánh `else` trong phương thức `doPost` đang mặc định gọi `processUpdateStatus(...)`, gây rủi ro bảo mật và sai luồng nghiệp vụ khi nhận một `action` bất thường hoặc chuỗi rỗng.
+  - **Hành động dự kiến:**
+    + Xóa bỏ hàm private `forwardFlashMessages(...)` trong `ShipperController.java`, thay thế lời gọi tại `doGet` bằng `FlashMessageUtil.forwardFlashMessages(request, session)`.
+    + Thắt chặt cấu trúc rẽ nhánh `doPost`: Bắt rõ `else if ("updateStatus".equals(action))`, trường hợp `else` (không khớp action hợp lệ) sẽ ghi log cảnh báo hoặc redirect an toàn về dashboard, tránh gọi nhầm nghiệp vụ cập nhật trạng thái.
+
+- [x] **Task 8.7: Chuẩn hóa mã lỗi và đóng an toàn tài nguyên JDBC (try-with-resources) trong `DeliveryDAO.java`** **[DONE]**
+  - **Vấn đề tồn đọng:**
+    + `DeliveryDAO.java` đang hardcode chuỗi mã lỗi CSDL `"DE0016"` và `"DE0017"` tại 7 vị trí khác nhau thay vì dùng các hằng số chuẩn `Constants.ERROR_DATABASE_GET_ORDER` và `Constants.ERROR_DATABASE_UPDATE_ORDER`.
+    + Các phương thức `getAllTasks()`, `getTasksByShipper()`, `getAvailableTasksForShipper()`, `getTaskById()`, `updateTaskStatus()`, `updateTaskShipper()` đang mở `PreparedStatement` và `ResultSet` nhưng không bọc trong cú pháp `try-with-resources`, tiềm ẩn rủi ro rò rỉ kết nối (Connection Leak) khi xảy ra ngoại lệ JDBC.
+  - **Hành động dự kiến:**
+    + Thay thế toàn bộ 7 chuỗi hardcode `"DE0016"` và `"DE0017"` bằng hằng số chuẩn tương ứng từ `Constants.java`.
+    + Tái cấu trúc toàn bộ các khối lệnh JDBC trong các phương thức trên sang cú pháp `try-with-resources` (`try (PreparedStatement st = ...; ResultSet rs = ...)`) theo đúng quy chuẩn `Rule_BOMS.md`.

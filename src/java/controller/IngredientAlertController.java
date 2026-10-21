@@ -1,5 +1,6 @@
 package controller;
 
+import com.google.gson.Gson;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -7,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import service.IngredientService;
@@ -21,6 +24,7 @@ import utility.ValidationException;
 public class IngredientAlertController extends HttpServlet {
 
     private final IngredientService ingredientService;
+    private final Gson gson = new Gson();
 
     public IngredientAlertController() {
         this.ingredientService = new IngredientService();
@@ -34,18 +38,35 @@ public class IngredientAlertController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(Constants.USER_SESSION) == null) {
-            response.getWriter().write("{\"success\":false,\"count\":0,\"alerts\":[]}");
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", false);
+            res.put("count", 0);
+            res.put("alerts", Collections.emptyList());
+            response.getWriter().write(gson.toJson(res));
             return;
         }
 
         try {
             List<Map<String, Object>> alerts = ingredientService.getActiveAlertsForView();
-            String json = buildAlertsJson(alerts);
-            response.getWriter().write(json);
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", true);
+            res.put("count", alerts != null ? alerts.size() : 0);
+            res.put("alerts", alerts != null ? alerts : Collections.emptyList());
+            response.getWriter().write(gson.toJson(res));
         } catch (ValidationException e) {
-            response.getWriter().write("{\"success\":false,\"count\":0,\"alerts\":[],\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", false);
+            res.put("count", 0);
+            res.put("alerts", Collections.emptyList());
+            res.put("error", e.getMessage());
+            response.getWriter().write(gson.toJson(res));
         } catch (Exception e) {
-            response.getWriter().write("{\"success\":false,\"count\":0,\"alerts\":[]}");
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", false);
+            res.put("count", 0);
+            res.put("alerts", Collections.emptyList());
+            res.put("error", Constants.ERROR_DATABASE_UPDATE_ALERT);
+            response.getWriter().write(gson.toJson(res));
         }
     }
 
@@ -57,7 +78,10 @@ public class IngredientAlertController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(Constants.USER_SESSION) == null) {
-            response.getWriter().write("{\"success\":false,\"error\":\"E0004\"}");
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", false);
+            res.put("error", Constants.ERROR_LOGIN_FAIL_ROLE);
+            response.getWriter().write(gson.toJson(res));
             return;
         }
 
@@ -71,64 +95,32 @@ public class IngredientAlertController extends HttpServlet {
             int userId = Integer.parseInt(userSession.get("userId"));
             if ("confirm".equalsIgnoreCase(action)) {
                 ingredientService.confirmAlert(alertId, userId);
-                response.getWriter().write("{\"success\":true,\"message\":\"" + Constants.SUCCESS_CONFIRM_ALERT + "\"}");
+                Map<String, Object> res = new LinkedHashMap<>();
+                res.put("success", true);
+                res.put("message", Constants.SUCCESS_CONFIRM_ALERT);
+                response.getWriter().write(gson.toJson(res));
             } else if ("close".equalsIgnoreCase(action)) {
                 ingredientService.closeAlert(alertId);
-                response.getWriter().write("{\"success\":true,\"message\":\"" + Constants.SUCCESS_CLOSE_ALERT + "\"}");
+                Map<String, Object> res = new LinkedHashMap<>();
+                res.put("success", true);
+                res.put("message", Constants.SUCCESS_CLOSE_ALERT);
+                response.getWriter().write(gson.toJson(res));
             } else {
-                response.getWriter().write("{\"success\":false,\"error\":\"E9000\"}");
+                Map<String, Object> res = new LinkedHashMap<>();
+                res.put("success", false);
+                res.put("error", Constants.ERROR_INVALID_ACTION);
+                response.getWriter().write(gson.toJson(res));
             }
         } catch (ValidationException e) {
-            response.getWriter().write("{\"success\":false,\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", false);
+            res.put("error", e.getMessage());
+            response.getWriter().write(gson.toJson(res));
         } catch (Exception e) {
-            response.getWriter().write("{\"success\":false,\"error\":\"DE0020\"}");
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", false);
+            res.put("error", Constants.ERROR_DATABASE_UPDATE_ALERT);
+            response.getWriter().write(gson.toJson(res));
         }
-    }
-
-    // =========================================================================
-    // JSON BUILDER HELPERS (SRP)
-    // =========================================================================
-
-    private String buildAlertsJson(List<Map<String, Object>> alerts) {
-        StringBuilder sb = new StringBuilder();
-        int count = alerts != null ? alerts.size() : 0;
-        sb.append("{\"success\":true,\"count\":").append(count).append(",\"alerts\":[");
-
-        if (alerts != null && !alerts.isEmpty()) {
-            for (int i = 0; i < alerts.size(); i++) {
-                if (i > 0) {
-                    sb.append(",");
-                }
-                Map<String, Object> a = alerts.get(i);
-                sb.append("{");
-                sb.append("\"alertId\":").append(a.get("alertId")).append(",");
-                sb.append("\"ingredientId\":").append(a.get("ingredientId")).append(",");
-                sb.append("\"ingredientName\":\"").append(escapeJson(String.valueOf(a.get("ingredientName")))).append("\",");
-                sb.append("\"unit\":\"").append(escapeJson(String.valueOf(a.get("unit")))).append("\",");
-                sb.append("\"quantity\":").append(a.get("quantity")).append(",");
-                sb.append("\"warningThreshold\":").append(a.get("warningThreshold")).append(",");
-                sb.append("\"alertType\":\"").append(escapeJson(String.valueOf(a.get("alertType")))).append("\",");
-                sb.append("\"status\":\"").append(escapeJson(String.valueOf(a.get("status")))).append("\",");
-                sb.append("\"confirmedBy\":\"").append(escapeJson(String.valueOf(a.get("confirmedBy")))).append("\",");
-                sb.append("\"createdAt\":\"").append(escapeJson(String.valueOf(a.get("createdAt")))).append("\",");
-                sb.append("\"confirmedAt\":\"").append(escapeJson(String.valueOf(a.get("confirmedAt")))).append("\"");
-                sb.append("}");
-            }
-        }
-        sb.append("]}");
-        return sb.toString();
-    }
-
-    private String escapeJson(String input) {
-        if (input == null) {
-            return "";
-        }
-        return input.replace("\\", "\\\\")
-                    .replace("\"", "\\\"")
-                    .replace("\b", "\\b")
-                    .replace("\f", "\\f")
-                    .replace("\n", "\\n")
-                    .replace("\r", "\\r")
-                    .replace("\t", "\\t");
     }
 }

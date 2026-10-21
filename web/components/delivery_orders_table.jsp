@@ -73,25 +73,25 @@
                                         <span class="order-badge order-badge-dispatch"><fmt:message key="order.status.waiting_dispatch" /></span>
                                     </c:when>
                                     <c:when test="${order.status == 'Waiting for delivery'}">
-                                        <span class="order-badge order-badge-prepared">Waiting for delivery</span>
+                                        <span class="order-badge order-badge-prepared"><fmt:message key="status.${order.status}" /></span>
                                     </c:when>
                                     <c:when test="${order.status == 'Picked up'}">
-                                        <span class="order-badge order-badge-prepared">Picked up</span>
+                                        <span class="order-badge order-badge-prepared"><fmt:message key="status.${order.status}" /></span>
                                     </c:when>
                                     <c:when test="${order.status == 'Delivering'}">
-                                        <span class="order-badge order-badge-delivering">Delivering</span>
+                                        <span class="order-badge order-badge-delivering"><fmt:message key="status.${order.status}" /></span>
                                     </c:when>
                                     <c:when test="${order.status == 'Delivered'}">
-                                        <span class="order-badge order-badge-delivered">Delivered</span>
+                                        <span class="order-badge order-badge-delivered"><fmt:message key="status.${order.status}" /></span>
                                     </c:when>
                                     <c:when test="${order.status == 'Returned'}">
-                                        <span class="order-badge order-badge-cancelled">Returned</span>
+                                        <span class="order-badge order-badge-cancelled"><fmt:message key="status.${order.status}" /></span>
                                     </c:when>
                                     <c:when test="${order.status == 'Paid'}">
-                                        <span class="order-badge order-badge-paid">Paid</span>
+                                        <span class="order-badge order-badge-paid"><fmt:message key="status.${order.status}" /></span>
                                     </c:when>
                                     <c:when test="${order.status == 'Cancelled'}">
-                                        <span class="order-badge order-badge-cancelled">Cancelled</span>
+                                        <span class="order-badge order-badge-cancelled"><fmt:message key="status.${order.status}" /></span>
                                         <c:choose>
                                             <c:when test="${order.isCancelLocked}">
                                                 <div class="mt-5"><span class="badge-locked"><fmt:message key="order.cancel.locked" /></span></div>

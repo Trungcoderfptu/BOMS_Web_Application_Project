@@ -14,6 +14,7 @@ import java.util.Map;
 import service.OrderService;
 import service.ProductService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 /**
@@ -36,7 +37,11 @@ public class MenuController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         jakarta.servlet.http.HttpSession session = request.getSession();
-        forwardFlashMessages(session, request);
+        FlashMessageUtil.forwardFlashMessages(request, session);
+        if (session.getAttribute("LAST_ORDER_ID") != null) {
+            request.setAttribute("LAST_ORDER_ID", session.getAttribute("LAST_ORDER_ID"));
+            session.removeAttribute("LAST_ORDER_ID");
+        }
         resolveActiveTab(request, session);
         handleTableSession(request, session);
         loadTableOrders(request, session);
@@ -64,21 +69,6 @@ public class MenuController extends HttpServlet {
             } catch (ValidationException e) {
                 // Ignore non-fatal error
             }
-        }
-    }
-
-    private void forwardFlashMessages(jakarta.servlet.http.HttpSession session, HttpServletRequest request) {
-        if (session.getAttribute(Constants.SUCCESS_MESSAGE) != null) {
-            request.setAttribute(Constants.SUCCESS_MESSAGE, session.getAttribute(Constants.SUCCESS_MESSAGE));
-            session.removeAttribute(Constants.SUCCESS_MESSAGE);
-        }
-        if (session.getAttribute(Constants.ERROR_MESSAGE) != null) {
-            request.setAttribute(Constants.ERROR_MESSAGE, session.getAttribute(Constants.ERROR_MESSAGE));
-            session.removeAttribute(Constants.ERROR_MESSAGE);
-        }
-        if (session.getAttribute("LAST_ORDER_ID") != null) {
-            request.setAttribute("LAST_ORDER_ID", session.getAttribute("LAST_ORDER_ID"));
-            session.removeAttribute("LAST_ORDER_ID");
         }
     }
 

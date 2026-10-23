@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import service.OrderService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 /**
@@ -46,7 +47,7 @@ public class OrderManagementController extends HttpServlet {
             return;
         }
 
-        forwardFlashMessages(request, session);
+        FlashMessageUtil.forwardFlashMessages(request, session);
 
         String filterDate = request.getParameter("filterDate");
         if (filterDate == null || filterDate.trim().isEmpty()) {
@@ -68,7 +69,7 @@ public class OrderManagementController extends HttpServlet {
             request.setAttribute("CURRENT_FILTER_STATUS", filterStatus);
             String activeTab = request.getParameter("activeTab");
             if (activeTab != null && !activeTab.trim().isEmpty()) {
-                request.setAttribute("ACTIVE_TAB", activeTab.trim());
+                request.setAttribute(Constants.ACTIVE_TAB, activeTab.trim());
             }
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
@@ -141,17 +142,6 @@ public class OrderManagementController extends HttpServlet {
             return false;
         }
         return "Staff".equalsIgnoreCase(role) || "Manager".equalsIgnoreCase(role) || "Admin".equalsIgnoreCase(role);
-    }
-
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        if (session.getAttribute(Constants.SUCCESS_MESSAGE) != null) {
-            request.setAttribute(Constants.SUCCESS_MESSAGE, session.getAttribute(Constants.SUCCESS_MESSAGE));
-            session.removeAttribute(Constants.SUCCESS_MESSAGE);
-        }
-        if (session.getAttribute(Constants.ERROR_MESSAGE) != null) {
-            request.setAttribute(Constants.ERROR_MESSAGE, session.getAttribute(Constants.ERROR_MESSAGE));
-            session.removeAttribute(Constants.ERROR_MESSAGE);
-        }
     }
 
     @Override

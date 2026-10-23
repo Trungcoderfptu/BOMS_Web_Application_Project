@@ -21,7 +21,7 @@
                     <div class="popup-content">
                         <h3 class="popup-title"><fmt:message key="login.banned.title" /></h3>
                         <p><fmt:message key="login.banned.message" /></p>
-                        <button onclick="document.getElementById('bannedPopup').style.display = 'none'" class="btn-register-action" style="margin-top: 15px;"><fmt:message key="header.sidebar.close" /></button>
+                        <button type="button" id="btnCloseBannedPopup" onclick="closeBannedPopup()" class="btn-register-action btn-banned-close"><fmt:message key="header.sidebar.close" /></button>
                     </div>
                 </div>
             </c:when>

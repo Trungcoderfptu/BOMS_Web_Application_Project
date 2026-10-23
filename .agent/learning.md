@@ -1,5 +1,210 @@
 # BOMS LEARNING & PROGRESS LOG
 
+## [2026-10-23] - Tối ưu hóa Dứt điểm 4 điểm Flash Message, Dọn rác Session & Triệt tiêu Hardcode String
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Tồn đọng rác Session đối với `ACTIVE_TAB`:** Khi các controller (`SettingsController`, `OrderManagementController`, `HrManagementController`) lưu `ACTIVE_TAB` vào `HttpSession`, thuộc tính này không được tự động giải phóng sang Request Scope, khiến trạng thái tab có thể bị lưu vĩnh viễn trong phiên làm việc.
+- **Xử lý Flash Message thủ công tại RegisterController:** `RegisterController.doGet` sử dụng logic lấy/xóa `Constants.SUCCESS_MESSAGE` thủ công (dòng 24-29) thay vì tái sử dụng `FlashMessageUtil`.
+- **Rò rỉ Session vãng lai khi đăng nhập:** `LoginController.doPost` khi login thành công mới chỉ dọn `CURRENT_TABLE` và `CURRENT_CART`, chưa xóa `PLACED_ORDER_IDS` và `ACTIVE_TAB`.
+- **Hardcode String trong nghiệp vụ đơn hàng & phân hệ:** `OrderService.java` chứa các chuỗi ghi chú thô `"Don hang bi huy boi nhan vien"`, `"Thu hoi don giao hang ve phuc vu tai cho"` và trạng thái Shipper `"Ready"` / `"Delivering"`. `OrderManagementController.java` và `HrManagementController.java` gõ chay chuỗi `"ACTIVE_TAB"`.
+
+### 2. Giải pháp Điểm xạ Kỹ thuật:
+- **Tự động hóa chuyển tiếp `ACTIVE_TAB` tại `FlashMessageUtil`:** Bổ sung logic kiểm tra và chuyển tiếp `Constants.ACTIVE_TAB` từ `HttpSession` sang `HttpServletRequest`, sau đó lập tức gọi `session.removeAttribute(Constants.ACTIVE_TAB)`.
+- **Chuẩn hóa `RegisterController`:** Chuyển đổi toàn bộ khối lấy message thủ công sang `FlashMessageUtil.forwardFlashMessages(request, session)`.
+- **Dọn sạch rác Session tại `LoginController`:** Bổ sung `session.removeAttribute(Constants.PLACED_ORDER_IDS)` và `session.removeAttribute(Constants.ACTIVE_TAB)` khi người dùng đăng nhập thành công.
+- **Triệt tiêu toàn diện Hardcode:**
+  + Khai báo `NOTE_STAFF_CANCEL_ORDER` và `NOTE_REVERT_DELIVERY_ORDER` trong `Constants.java`.
+  + Tích hợp `Constants.NOTE_STAFF_CANCEL_ORDER`, `Constants.NOTE_REVERT_DELIVERY_ORDER`, `Constants.SHIPPER_STATUS_READY`, `Constants.SHIPPER_STATUS_DELIVERING` vào `OrderService.java` (dòng 116, 119, 142, 145, 169, 174).
+  + Thay thế chuỗi `"ACTIVE_TAB"` bằng `Constants.ACTIVE_TAB` trong `OrderManagementController.java` và `HrManagementController.java`.
+
+### 3. File tác động & Trạng thái:
+- `src/java/utility/FlashMessageUtil.java`
+- `src/java/controller/auth/RegisterController.java`
+- `src/java/controller/auth/LoginController.java`
+- `src/java/utility/Constants.java`
+- `src/java/service/OrderService.java`
+- `src/java/controller/OrderManagementController.java`
+- `src/java/controller/hr/HrManagementController.java`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 74 source files)**.
+
+---
+
+## [2026-10-23] - HOTFIX KHẨN CẤP: Khắc phục triệt để sự cố lệch mã thông báo, gán nhầm mã lỗi và mất key giao diện Admin Dashboard sau Task 9.3
+
+### 1. Phân tích Nguyên nhân Gốc rễ Sự cố:
+- **Lệch gán mã lỗi & thông điệp (Semantic Desynchronization):** Trong quá trình quy hoạch và deduplicate ở Task 9.3, các thông điệp nghiệp vụ trong `messages_vi.properties` và `messages_en.properties` bị hoán đổi và lệch dòng so với định nghĩa gốc trong `Constants.java`. Cụ thể:
+  + Dải `S0103`/`S0104` (Avatar) bị gán nhầm thành thông báo đăng nhập/đăng xuất.
+  + Dải `S0201`-`S0205` (Giỏ hàng & Đơn hàng) bị gán lệch ngữ nghĩa (thêm giỏ hàng thành tạo đơn hàng).
+  + Dải `E0201`-`E0220` (Đơn hàng/Menu), `E0300`-`E0316` (Báo cáo ẩn danh), `E0601`-`E0607` (Shipper), `E0701`-`E0721` (Chấm công), `E9000`-`E9006` (Admin) và `DE0000`-`DE0062` (Database) bị gán sai nội dung thông báo khiến giao diện báo lỗi sai lệch hoàn toàn.
+- **Mất toàn bộ Key giao diện Quản trị viên (Missing Admin UI Keys):** Quá trình làm sạch file properties đã vô tình làm mất 41 keys của màn hình Admin Dashboard (`admin.dashboard.*`), khiến `web/admin_dashboard.jsp` hiển thị chuỗi key thô.
+- **Lỗi ký tự thừa & hỏng font:** Xuất hiện ký tự thừa `|` ở cuối các dòng `DE0030`-`DE0033` và ký tự `?` lỗi font ở `hr.matrix.prev_week` / `next_week` trong `messages_en.properties`.
+- **Lệch kiểm thực độ dài mật khẩu:** `web/admin_dashboard.jsp` đặt `minlength="6"` không khớp với quy chuẩn `Constants.MIN_PASSWORD_LENG = 3`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Khôi phục & Chuẩn hóa 100% 41 keys Admin Dashboard:** Bổ sung đầy đủ 41 keys giao diện (`admin.dashbard.titile`, `admin.dashboard.tab.*`, `admin.dashboard.table.*`, `admin.dashboard.status.*`, `admin.dashboard.btn.*`, `admin.dashboard.label.*`, `admin.dashboard.placeholder.*`) vào cả 2 file `.properties`. Tiếng Việt được mã hóa 100% chuẩn Unicode Escape `\uXXXX` theo `Rule_BOMS.md`.
+- **Đối chiếu & Khớp chính xác 1-1 với `Constants.java`:** Toàn bộ 214 mã backend (`SXXX`, `EXXX`, `DEXXX`) được đối chiếu trực tiếp với vị trí sử dụng trong Service, DAO và Controller, khớp đúng 100% ngữ nghĩa của từng hằng số.
+- **Loại bỏ sạch sẽ ký tự lỗi:** Xóa bỏ ký tự `|` thừa ở `DE0030`-`DE0033`, thay thế mũi tên điều hướng ở `hr.matrix.prev_week` (`\u2190 Previous Week`) và `hr.matrix.next_week` (`Next Week \u2192`).
+- **Đồng bộ minlength tại View:** Sửa `minlength="6"` thành `minlength="3"` tại `web/admin_dashboard.jsp` (dòng 237 và 244) để đồng bộ tuyệt đối với `Constants.MIN_PASSWORD_LENG`.
+- **Kiểm tra chéo tự động (Automated Verification):** Chạy script kiểm tra độc lập xác nhận:
+  + Cả 2 file properties đạt đúng 930 keys đối xứng 1-1, 0 duplicate keys.
+  + `messages_vi.properties` đạt 0 dòng non-ASCII (100% Unicode Escape).
+  + 100% các key `<fmt:message key="..." />` trong toàn bộ các file `.jsp` đều tồn tại trong properties.
+  + 100% các mã thành công/lỗi trong `Constants.java` đều tồn tại và chuẩn hóa.
+  + Biên dịch sạch toàn bộ dự án bằng Apache Ant (`BUILD SUCCESSFUL`, 0 lỗi, 74 source files).
+
+### 3. File tác động & Trạng thái:
+- `src/java/resources/messages_vi.properties` (Chuẩn hóa 930 keys, 100% Unicode Escape)
+- `src/java/resources/messages_en.properties` (Chuẩn hóa 930 keys đối xứng)
+- `web/admin_dashboard.jsp` (Sửa minlength=3 cho newPassword và confirmPassword)
+- `.agent/WorkList.md`
+- `.agent/learning.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 74 source files)**.
+
+---
+
+## [2026-10-23] - Hoàn thiện Task 9 & Final Task 20: Xử lý Nợ kỹ thuật Đăng ký & Mật khẩu (Transaction + SHA-256), Triệt tiêu Hardcode Session, Chuẩn hóa Mã lỗi & Đồng bộ Đa ngôn ngữ (100% Release Ready)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Nợ kỹ thuật Đăng ký (Task 20.1):** Việc thêm bản ghi `Users` và cập nhật `AccountManager` (`IsUsed = 1`, `UserID = ?`) trước đó chạy độc lập không qua Database Transaction, tiềm ẩn rủi ro khóa key bị treo hoặc tạo user mồ côi nếu xảy ra lỗi giữa chừng.
+- **Lưu mật khẩu thô (Task 20.2):** Hệ thống lưu mật khẩu dạng plain text để thuận tiện kiểm thử ban đầu, vi phạm nghiêm trọng nguyên tắc an toàn bảo mật thông tin.
+- **Hardcode Session/Attribute Strings trong Controller (Task 9.1):** Nhiều Controller (`CartController`, `LanguageController`, `MenuController`, `ReportController`, `LoginController`) sử dụng chuỗi tự do dạng `"CURRENT_CART"`, `"LANG"`, `"LAST_ORDER_ID"` thay vì các hằng số tập trung từ `Constants.java`.
+- **Xung đột dải mã lỗi & thành công trong Constants (Task 9.2):** Dải mã Điểm danh bị chồng chéo với Báo cáo (`S0301`/`S0302`, `E0301`-`E0306`), mã lỗi CSDL cảnh báo kho và điểm danh bị trùng (`DE0018`-`DE0020`), mã tab cài đặt trùng với hành động không hợp lệ (`E9000`).
+- **Trùng lặp và lệch khóa trong file Properties (Task 9.3):** Cả hai tệp `messages_vi.properties` và `messages_en.properties` bị copy-paste trùng lặp nhiều phân đoạn giao diện cũ, xuất hiện các mã backend nằm lộn xộn ở đáy tệp thay vì đặt tập trung ở đầu.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Quản lý Giao dịch Nguyên tử khi Đăng ký (Task 20.1):**
+  - Xây dựng `UserDAO.registerUserWithKeyTransaction(User user, String securityKey)` quản lý kết nối JDBC nguyên tử: `connection.setAutoCommit(false)`, `commit()`, và `rollback()` khi gặp `SQLException`.
+  - Tự động thực thi 3 tác vụ trong cùng 1 transaction: Insert `Users`, Cập nhật `AccountManager` (gán `IsUsed = 1` và `UserID`), và Tạo hồ sơ `ShipperProfiles` (nếu vai trò là `Shipper`).
+  - Tích hợp vào `UserService.register`.
+- **Mã hóa Mật khẩu SHA-256 Bảo mật & Tương thích ngược (Task 20.2):**
+  - Xây dựng `utility/PasswordUtil.java` cung cấp `hashPassword(String)` (băm SHA-256 thành chuỗi Hex 64 ký tự) và `checkPassword(plainInput, storedHash)`.
+  - Hỗ trợ tương thích ngược thông minh: Nếu mật khẩu trong CSDL chưa được băm (dữ liệu kiểm thử cũ như `123456`), người dùng vẫn đăng nhập thành công và hệ thống tự động nâng cấp mã hóa (Auto-upgrade password hash) thành SHA-256 ngay trong phiên đăng nhập đó.
+  - Tích hợp toàn diện tại `UserService.login`, `UserService.register`, `UserService.changePassword`, và `AdminService.resetUserPasswordByAdmin`.
+- **Triệt tiêu Chuỗi Hardcode Session (Task 9.1):**
+  - Khai báo đầy đủ các hằng số Session trong `Constants.java`: `CURRENT_CART`, `CURRENT_TABLE`, `LAST_ORDER_ID`, `PLACED_ORDER_IDS`, `LANG`, `LAST_TICKET_ID`.
+  - Refactor sạch sẽ toàn bộ các Controller sang gọi trực tiếp hằng số từ `Constants.java`.
+- **Quy hoạch & Chuẩn hóa Dải Mã Lỗi (Task 9.2):**
+  - Tách biệt rõ ràng quyền sở hữu dải mã: Báo cáo ẩn danh sở hữu độc quyền `S0300`-`S0301`, `E0300`-`E0316`, `DE0030`-`DE0033`.
+  - Điểm danh & Nhân sự chuyển sang `S0708`-`S0709`, `E0716`-`E0721`, `DE0056`-`DE0058`.
+  - Tách mã lỗi Tab Cài đặt sang `E9006` (`ERROR_INVALID_SETTING_TAB`).
+- **Tái Cấu Trúc & Đồng Bộ 100% File Đa Ngôn Ngữ (Task 9.3):**
+  - Đưa 207 mã backend (`SXXX`, `EXXX`, `DEXXX`) lên khối đầu trang theo đúng thứ tự logic trong `Constants.java`.
+  - Bổ sung 10 key UI còn thiếu ở tiếng Việt và mã hóa 100% tiếng Việt sang chuẩn Unicode Escape `\uXXXX`.
+  - Deduplicate toàn diện: Cả 2 tệp `messages_vi.properties` và `messages_en.properties` đạt 885 key duy nhất đối xứng 1-1, 0 duplicate keys.
+
+### 3. File tác động & Trạng thái:
+- `src/java/utility/PasswordUtil.java` (Tạo mới)
+- `src/java/dao/UserDAO.java`
+- `src/java/service/UserService.java`
+- `src/java/service/AdminService.java`
+- `src/java/utility/Constants.java`
+- `src/java/controller/CartController.java`
+- `src/java/controller/LanguageController.java`
+- `src/java/controller/MenuController.java`
+- `src/java/controller/ReportController.java`
+- `src/java/controller/auth/LoginController.java`
+- `src/java/resources/messages_vi.properties`
+- `src/java/resources/messages_en.properties`
+- `.agent/WorkList.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 74 source files)**.
+
+---
+
+## [2026-10-22] - Hoàn thiện Task 13: Hotfix Đa Ngôn Ngữ Dashboard, Đồng Bộ Thông Báo AJAX & Triệt Tiêu Lỗi ???key??? Khu Vực Nhân Sự
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Hardcode chữ tiếng Việt trên `web/index.jsp`:** Tại các nút Quick Action cho Admin và Shipper còn tồn tại chuỗi tiếng Việt hardcode ("Cấu hình bảo mật và mật khẩu", "Xem và cập nhật thông tin cá nhân", "Cập nhật hồ sơ và mật khẩu").
+- **Thiếu đồng bộ DOM thời gian thực khi đánh dấu đã đọc thông báo:** Trong `web/js/main.js`, khi người dùng bấm đánh dấu đã đọc một thông báo hoặc đánh dấu tất cả đã đọc, thẻ thông báo trong Dropdown Header chưa bị xóa khỏi DOM `<ul id="notificationItemsList">`, chưa kích hoạt hiển thị `#notificationEmptyState` khi hết thư chưa đọc, và chưa đồng bộ xóa class `unread` / dấu chấm đỏ `.notification-unread-dot` trên Dashboard Feed mà không cần reload trang.
+- **Bug hiển thị chuỗi `???key???` tại khu vực Nhân sự & Điểm danh (`web/hr_management.jsp`):** Rà soát phát hiện 8 keys đa ngôn ngữ bị thiếu trong cả 2 tệp `.properties`:
+  + Tooltip nút: `hr.btn.approve_ot`, `hr.btn.reject_ot`.
+  + Badge trạng thái điểm danh: `attendance.badge.ontime`, `attendance.badge.late`, `attendance.badge.left_early`, `attendance.badge.pending_ot`.
+  + Bộ lọc tháng/năm ở Tab 3 tổng hợp công: `attendance.filter.month`, `attendance.filter.year`.
+  Khi người dùng mở trang Quản lý nhân sự, Tomcat hiển thị các nhãn lỗi dạng `???attendance.badge.ontime???`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Task 13.1 (Đa ngôn ngữ hóa `index.jsp`):** Thay thế 100% chuỗi mô tả hardcode bằng thẻ `<fmt:message key="dashboard.action.settings_desc" />`, `<fmt:message key="dashboard.action.profile_desc" />`, và `<fmt:message key="dashboard.action.shipper_settings_desc" />`.
+- **Task 13.2 (Đồng bộ thời gian thực cho Thông báo `main.js`):**
+  + Tái cấu trúc hàm `markNotificationAsRead(id)`: Gọi POST AJAX, cập nhật Badge chuông với `unreadCount`, xóa trực tiếp phần tử `#notifItem_${id}` khỏi Dropdown Header (hiển thị `#notificationEmptyState` nếu danh sách trống), gỡ bỏ class `unread` và `.notification-unread-dot` trên feed `#feedItem_${id}`.
+  + Tái cấu trúc hàm `markAllNotificationsAsRead()`: Cập nhật Badge về 0, làm rỗng Dropdown Header và bật `#notificationEmptyState`, chuyển toàn bộ `.feed-item.unread` trên feed thành đã đọc.
+- **Task 13.3 (Bổ sung 100% các Key bị thiếu trong `messages_vi.properties` & `messages_en.properties`):**
+  + Mã hóa toàn bộ ký tự tiếng Việt sang chuẩn Unicode Escape (`\uXXXX`) thuần ASCII:
+    * `attendance.badge.ontime=\u0110\u00fang gi\u1edd` (Đúng giờ)
+    * `attendance.badge.late=\u0110i mu\u1ed9n` (Đi muộn)
+    * `attendance.badge.left_early=V\u1ec1 s\u1edbm` (Về sớm)
+    * `attendance.badge.pending_ot=Ch\u1edd duy\u1ec7t OT` (Chờ duyệt OT)
+    * `attendance.filter.month=Th\u00e1ng` (Tháng)
+    * `attendance.filter.year=N\u0103m` (Năm)
+    * `hr.btn.approve_ot=Duy\u1ec7t l\u00e0m th\u00eam gi\u1edd (OT)`
+    * `hr.btn.reject_ot=T\u1eeb ch\u1ed1i l\u00e0m th\u00eam gi\u1edd (OT)`
+    * `dashboard.action.settings_desc=C\u1ea5u h\u00ecnh b\u1ea3o m\u1eadt v\u00e0 m\u1eadt kh\u1ea9u`
+    * `dashboard.action.profile_desc=Xem v\u00e0 c\u1eadp nh\u1eadt th\u00f4ng tin c\u00e1 nh\u00e2n`
+    * `dashboard.action.shipper_settings_desc=C\u1eadp nh\u1eadt h\u1ed3 s\u01a1 v\u00e0 m\u1eadt kh\u1ea9u`
+  + Khai báo các nhãn tiếng Anh tương ứng trong `messages_en.properties`.
+
+### 3. File tác động & Trạng thái:
+- `web/index.jsp`
+- `web/js/main.js`
+- `src/java/resources/messages_vi.properties`
+- `src/java/resources/messages_en.properties`
+- `.agent/WorkList.md`
+- **Trạng thái Build:** Apache Ant (`ant compile`) đạt **BUILD SUCCESSFUL (0 errors)**.
+- Quét tự động toàn bộ JSP: `hr_management.jsp` và `index.jsp` đạt 100% sạch key (0 missing key).
+
+---
+
+## [2026-10-22] - Hoàn thiện Toàn diện Task 10 (Task 10.1 đến 10.5): Quản lý Nhân sự, Ca làm việc & Duyệt chấm công (HR & Shift Management)
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Tồn đọng cơ chế tự gán ca Demo:** Trang `attendance.jsp` và `AttendanceController` tồn tại nút gán ca mẫu và reset ca trực tiếp từ phía nhân viên, không phù hợp với nghiệp vụ thực tế khi việc phân ca phải do Quản lý (Manager/Admin) điều phối.
+- **Thiếu phân hệ quản lý ca & phân ca:** Chưa có giao diện và tầng nghiệp vụ cho Quản lý tạo/sửa khung giờ ca (`Shifts`), phân ca cho nhân viên (`ShiftAssignments`), phê duyệt các trường hợp xin vào ca sớm (`Pending Early Approval`) và tăng ca (`Pending OT Approval`).
+- **Nhu cầu tổng hợp công tháng:** Cần bảng thống kê tổng hợp số ca, giờ làm, số lần đúng giờ, đi muộn, tăng ca của toàn bộ nhân viên theo tháng để phục vụ tính lương và đánh giá hiệu suất.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Task 10.1 (Gỡ bỏ Demo):** Gỡ bỏ hoàn toàn form và nút `assignDemoShift`, `resetDemoShift` khỏi `attendance.jsp`, dọn sạch các nhánh xử lý trong `AttendanceController`, `AttendanceService`, và `AttendanceDAO`.
+- **Task 10.2 (Mở rộng Tầng DAO `AttendanceDAO.java`):**
+  - CRUD Khung giờ ca: `insertShift`, `updateShift`, `getShiftById`, `isShiftNameExists`, `isShiftAssigned`.
+  - Quản lý phân ca: `insertShiftAssignment`, `deleteShiftAssignment`, `hasAssignmentOnDate`, `isAssignmentCheckedIn`, `getAssignmentsWithAttendance(workDate)`.
+  - Xử lý duyệt công: `updateAttendanceApproval`, `getAttendanceById`, `getPendingApprovals()`, `getMonthlyTimesheetSummary(month, year)`, `getActiveStaffUsers()`.
+  - 100% bọc `try-with-resources` an toàn và ném `ValidationException` với mã lỗi CSDL chuẩn `DE005X`.
+- **Task 10.3 (Nghiệp vụ & Validation `AttendanceService.java` & `Validator.java`):**
+  - Validation 2 tầng: kiểm tra tên ca không rỗng, định dạng giờ bắt đầu < giờ kết thúc (`LocalTime`), chống trùng tên ca, chống trùng phân ca trong ngày (tối đa 1 ca/ngày theo Option A), chặn xóa phân ca đã điểm danh.
+  - Nghiệp vụ duyệt/từ chối OT và vào ca sớm (`approveAttendance`, `rejectAttendance`).
+  - Đóng gói dữ liệu sang `Map<String, Object>` / `List<Map<String, Object>>` (Zero Model leakage!).
+- **Task 10.4 (Tầng Điều phối `HrManagementController.java`):**
+  - Phân quyền nghiêm ngặt trong Session: chỉ cho phép `Manager` và `Admin`.
+  - `doGet`: Nhận bộ lọc ngày/tháng/tab, chuyển tiếp Flash Message qua `FlashMessageUtil`, nạp dữ liệu Map đẩy sang View.
+  - `doPost`: Whitelist routing các action (`createShift`, `updateShift`, `assignShift`, `deleteAssignment`, `approveOt`, `rejectOt`, `approveEarly`, `rejectEarly`), điều hướng theo chuẩn PRG (Post-Redirect-Get).
+- **Task 10.5 (Giao diện Quản lý Nhân sự `hr_management.jsp` & `hr_shift_modal.jsp`):**
+  - Giao diện 3 tab chuyên nghiệp: Phân ca & khung giờ, Theo dõi điểm danh & duyệt OT/vào sớm, Tổng hợp công tháng.
+  - Tách modal tạo/sửa ca và phân ca vào `web/components/hr_shift_modal.jsp`.
+  - Kích hoạt liên kết "Quản lý nhân sự" trong `header.jsp`.
+  - Tích hợp điều khiển modal vào `web/js/main.js` và định dạng CSS trong `web/css/global.css`.
+  - Đa ngôn ngữ 100%: Toàn bộ thông báo `S070X`, `E070X`, `DE005X` và nhãn hiển thị trong `messages_vi.properties` được mã hóa Unicode Escape (`\uXXXX`) chuẩn thuần ASCII.
+
+### 3. File tác động & Biên dịch:
+- `web/attendance.jsp`
+- `src/java/controller/AttendanceController.java`
+- `src/java/dao/AttendanceDAO.java`
+- `src/java/utility/Validator.java`
+- `src/java/utility/Constants.java`
+- `src/java/service/AttendanceService.java`
+- `src/java/controller/hr/HrManagementController.java` (File mới)
+- `web/components/hr_shift_modal.jsp` (File mới)
+- `web/hr_management.jsp` (File mới)
+- `web/header.jsp`
+- `web/js/main.js`
+- `web/css/global.css`
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`
+- `web/WEB-INF/web.xml`
+- `.agent/WorkList.md`: Đã hoàn thành 100% các mục của **TASK 10** (`Task 10.1` đến `Task 10.5` đều đạt `[DONE]`).
+- **Trạng thái Build:** Toàn bộ dự án biên dịch qua JDK 17 đạt **BUILD SUCCESSFUL (0 errors)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi:
+- **Chuẩn hóa Phân ca và Tính toàn vẹn Dữ liệu:** Không bao giờ cho phép xóa phân ca (`ShiftAssignment`) nếu bản ghi chấm công (`Attendances`) đã phát sinh. Mọi thao tác thu hồi phân ca phải kiểm tra điều kiện điểm danh ở tầng Service/DAO trước khi thực hiện lệnh DELETE.
+- **Tránh trùng lặp dải mã lỗi:** Khi mở rộng module mới, cần rà soát kỹ các dải mã đã sử dụng trong `Constants.java` (ví dụ `E050X` đã dùng cho Alert Tồn kho) để quy hoạch sang dải mã mới hoàn toàn độc lập (`S070X`, `E070X`) tránh xung đột key trong file properties.
+- **Tránh BOM khi ghi tệp nguồn Java:** Trên môi trường Windows / PowerShell, khi ghi tệp mã nguồn UTF-8 bắt buộc sử dụng `New-Object System.Text.UTF8Encoding $false` để không chèn ký tự Byte Order Mark (`\ufeff`), giúp trình biên dịch `javac` đọc tệp trơn tru mà không bị lỗi `illegal character: '\ufeff'`.
+
+---
+
 ## [2026-10-21] - Hoàn thiện Toàn diện Task 8 (Task 8.5, 8.6, 8.7): Triệt tiêu Hardcode, Chuẩn hóa Controller & Bảo đảm An toàn JDBC Phân hệ Shipper/Delivery
 ### 1. Phân tích & Vấn đề Kỹ thuật:
 - **Tồn đọng Hardcode & Magic Number trong DeliveryService:** Các chuỗi ghi chú lịch sử giao hàng (`"Dieu phoi gan shipper"`, `"Shipper chu dong tiep nhan don"`, v.v.), chuỗi trạng thái hoạt động (`"READY"`, `"DELIVERING"`, `"Ready"`, `"Delivering"`), vai trò `"Shipper"` và con số magic `3` làm giá trị fallback của `maxOrders` bị hardcode trực tiếp trong code Java.
@@ -231,6 +436,89 @@
 
 ---
 
+## [2026-10-22] - Hoàn thiện Task 10.6 & Task 11: Chặt Chẽ Khung Giờ Chấm Công (Phương án A) & Hệ Thống Thông Báo / Phát Thanh Toàn Cục
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Task 10.6 (Khống chế thời gian chấm công - Phương án A):**
+  - Chống tình trạng "chấm công láo" trước hoặc sau ca quá sớm mà không có sự kiểm soát của Quản lý.
+  - Khóa nút Check-in nếu thời gian hiện tại trước giờ bắt đầu ca hơn 15 phút.
+  - Nếu Check-in trong khoảng 15 phút trước ca: ghi nhận trạng thái `Pending Early Approval`, yêu cầu Manager bấm Duyệt thì mới được tính vào bảng tổng hợp công (`Timesheet Summary`).
+  - Khóa nút Check-out khi chưa hết giờ làm (`currentTime < EndTime`). Sau ca làm > 15 phút: bắt buộc nhập lý do OT và lưu trạng thái `Pending OT Approval`.
+- **Task 11 (Hệ thống Thông báo & Phát thanh toàn cục):**
+  - Cần hệ thống thông báo đa tầng: Quả chuông 🔔 trên header hiển thị Badge đỏ số lượng chưa đọc, Dropdown xem nhanh 10 thông báo mới nhất kèm thao tác Đánh dấu đã đọc / Đánh dấu tất cả đã đọc qua AJAX.
+  - Tính năng Phát loa toàn cục 📢 dành riêng cho Admin và Manager gửi tin tức tức thì đến toàn bộ nhân sự đang hoạt động.
+  - Tích hợp Trigger tự động khi có phân ca mới (`ShiftAssignment`) và khi Quản lý duyệt/từ chối OT hoặc duyệt vào sớm (`AttendanceApproval`).
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tầng Model & DAO:**
+  - `model/Notification.java`: POJO khớp 1-1 với bảng `Notifications` trong CSDL.
+  - `dao/NotificationDAO.java`: Các hàm `insertNotification`, `getUnreadNotificationsByUserId`, `getRecentNotificationsByUserId`, `countUnreadNotifications`, `markAsRead`, `markAllAsRead` sử dụng `try-with-resources` và ném mã lỗi CSDL `DE0061`, `DE0062`.
+  - `dao/UserDAO.java`: Thêm hàm `getAllActiveUserIds()` phục vụ tính năng Broadcast.
+  - `dao/AttendanceDAO.java`: Cập nhật câu truy vấn `getMonthlyTimesheetSummary` chỉ tính số ca và số giờ làm khi trạng thái là Đúng giờ / Muộn hoặc đã được Quản lý duyệt (`ApprovedBy IS NOT NULL` / `Approved`).
+- **Tầng Nghiệp vụ (`AttendanceService.java` & `NotificationService.java`):**
+  - `AttendanceService.java`: Ràng buộc giờ Check-in/Check-out chặt chẽ theo Phương án A, cung cấp cờ `canCheckIn`, `canCheckOut` cho View; gắn trigger tự động bắn thông báo khi phân ca hoặc duyệt/từ chối công.
+  - `NotificationService.java`: Đóng gói 100% dữ liệu sang `Map<String, Object>` (bao gồm các icon emoji động `📢`, `🗓️`, `⏱️`, `⚠️`, `🛵`, `🔔`), kiểm tra validation nội dung broadcast (không rỗng, tối đa 500 ký tự).
+- **Tầng Controller (`NotificationController.java`):**
+  - Đăng ký `@WebServlet(urlPatterns = {"/NotificationController"})` và khai báo trong `web.xml`.
+  - `doGet`: Xử lý AJAX lấy thông báo chưa đọc (`action=getUnread`) và thông báo gần đây (`action=getRecent`), trả JSON qua thư viện Gson.
+  - `doPost`: Xử lý PRG chuẩn cho `action=broadcast` (kiểm tra quyền Admin/Manager, lưu flash message và redirect referer); xử lý JSON AJAX cho `action=markAsRead` và `action=markAllAsRead`.
+- **Tầng Giao diện (JSP / CSS / JS / i18n):**
+  - `web/header.jsp`: Thêm nút Phát loa 📢 cho Admin/Manager, Quả chuông 🔔 kèm Badge đỏ động `#unreadNotifBadge` cho tất cả người dùng, nhúng dropdown và modal phát loa.
+  - `web/components/notification_dropdown.jsp`: Header dropdown hiện đại với loading state, empty state, danh sách thông báo và nút "Đánh dấu tất cả đã đọc".
+  - `web/components/broadcast_modal.jsp`: Modal nhập thông báo tối đa 500 ký tự.
+  - `web/attendance.jsp`: Khóa nút Check-in / Check-out khi ngoài khung giờ hợp lệ, hiển thị đếm ngược và thông báo hướng dẫn.
+  - `web/js/main.js`: Polling thông báo ngầm mỗi 30s, mở/đóng dropdown, xử lý click outside, đánh dấu đã đọc mượt mà không reload trang.
+  - `web/css/global.css`: Định kiểu `.notification-dropdown`, `.notification-item`, `.alert-badge-pulse`, hỗ trợ cả Light/Dark theme.
+  - `messages_vi.properties` & `messages_en.properties`: Bổ sung dải mã `S0801`-`S0803`, `E0801`-`E0802`, `DE0061`-`DE0062` và toàn bộ nhãn UI tương ứng (tiếng Việt 100% Unicode Escape `\uXXXX`).
+
+### 3. Tuân thủ kiến trúc (`Rule_BOMS.md`):
+- Không rò rỉ Model lên Controller hoặc JSP (chuyển đổi Map ở Service).
+- Mô hình PRG hoàn chỉnh cho form submit, AJAX nhẹ nhàng cho trải nghiệm người dùng.
+- Không inline CSS/JS trong JSP; không Scriptlet.
+- Đóng an toàn kết nối JDBC bằng `try-with-resources`.
+- Toàn bộ dự án biên dịch qua `javac` đạt **0 lỗi**.
+
+---
+
+## [2026-10-22] - Hoàn thiện Task 12: Bảng Điều Khiển Trung Tâm (Central Dashboard - `index.jsp`)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Vấn đề ban đầu:** Trang chủ `index.jsp` trống trải (chỉ có 13 dòng text tĩnh), chưa phản ánh trạng thái hệ thống, không hỗ trợ thao tác nhanh và không cá nhân hóa theo vai trò của người dùng.
+- **Yêu cầu Task 12:** Cải tạo trang chủ thành Bảng điều khiển trung tâm (Control Center) gồm 3 khu vực trực quan:
+  1. Thẻ thông tin cá nhân & Huy hiệu trạng thái làm việc (Profile Card & Work Status Badge).
+  2. Lưới thao tác nhanh (Quick Actions Grid) cá nhân hóa theo từng vai trò (Staff, Manager, Admin, Shipper).
+  3. Bảng tin thông báo mới nhất (Notification Feed) hiển thị các thông báo gần đây và cho phép đánh dấu đã đọc trực tiếp.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tầng Điều phối (`DashboardController.java`):**
+  - Tạo mới `src/java/controller/DashboardController.java` bọc Servlet `@WebServlet(name = "DashboardController", urlPatterns = {"/DashboardController"})`.
+  - Khai báo ánh xạ Servlet và Servlet-mapping trong `web/WEB-INF/web.xml`.
+  - Sử dụng `FlashMessageUtil.forwardFlashMessages(request, session)` để tiếp nhận flash messages.
+  - Phối hợp dữ liệu từ `AttendanceService`, `NotificationService`, và `IngredientService`:
+    + Trạng thái ca làm hôm nay của nhân viên: `getTodayAttendanceForView(userId)`.
+    + 8 thông báo mới nhất: `getRecentNotificationsForView(userId, 8)`.
+    + Số lượng thông báo chưa đọc: `getUnreadCount(userId)`.
+    + Chỉ số nhanh cho Manager: Số lượng yêu cầu điểm danh/OT chờ duyệt và số lượng cảnh báo tồn kho còn hoạt động.
+  - Chuyển tiếp (forward) an toàn sang `index.jsp` kèm toàn bộ dữ liệu dạng `Map<String, Object>` / `List<Map<String, Object>>` (Zero Model leakage).
+- **Tầng Giao diện (`web/index.jsp`):**
+  - **Khách chưa đăng nhập:** Hiển thị Landing Hero Banner ấn tượng, nút đăng nhập nhanh hoặc xem thực đơn khách hàng.
+  - **Người dùng đã đăng nhập:**
+    + **Khu vực 1 (Profile Card):** Avatar vòng tròn lớn với 2 chữ cái đầu in hoa, tên đầy đủ, vai trò, huy hiệu trạng thái làm việc tương ứng với trạng thái ca làm: 🟢 Đang trong ca (kèm giờ vào ca), 🟡 Chưa vào ca (kèm khung giờ ca), ⚪ Đã hoàn thành ca (kèm số giờ làm), 🔴 Không có ca hôm nay. Bên phải là cụm widget ngày hôm nay và thống kê số lượng việc cần xử lý.
+    + **Khu vực 2 (Quick Actions Grid):** Danh sách các thẻ thao tác nhanh kèm icon nổi bật, tiêu đề và mô tả ngắn gọn. Phân tách rõ ràng giữa Staff (POS, Chấm công, Quản lý đơn, Kho, Báo cáo ẩn danh), Manager (Đơn hàng, Kho, Phân ca & Nhân sự, Thực đơn, Điều phối Shipper, Báo cáo, Phát loa), Admin (Quản trị tài khoản, Phát loa, Cài đặt, Hồ sơ), Shipper (Nhiệm vụ giao hàng, Cài đặt).
+    + **Khu vực 3 (Notification Feed):** Hộp thông báo cuộn dọc hiện đại, hiển thị icon emoji theo từng loại thông báo, thời gian gửi, nút đánh dấu đã đọc hoặc đánh dấu tất cả đã đọc đồng bộ real-time với thanh Header.
+- **Tầng Script & Kiểu dáng (`web/js/main.js` & `web/css/global.css`):**
+  - Cập nhật `main.js`: Bổ sung xử lý cập nhật trạng thái đã đọc cho các phần tử `#feedItem_${id}` trên Dashboard feed khi click đánh dấu đọc hoặc đánh dấu tất cả đã đọc.
+  - Bổ sung vào `global.css`: Định kiểu hoàn chỉnh cho `.dashboard-main`, `.dashboard-profile-card`, `.badge-work-status`, `.quick-actions-grid`, `.action-card`, `.notification-feed-card`, `.feed-item`. Tương thích 100% cả Light Mode và Dark Mode.
+- **Đa ngôn ngữ i18n (`messages_vi.properties` & `messages_en.properties`):**
+  - Khai báo toàn bộ nhãn hiển thị của Dashboard (`dashboard.*`), tiếng Việt mã hóa Unicode Escape `\uXXXX` 100%.
+
+### 3. Tuân thủ kiến trúc (`Rule_BOMS.md`):
+- Tuân thủ 100% kiến trúc MVC, Controller không import bất kỳ Model hay DAO nào.
+- Giao diện JSP không chứa scriptlet (`<% %>`) hay inline style.
+- Biên dịch toàn bộ mã nguồn qua JDK 17 / Tomcat 10.1 đạt **0 lỗi**.
+
+---
+
 ## [2026-10-20] - Hoàn thiện Task 7.1: Xóa Bỏ Reflection Sai Chuẩn Trong IngredientAlertController
 ### 1. Phân tích & Vấn đề Kỹ thuật:
 - **Nguyên nhân gốc rễ:** Trong phương thức `doPost` của `IngredientAlertController.java`, mã nguồn cũ cố tình chèn hơn 30 dòng code phức tạp để kiểm tra `userObj instanceof Map` và sử dụng Reflection (`java.lang.reflect.Method`, `userObj.getClass().getMethod("getUserID")`, `m.invoke(userObj)`) nhằm trích xuất `userId` từ Session.
@@ -290,11 +578,14 @@
 ### 3. File bị tác động:
 - src/java/utility/Constants.java: Bổ sung SUCCESS_REVERT_DELIVERY_ORDER = "S0212" và ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS = "E0218".
 - src/java/resources/messages_vi.properties & messages_en.properties: Bổ sung bản dịch tiếng Việt (Unicode Escape) và tiếng Anh cho thông báo lỗi, thành công và modal cảnh báo.
-- src/java/dao/OrderDAO.java: Thêm hàm revertOrderFromDelivery(int orderId, String newOrderType, String newStatus).
+- src/java/dao/OrderDAO.java: Thêm hàm 
+revertOrderFromDelivery(int orderId, String newOrderType, String newStatus).
 - src/java/dao/DeliveryDAO.java: Khôi phục toàn bộ các hàm nghiệp vụ Task 6 và bổ sung countActiveOrdersByShipperId(int shipperId).
-- src/java/service/OrderService.java: Bổ sung revertDeliveryOrder và tích hợp kiểm tra trong updateOrderStatus và cancelOrder.
+- src/java/service/OrderService.java: Bổ sung 
+revertDeliveryOrder và tích hợp kiểm tra trong updateOrderStatus và cancelOrder.
 - web/components/rrevert_delivery_modal.jsp (Tạo mới): Component modal cảnh báo trước khi hoàn tác đơn giao hàng.
-- web/order_management.jsp: Include revert_delivery_modal.jsp.
+- web/order_management.jsp: Include 
+revert_delivery_modal.jsp.
 - web/components/standard_orders_table.jsp & delivery_orders_table.jsp: Bổ sung data-order-type, data-current-status và option chuyển trạng thái.
 - web/js/main.js: Bổ sung openRevertDeliveryModal, closeRevertDeliveryModal, confirmRevertDeliverySubmit, các modal helper và cập nhật handleStaffStatusSubmit.
 - .agent/WorkList.md: Bổ sung Task 6.7 và đánh dấu [DONE].
@@ -1426,3 +1717,537 @@
 - **Quy chuẩn tầng Model (Database Entity Only):** Package `model` chỉ chứa các POJO đại diện 1-1 cho các bảng trong CSDL (Users, Orders, Ingredients, ...). TUYỆT ĐỐI không tự ý tạo thêm các class Model "lai tạp" DTO/View Object trong package này để tránh làm ô nhiễm tầng thực thể.
 - **Kỹ thuật chống rò rỉ Model lên View (Model Leakage Prevention):** Khi cần tổng hợp dữ liệu từ nhiều bảng (JOIN SQL) để phục vụ hiển thị trên giao diện, quy chuẩn tối ưu là gom nhóm qua `Map<String, Object>` ở tầng DAO và chuyển hóa thành `Map<String, String>` ở tầng Service. View chỉ được phép đọc dữ liệu qua Map hoặc các kiểu dữ liệu nguyên thủy (primitive), tuyệt đối không nhận Model Entity thô.
 - **Tính tương thích của EL trong JSP:** Trong Jakarta/Java EE, cú pháp `${object.property}` sẽ tự động tìm kiếm getter trên Java Bean hoặc `map.get("property")` nếu đối tượng là `Map`. Tận dụng đặc tính này giúp chuyển đổi cấu trúc dữ liệu phía backend mà không gây bất kỳ tác dụng phụ (side-effect) nào lên giao diện người dùng.
+
+---
+
+## [2026-10-22] - Hoàn thiện Task 10.6 & Task 11: Chặt Chẽ Khung Giờ Chấm Công (Phương án A) & Hệ Thống Thông Báo / Phát Thanh Toàn Cục
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Task 10.6 (Khống chế thời gian chấm công - Phương án A):**
+  - Chống tình trạng "chấm công láo" trước hoặc sau ca quá sớm mà không có sự kiểm soát của Quản lý.
+  - Khóa nút Check-in nếu thời gian hiện tại trước giờ bắt đầu ca hơn 15 phút.
+  - Nếu Check-in trong khoảng 15 phút trước ca: ghi nhận trạng thái `Pending Early Approval`, yêu cầu Manager bấm Duyệt thì mới được tính vào bảng tổng hợp công (`Timesheet Summary`).
+  - Khóa nút Check-out khi chưa hết giờ làm (`currentTime < EndTime`). Sau ca làm > 15 phút: bắt buộc nhập lý do OT và lưu trạng thái `Pending OT Approval`.
+- **Task 11 (Hệ thống Thông báo & Phát thanh toàn cục):**
+  - Cần hệ thống thông báo đa tầng: Quả chuông 🔔 trên header hiển thị Badge đỏ số lượng chưa đọc, Dropdown xem nhanh 10 thông báo mới nhất kèm thao tác Đánh dấu đã đọc / Đánh dấu tất cả đã đọc qua AJAX.
+  - Tính năng Phát loa toàn cục 📢 dành riêng cho Admin và Manager gửi tin tức tức thì đến toàn bộ nhân sự đang hoạt động.
+  - Tích hợp Trigger tự động khi có phân ca mới (`ShiftAssignment`) và khi Quản lý duyệt/từ chối OT hoặc duyệt vào sớm (`AttendanceApproval`).
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tầng Model & DAO:**
+  - `model/Notification.java`: POJO khớp 1-1 với bảng `Notifications` trong CSDL.
+  - `dao/NotificationDAO.java`: Các hàm `insertNotification`, `getUnreadNotificationsByUserId`, `getRecentNotificationsByUserId`, `countUnreadNotifications`, `markAsRead`, `markAllAsRead` sử dụng `try-with-resources` và ném mã lỗi CSDL `DE0061`, `DE0062`.
+  - `dao/UserDAO.java`: Thêm hàm `getAllActiveUserIds()` phục vụ tính năng Broadcast.
+  - `dao/AttendanceDAO.java`: Cập nhật câu truy vấn `getMonthlyTimesheetSummary` chỉ tính số ca và số giờ làm khi trạng thái là Đúng giờ / Muộn hoặc đã được Quản lý duyệt (`ApprovedBy IS NOT NULL` / `Approved`).
+- **Tầng Nghiệp vụ (`AttendanceService.java` & `NotificationService.java`):**
+  - `AttendanceService.java`: Ràng buộc giờ Check-in/Check-out chặt chẽ theo Phương án A, cung cấp cờ `canCheckIn`, `canCheckOut` cho View; gắn trigger tự động bắn thông báo khi phân ca hoặc duyệt/từ chối công.
+  - `NotificationService.java`: Đóng gói 100% dữ liệu sang `Map<String, Object>` (bao gồm các icon emoji động `📢`, `🗓️`, `⏱️`, `⚠️`, `🛵`, `🔔`), kiểm tra validation nội dung broadcast (không rỗng, tối đa 500 ký tự).
+- **Tầng Controller (`NotificationController.java`):**
+  - Đăng ký `@WebServlet(urlPatterns = {"/NotificationController"})` và khai báo trong `web.xml`.
+  - `doGet`: Xử lý AJAX lấy thông báo chưa đọc (`action=getUnread`) và thông báo gần đây (`action=getRecent`), trả JSON qua thư viện Gson.
+  - `doPost`: Xử lý PRG chuẩn cho `action=broadcast` (kiểm tra quyền Admin/Manager, lưu flash message và redirect referer); xử lý JSON AJAX cho `action=markAsRead` và `action=markAllAsRead`.
+- **Tầng Giao diện (JSP / CSS / JS / i18n):**
+  - `web/header.jsp`: Thêm nút Phát loa 📢 cho Admin/Manager, Quả chuông 🔔 kèm Badge đỏ động `#unreadNotifBadge` cho tất cả người dùng, nhúng dropdown và modal phát loa.
+  - `web/components/notification_dropdown.jsp`: Header dropdown hiện đại với loading state, empty state, danh sách thông báo và nút "Đánh dấu tất cả đã đọc".
+  - `web/components/broadcast_modal.jsp`: Modal nhập thông báo tối đa 500 ký tự.
+  - `web/attendance.jsp`: Khóa nút Check-in / Check-out khi ngoài khung giờ hợp lệ, hiển thị đếm ngược và thông báo hướng dẫn.
+  - `web/js/main.js`: Polling thông báo ngầm mỗi 30s, mở/đóng dropdown, xử lý click outside, đánh dấu đã đọc mượt mà không reload trang.
+  - `web/css/global.css`: Định kiểu `.notification-dropdown`, `.notification-item`, `.alert-badge-pulse`, hỗ trợ cả Light/Dark theme.
+  - `messages_vi.properties` & `messages_en.properties`: Bổ sung dải mã `S0801`-`S0803`, `E0801`-`E0802`, `DE0061`-`DE0062` và toàn bộ nhãn UI tương ứng (tiếng Việt 100% Unicode Escape `\uXXXX`).
+
+### 3. Tuân thủ kiến trúc (`Rule_BOMS.md`):
+- Không rò rỉ Model lên Controller hoặc JSP (chuyển đổi Map ở Service).
+- Mô hình PRG hoàn chỉnh cho form submit, AJAX nhẹ nhàng cho trải nghiệm người dùng.
+- Không inline CSS/JS trong JSP; không Scriptlet.
+- Đóng an toàn kết nối JDBC bằng `try-with-resources`.
+- Toàn bộ dự án biên dịch qua `javac` đạt **0 lỗi**.
+
+---
+
+## [2026-10-22] - Hoàn thiện Task 12: Bảng Điều Khiển Trung Tâm (Central Dashboard - `index.jsp`)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Vấn đề ban đầu:** Trang chủ `index.jsp` trống trải (chỉ có 13 dòng text tĩnh), chưa phản ánh trạng thái hệ thống, không hỗ trợ thao tác nhanh và không cá nhân hóa theo vai trò của người dùng.
+- **Yêu cầu Task 12:** Cải tạo trang chủ thành Bảng điều khiển trung tâm (Control Center) gồm 3 khu vực trực quan:
+  1. Thẻ thông tin cá nhân & Huy hiệu trạng thái làm việc (Profile Card & Work Status Badge).
+  2. Lưới thao tác nhanh (Quick Actions Grid) cá nhân hóa theo từng vai trò (Staff, Manager, Admin, Shipper).
+  3. Bảng tin thông báo mới nhất (Notification Feed) hiển thị các thông báo gần đây và cho phép đánh dấu đã đọc trực tiếp.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tầng Điều phối (`DashboardController.java`):**
+  - Tạo mới `src/java/controller/DashboardController.java` bọc Servlet `@WebServlet(name = "DashboardController", urlPatterns = {"/DashboardController"})`.
+  - Khai báo ánh xạ Servlet và Servlet-mapping trong `web/WEB-INF/web.xml`.
+  - Sử dụng `FlashMessageUtil.forwardFlashMessages(request, session)` để tiếp nhận flash messages.
+  - Phối hợp dữ liệu từ `AttendanceService`, `NotificationService`, và `IngredientService`:
+    + Trạng thái ca làm hôm nay của nhân viên: `getTodayAttendanceForView(userId)`.
+    + 8 thông báo mới nhất: `getRecentNotificationsForView(userId, 8)`.
+    + Số lượng thông báo chưa đọc: `getUnreadCount(userId)`.
+    + Chỉ số nhanh cho Manager: Số lượng yêu cầu điểm danh/OT chờ duyệt và số lượng cảnh báo tồn kho còn hoạt động.
+  - Chuyển tiếp (forward) an toàn sang `index.jsp` kèm toàn bộ dữ liệu dạng `Map<String, Object>` / `List<Map<String, Object>>` (Zero Model leakage).
+- **Tầng Giao diện (`web/index.jsp`):**
+  - **Khách chưa đăng nhập:** Hiển thị Landing Hero Banner ấn tượng, nút đăng nhập nhanh hoặc xem thực đơn khách hàng.
+  - **Người dùng đã đăng nhập:**
+    + **Khu vực 1 (Profile Card):** Avatar vòng tròn lớn với 2 chữ cái đầu in hoa, tên đầy đủ, vai trò, huy hiệu trạng thái làm việc tương ứng với trạng thái ca làm: 🟢 Đang trong ca (kèm giờ vào ca), 🟡 Chưa vào ca (kèm khung giờ ca), ⚪ Đã hoàn thành ca (kèm số giờ làm), 🔴 Không có ca hôm nay. Bên phải là cụm widget ngày hôm nay và thống kê số lượng việc cần xử lý.
+    + **Khu vực 2 (Quick Actions Grid):** Danh sách các thẻ thao tác nhanh kèm icon nổi bật, tiêu đề và mô tả ngắn gọn. Phân tách rõ ràng giữa Staff (POS, Chấm công, Quản lý đơn, Kho, Báo cáo ẩn danh), Manager (Đơn hàng, Kho, Phân ca & Nhân sự, Thực đơn, Điều phối Shipper, Báo cáo, Phát loa), Admin (Quản trị tài khoản, Phát loa, Cài đặt, Hồ sơ), Shipper (Nhiệm vụ giao hàng, Cài đặt).
+    + **Khu vực 3 (Notification Feed):** Hộp thông báo cuộn dọc hiện đại, hiển thị icon emoji theo từng loại thông báo, thời gian gửi, nút đánh dấu đã đọc hoặc đánh dấu tất cả đã đọc đồng bộ real-time với thanh Header.
+- **Tầng Script & Kiểu dáng (`web/js/main.js` & `web/css/global.css`):**
+  - Cập nhật `main.js`: Bổ sung xử lý cập nhật trạng thái đã đọc cho các phần tử `#feedItem_${id}` trên Dashboard feed khi click đánh dấu đọc hoặc đánh dấu tất cả đã đọc.
+  - Bổ sung vào `global.css`: Định kiểu hoàn chỉnh cho `.dashboard-main`, `.dashboard-profile-card`, `.badge-work-status`, `.quick-actions-grid`, `.action-card`, `.notification-feed-card`, `.feed-item`. Tương thích 100% cả Light Mode và Dark Mode.
+- **Đa ngôn ngữ i18n (`messages_vi.properties` & `messages_en.properties`):**
+  - Khai báo toàn bộ nhãn hiển thị của Dashboard (`dashboard.*`), tiếng Việt mã hóa Unicode Escape `\uXXXX` 100%.
+
+### 3. Tuân thủ kiến trúc (`Rule_BOMS.md`):
+- Tuân thủ 100% kiến trúc MVC, Controller không import bất kỳ Model hay DAO nào.
+- Giao diện JSP không chứa scriptlet (`<% %>`) hay inline style.
+- Biên dịch toàn bộ mã nguồn qua JDK 17 / Tomcat 10.1 đạt **0 lỗi**.
+
+
+---
+
+## [2026-10-22] - Hoàn thiện Task 14: Nâng Cấp Trải Nghiệm Quản Lý Nhân Sự & Thời Khóa Biểu (Advanced Timetable)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Task 14.1 (Bulk Shift Assignment - Phân ca liên hoàn):**
+  - Quản lý cần phân ca lặp lại cho nhân viên theo dải ngày (`startDate` đến `endDate`) và theo các thứ trong tuần (Thứ 2 đến Chủ Nhật) thay vì chỉ chọn từng ngày đơn lẻ tốn thời gian.
+  - Xử lý xung đột: Tự động bỏ qua các ngày nhân viên đã có ca làm việc và gán thành công các ngày hợp lệ còn trống (theo phê duyệt của người dùng).
+- **Task 14.2 (Staff Weekly Timetable - Thời khóa biểu tuần cho Nhân viên):**
+  - Chuyển đổi bảng lịch sử phẳng thành ma trận Thời khóa biểu tuần chuyên nghiệp (FAP style): Hàng ngang là Ca làm việc / Khung giờ, Cột dọc là Thứ 2 đến Chủ Nhật.
+  - Tích hợp điều hướng tuần (Tuần trước / Tuần này / Tuần sau), hiển thị thẻ ca làm việc kèm trạng thái và nút chấm công trực tiếp (Vào ca / Tan ca) cho ngày hôm nay.
+- **Task 14.3 (Manager Matrix View - Bảng Ma trận Phân ca cho Quản lý):**
+  - Hiển thị ma trận phân ca tổng quan toàn cửa hàng: Hàng ngang là danh sách Nhân viên, Cột dọc là Thứ 2 đến Chủ Nhật.
+  - Ô có ca hiển thị huy hiệu ca (tên ca, giờ làm, cờ khóa nếu đã chấm công, nút xóa nếu chưa chấm công).
+  - Ô trống cung cấp nút bấm nhanh `[+]` kích hoạt Modal phân ca điền sẵn Tên Nhân viên và Ngày đó.
+
+### 2. File bị tác động & Giải pháp Kỹ thuật:
+- `src/java/utility/Constants.java`:
+  - Bổ sung mã thành công: `SUCCESS_BULK_ASSIGN_SHIFT = "S0707"`.
+  - Bổ sung mã lỗi: `ERROR_INVALID_DATE_RANGE = "E0712"`, `ERROR_EMPTY_DAYS_OF_WEEK = "E0713"`, `ERROR_NO_ASSIGNMENT_CREATED = "E0714"`.
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`:
+  - Khai báo toàn bộ các mã lỗi/thành công và nhãn hiển thị đa ngôn ngữ (tiếng Việt mã hóa Unicode Escape `\uXXXX` 100%).
+- `src/java/dao/AttendanceDAO.java`:
+  - Bổ sung hàm `getAssignmentsByUserAndDateRange(int userId, Date startDate, Date endDate)` phục vụ pivot thời khóa biểu nhân viên.
+  - Bổ sung hàm `getAssignmentsByDateRange(Date startDate, Date endDate)` phục vụ pivot ma trận phân ca cho quản lý.
+  - Toàn bộ truy vấn sử dụng `try-with-resources` và ném `ValidationException(Constants.ERROR_DATABASE_GET_ATTENDANCE)`.
+- `src/java/service/AttendanceService.java`:
+  - `bulkAssignShift(int userId, int shiftId, String startDateStr, String endDateStr, String[] daysOfWeek)`: Validate dải ngày, duyệt `LocalDate`, kiểm tra thứ trong tuần (`DayOfWeek`), bỏ qua ngày trùng, gọi DAO gán ca, bắn 1 thông báo tổng hợp tới người dùng.
+  - `getStaffWeeklyTimetable(int userId, LocalDate weekDate)`: Thuật toán pivot data nhóm theo `Map<Shift, List<Slot>>`, tính toán cờ `canCheckIn`, `canCheckOut`, `isToday`.
+  - `getManagerWeeklyMatrix(LocalDate weekDate)`: Thuật toán pivot data nhóm theo `Map<Staff, List<Slot>>`, chuẩn bị dữ liệu cho nút thao tác nhanh `[+]`.
+  - Đóng gói 100% dữ liệu sang `Map<String, Object>` / `List<Map<String, Object>>` (Zero Model leakage).
+- `src/java/controller/hr/HrManagementController.java`:
+  - `doGet`: Nạp `weekDate`, gọi `getManagerWeeklyMatrix` và chuyển giao `MANAGER_MATRIX` sang JSP.
+  - `doPost`: Xử lý `action = "bulkAssignShift"` theo mô hình PRG chuẩn và Flash Message.
+- `src/java/controller/AttendanceController.java`:
+  - `doGet`: Nạp `weekDate`, gọi `getStaffWeeklyTimetable` và chuyển giao `WEEKLY_TIMETABLE` sang JSP.
+- `web/components/hr_shift_modal.jsp`:
+  - Cải tạo Modal với bộ chuyển đổi Tab/Toggle giữa phân ca đơn lẻ và phân ca hàng loạt.
+  - Thiết kế dải ngày và lưới 7 checkbox thứ trong tuần kèm các nút chọn nhanh ("Cả tuần", "Thứ 2 - Thứ 6").
+- `web/hr_management.jsp`:
+  - Bổ sung Bảng Ma trận Phân ca Tuần (`matrix-table`) kèm thanh điều hướng tuần và nút quick add `[+]`.
+- `web/attendance.jsp`:
+  - Bổ sung Bảng Thời khóa biểu Tuần (`timetable-grid`) phong cách FAP kèm nút chấm công nhanh.
+- `web/js/main.js`:
+  - Bổ sung các hàm: `setAssignMode(mode)`, `selectWeekdays(type)`, `openQuickAssignModal(userId, fullName, date)`.
+- `web/css/global.css`:
+  - Bổ sung kiểu dáng cho `.modal-card-wide`, `.assign-mode-toggle`, `.btn-mode-tab`, `.days-checkbox-grid`, `.matrix-table`, `.matrix-shift-badge`, `.btn-matrix-add`, `.btn-matrix-del`, `.timetable-grid`, `.timetable-slot-card`, `.th-today`, `.cell-today`.
+
+### 3. Tuân thủ kiến trúc (`Rule_BOMS.md`):
+- Controller tuyệt đối không import Model hay DAO.
+- Không rò rỉ Model lên View (toàn bộ cấu trúc trả về là Map).
+- Giao diện JSP không chứa scriptlet (`<% %>`) hay inline style; toàn bộ style viết tại `global.css` và script tại `main.js`.
+- File đa ngôn ngữ tiếng Việt lưu trữ dưới dạng Unicode Escape `\uXXXX` 100%.
+- Toàn bộ dự án biên dịch thành công qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi)**.
+
+---
+
+## [2026-10-23] - Tích Hợp Đồng Hồ Hệ Thống & Đồng Bộ Menu Điều Hướng Nhanh Tài Khoản Trên `index.jsp`
+
+### 1. Phân tích & Yêu cầu:
+- **Đồng bộ tính năng từ thẻ xổ xuống Header (`#menuTaiKhoan`) vào Menu điều hướng nhanh Dashboard (`index.jsp`):**
+  - Các chức năng tài khoản quan trọng gồm: Xem hồ sơ cá nhân (`ProfileController`), Cài đặt (`SettingsController`), và Đăng xuất (`LogoutController`).
+  - Phải có mặt ở Menu điều hướng nhanh (`quick-actions-grid`) của TẤT CẢ các role (`Staff`, `Manager`, `Admin`, `Shipper`).
+  - Tránh trùng lặp: Ở vai trò `Admin` và `Shipper`, trước đó `SettingsController` hoặc `ProfileController` đã nằm rải rác bên trong khối role riêng; tiến hành gom nhóm 3 nút này thành cụm dùng chung ở cuối lưới thao tác nhanh, loại bỏ các nút trùng lặp khỏi khối riêng của Admin/Shipper.
+- **Bổ sung Đồng hồ hệ thống thời gian thực vào `index.jsp`:**
+  - Lấy theo chuẩn thiết kế và cơ chế hoạt động của trang Chấm công nhân viên (`web/attendance.jsp` - `#serverClockDisplay`).
+  - Đồng hồ hiển thị thời gian máy chủ (`HH:mm:ss`) chạy real-time mỗi giây thông qua script `main.js` và ngày máy chủ (`yyyy-MM-dd`).
+  - Đặt tại thẻ widget chuyên biệt trong `profile-card-right` của Profile Header Card ở đầu trang chủ Dashboard.
+
+### 2. File bị tác động & Giải pháp Kỹ thuật:
+- `src/java/controller/DashboardController.java`:
+  - Luôn nạp sẵn `DASHBOARD_SERVER_DATE` và `DASHBOARD_SERVER_TIME` từ `LocalDateTime.now()` để đảm bảo đồng hồ luôn hiển thị chính xác cho mọi đối tượng người dùng (kể cả khi chưa có ca làm việc).
+- `web/index.jsp`:
+  - Tích hợp khối widget Đồng hồ máy chủ `#serverClockDisplay` vào cụm `profile-card-right` ở đầu trang.
+  - Tinh gọn khối Admin và Shipper (loại bỏ nút Settings/Profile trùng lặp).
+  - Bổ sung cụm 3 action cards tài khoản chuẩn hóa cho mọi vai trò: Hồ sơ (`ProfileController`), Cài đặt (`SettingsController`), Đăng xuất an toàn (`LogoutController` kèm popup xác nhận).
+- `src/java/resources/messages_vi.properties` & `messages_en.properties`:
+  - Khai báo nhãn mô tả `dashboard.action.logout_desc` và thông báo xác nhận `dashboard.confirm.logout` (Unicode Escape `\uXXXX` 100%).
+- `web/css/global.css`:
+  - Định kiểu `.dashboard-clock-card`, `.dashboard-clock-time`, `.dashboard-clock-date`, `.logout-icon`, `.action-card-logout`.
+
+### 3. Tuân thủ kiến trúc (`Rule_BOMS.md`):
+- Không rò rỉ Model, Controller không import DAO/Model.
+- Không inline CSS/JS trong JSP; JSP thuần JSTL/EL.
+- Biên dịch toàn bộ mã nguồn qua NetBeans Ant đạt **`BUILD SUCCESSFUL` (0 lỗi)**.
+
+---
+
+## [2026-10-23] - Hoàn thiện Task 15: Chặt Chẽ Phân Quyền Phân Ca Quản Lý (Manager Shift Assignment Restriction) & Tải Ảnh Đại Diện Hồ Sơ Cá Nhân (Profile Avatar Upload)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Vấn đề 1 (Role Manager - Phân ca sai thẩm quyền):**
+  - Tại `AttendanceDAO.getActiveStaffUsers()`, câu lệnh SQL trước đó lọc `WHERE Role IN ('Staff', 'Manager') AND IsActive = 1`. Điều này dẫn đến việc tài khoản có vai trò `Manager` xuất hiện trong dropdown phân ca và hiển thị thành các hàng trong ma trận phân ca tuần của cửa hàng, tạo cơ hội cho Manager tự gán ca cho chính mình hoặc gán ca cho Manager khác.
+  - Tại `AttendanceService`, hai hàm `assignShift` và `bulkAssignShift` chỉ kiểm tra `userId <= 0` mà chưa có tầng kiểm tra vai trò nghiệp vụ (Tier 2 validation) để bảo đảm tài khoản được phân ca phải là `Staff`.
+- **Vấn đề 2 (Tính năng Tải ảnh hồ sơ cá nhân còn dang dở):**
+  - Tại `web/profile.jsp`, form upload ảnh hướng về `UploadAvatarController` nhưng Controller này chưa tồn tại trong hệ thống. `ProfileController` thì có phương thức `doPost` hoàn toàn rỗng.
+  - Bảng `Users` trong CSDL `BOMS_DATABASE.sql` chưa có cột `Avatar`, model `User.java` và `UserDAO.java` chưa có trường/hàm thao tác với ảnh đại diện.
+  - Thiếu luồng dọn dẹp file ảnh cũ trên ổ đĩa máy chủ khi người dùng đổi ảnh mới hoặc chủ động xóa ảnh đại diện quay về chữ cái viết tắt mặc định.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Xử lý Vấn đề 1 (Giới hạn phân ca nghiêm ngặt cho Staff):**
+  - `src/java/dao/AttendanceDAO.java`: Sửa câu truy vấn trong `getActiveStaffUsers()` thành `WHERE Role = 'Staff' AND IsActive = 1`. Triệt tiêu hoàn toàn sự xuất hiện của Manager trên giao diện chọn phân công và ma trận tuần.
+  - `src/java/service/AttendanceService.java`: Bổ sung hàm private đơn trách nhiệm `validateStaffRole(int userId)`. Gọi hàm này tại đầu cả hai luồng `assignShift` và `bulkAssignShift`. Nếu người dùng không tồn tại hoặc có vai trò khác `'Staff'` (kể cả Manager hay Admin), ném ngay `ValidationException(Constants.ERROR_CANNOT_ASSIGN_NON_STAFF)` (mã `E0715`).
+  - `src/java/utility/Constants.java`: Bổ sung `ERROR_CANNOT_ASSIGN_NON_STAFF = "E0715"`.
+- **Xử lý Vấn đề 2 (Hoàn thiện tải và quản lý Avatar dùng chung ImageUploadUtility):**
+  - `DATABASE/BOMS_DATABASE.sql`: Thêm cột `Avatar VARCHAR(255) NULL` vào lệnh `CREATE TABLE Users` và bổ sung khối lệnh kiểm tra/alter table tự động nếu bảng đã tồn tại sẵn.
+  - `src/java/model/User.java`: Thêm thuộc tính `private String avatar;`, các hàm tạo và getter/setter `getAvatar()` / `setAvatar()`.
+  - `src/java/dao/UserDAO.java`:
+    + An toàn trích xuất `Avatar` trong `getAllUsers()`, `getUserByUsername()`, `getUserById()` qua hàm trợ năng `getSafeAvatar(rs)` (bọc try-catch phòng thủ trường hợp schema chưa migrate).
+    + Thêm phương thức `updateAvatar(int userId, String avatarUrl)` với try-with-resources.
+  - `src/java/service/UserService.java`:
+    + Đưa `avatar` vào Session Map (`buildUserSessionMap`) và Profile Map (`buildUserProfileMap`).
+    + Bổ sung 2 phương thức nghiệp vụ: `updateAvatar(int userId, String avatarUrl)` và `deleteAvatar(int userId)`.
+  - `src/java/controller/hr/ProfileController.java`:
+    + Đính kèm `@MultipartConfig(fileSizeThreshold = 1MB, maxFileSize = 10MB, maxRequestSize = 15MB)`.
+    + `doGet`: Tiếp nhận Flash Messages qua `FlashMessageUtil.forwardFlashMessages(request, session)`.
+    + `doPost`: Xử lý 2 action `uploadAvatar` và `deleteAvatar`. Tận dụng `ImageUploadUtility.saveImage(part, "avatars")` và tự động gọi `ImageUploadUtility.deleteImage(oldAvatar)` khi thay thế hoặc xóa ảnh để giải phóng bộ nhớ đĩa.
+    + Cập nhật Session Map `loginUser.put("avatar", ...)` để đồng bộ ngay lập tức không cần đăng nhập lại.
+    + Điều hướng theo mô hình PRG (Post-Redirect-Get) sang `ProfileController`.
+  - `web/WEB-INF/web.xml`: Bổ sung servlet-mapping `/UploadAvatarController` ánh xạ về `ProfileController` để tương thích toàn diện.
+  - `web/profile.jsp`: Bổ sung thông báo Flash message (`SUCCESS_MESSAGE`, `ERROR_MESSAGE`) với `<c:remove>`, hiển thị ảnh avatar bo tròn lớn hoặc chữ cái viết tắt, nút chọn file và nút [Xóa ảnh] kèm xác nhận.
+  - `web/header.jsp` & `web/index.jsp`: Đồng bộ hiển thị ảnh avatar thu nhỏ trên nút Header `#btnAvatar` và ô đại diện trên Bảng điều khiển trung tâm `.dashboard-avatar`.
+  - `web/css/global.css`: Định kiểu hoàn chỉnh cho `.profile-avatar-img`, `.profile-avatar-wrapper`, `.btn-delete-avatar`, `.header-avatar-img`, `.dashboard-avatar-img`.
+  - `messages_vi.properties` & `messages_en.properties`: Khai báo `S0103`, `S0104`, `E0105`, `E0715`, `profile.avatar.delete`, `profile.avatar.confirm_delete` (tiếng Việt mã hóa Unicode Escape `\uXXXX` 100%).
+
+### 3. File tác động & Biên dịch:
+- `DATABASE/BOMS_DATABASE.sql`
+- `src/java/model/User.java`
+- `src/java/dao/UserDAO.java`
+- `src/java/dao/AttendanceDAO.java`
+- `src/java/service/AttendanceService.java`
+- `src/java/service/UserService.java`
+- `src/java/utility/Constants.java`
+- `src/java/controller/hr/ProfileController.java`
+- `web/WEB-INF/web.xml`
+- `web/profile.jsp`
+- `web/header.jsp`
+- `web/index.jsp`
+- `web/css/global.css`
+- `src/java/resources/messages_vi.properties` & `src/java/resources/messages_en.properties`
+- `.agent/WorkList.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+
+### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi:
+- **Nguyên tắc phân quyền 2 tầng trong điều phối:** Giao diện lọc (Dropdown/Matrix) chỉ là tầng bảo vệ thứ nhất. Bắt buộc tầng Service phải thực thi kiểm tra vai trò người nhận tác vụ (`validateStaffRole`) để ngăn chặn việc bypass tham số qua HTTP Request.
+- **Tối ưu hóa Vòng đời Tệp tải lên (File Lifecycle Management):** Khi người dùng cập nhật ảnh đại diện mới hoặc xóa ảnh, luôn đối chiếu và xóa file vật lý cũ trên ổ đĩa máy chủ (`ImageUploadUtility.deleteImage`) để chống phân mảnh và tràn ổ đĩa theo thời gian.
+- **Đồng bộ Session State đa điểm (Multi-point Session Sync):** Khi thông tin người dùng (như avatar) thay đổi ở trang Profile, cập nhật ngay đối tượng Session Map (`Constants.USER_SESSION`) để các thành phần toàn cục như thanh điều hướng Header và Dashboard phản ánh tức thì mà không yêu cầu người dùng phải đăng xuất.
+
+---
+
+## [2026-10-23] - Hoàn thiện Khắc Phục Luồng Upload Ảnh Bằng Link Web & Tối Ưu Render Thẻ <img> Trên JSP
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Xung đột & Dư thừa Tài nguyên Ổ đĩa khi Đổi sang Link Web:**
+  - Trong `ProductService.updateProduct`, khi người dùng đổi từ ảnh upload nội bộ (`uploads/products/...`) sang một liên kết ngoài (`http://` hoặc `https://`), file ảnh cũ trên ổ đĩa máy chủ không được dọn dẹp, gây lãng phí dung lượng lưu trữ.
+  - Cần hàm validation `Validator.checkMaxLength(imageUrl, 255, Constants.ERROR_IMAGE_URL_TOO_LONG)` để bảo vệ độ dài `VARCHAR(255)` ở CSDL SQL Server.
+- **Quy tắc Ưu tiên Ảnh tại MenuManagementController:**
+  - Logic phân giải ảnh giữa file tải lên (`productImageFile`) và đường dẫn liên kết (`imageUrl`) cần được tách biệt rõ ràng: file tải lên luôn được ưu tiên xử lý trước; nếu không tải file mới thì giữ nguyên/nhận link URL mới nhập.
+- **Hiển thị thẻ `<img>` trên JSP (`menu_management.jsp` & `menu.jsp`):**
+  - Biểu thức EL nối chuỗi phức tạp dễ gây lỗi đường dẫn. Cần áp dụng cú pháp JSTL `<c:choose>` chuẩn mực: nếu `imageUrl` bắt đầu bằng `http` thì in thẳng link gốc, ngược lại gắn `${pageContext.request.contextPath}/` phía trước.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tầng Service (`ProductService.java`):**
+  - Import `utility.ImageUploadUtility;`.
+  - Tích hợp `Validator.checkMaxLength(imageUrl.trim(), 255, Constants.ERROR_IMAGE_URL_TOO_LONG)` tại cả `createProduct` và `updateProduct`.
+  - Bổ sung hàm private đơn trách nhiệm `cleanOldInternalImage(String oldImageUrl, String newImageUrl)`: Nếu `oldImageUrl` bắt đầu bằng `uploads/` và `newImageUrl` là link ngoài (`http/https`) HOẶC là file upload mới khác, tự động gọi `ImageUploadUtility.deleteImage(oldImageUrl)` dọn dẹp ổ đĩa.
+- **Tầng Controller (`MenuManagementController.java`):**
+  - Bóc tách hàm trợ năng đơn trách nhiệm `resolveImageUrl(HttpServletRequest request)`: Ưu tiên lưu `productImageFile` qua `ImageUploadUtility.saveImage`; nếu không có file thì lấy `imageUrl` từ request param (chuỗi rỗng chuẩn hóa về `null`).
+- **Tầng View (`web/menu_management.jsp`, `web/menu.jsp`, `web/js/main.js`):**
+  - Tại cả `menu_management.jsp` và `menu.jsp`: Bọc thẻ `<img>` trong `<c:choose>` với điều kiện `<c:when test="${fn:startsWith(product.imageUrl, 'http')}">` in thẳng `src="${product.imageUrl}"`, `<c:otherwise>` in `src="${pageContext.request.contextPath}/${product.imageUrl}"`.
+  - Cập nhật hàm xem trước `openEditProductModal` trong `main.js`: Nhận diện đường dẫn nội bộ để gắn đúng context path trên trình duyệt khi mở modal chỉnh sửa.
+
+### 3. File tác động & Biên dịch:
+- `src/java/service/ProductService.java`
+- `src/java/controller/MenuManagementController.java`
+- `web/menu_management.jsp`
+- `web/menu.jsp`
+- `web/js/main.js`
+- **Trạng thái Build:** Apache Ant (`ant compile`) đạt **BUILD SUCCESSFUL (0 errors)**.
+
+---
+
+## [2026-10-23] - Hoàn thiện Toàn diện Task 16 (Task 16.1, 16.2, 16.3): Nâng Cấp Quyền Lực Quản Trị Viên (Super Admin Dashboard - HireDate, Password Reset, Direct Role Change & Revoke Security Key)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Thiếu thông tin Ngày gia nhập & Cơ chế Flash Message trên Admin Dashboard:**
+  - Bảng danh sách người dùng (`#tab-users`) trên `admin_dashboard.jsp` chưa hiển thị cột `HireDate`.
+  - `AdminDashboardController` chỉ có `doGet` sơ khai, chưa tiếp nhận `FlashMessageUtil.forwardFlashMessages` nên các thông báo chuyển trang sau khi thao tác (như bật/tắt tài khoản từ `ToggleUserController`) không được hiển thị mượt mà theo chuẩn PRG.
+- **Admin chưa có chức năng Cấp lại mật khẩu trực tiếp cho tài khoản:**
+  - Khi nhân viên quên mật khẩu hoặc cần reset khẩn cấp, hệ thống chưa cung cấp giao diện cho Admin cấp lại mật khẩu mới.
+  - Phải có ràng buộc nghiệp vụ: Admin tuyệt đối không được tự cấp lại mật khẩu của chính mình tại trang này (tránh xung đột và bypass mật khẩu cũ ở Settings).
+- **Bộ quyền lực Super Admin (Task 16.3 - Option A):**
+  - Admin cần khả năng đổi trực tiếp vai trò nhân sự (`Manager`, `Staff`, `Shipper`) kèm tính toàn vẹn dữ liệu:
+    + Chặn Admin tự hạ quyền hoặc tự đổi vai trò của chính mình.
+    + Khi đổi sang `Shipper`, tự động bảo đảm bản ghi hồ sơ `ShipperProfiles` tồn tại (`ensureShipperProfileExists`).
+    + Khi đổi một Shipper sang vai trò khác, kiểm tra bảo toàn: Nếu Shipper đang có đơn hàng giao chưa hoàn tất (`ActiveOrders > 0`), CHẶN đổi vai trò (`E9005`); ngược lại tự động chuyển `ShipperStatus = 'Offline'`.
+  - Admin cần thu hồi/khóa các mã `Security Key` còn hiệu lực nhưng chưa được ai sử dụng (`revokeUnusedKey`).
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Task 16.1 (Bổ sung HireDate & Chuẩn hóa Flash Message):**
+  - `AdminService.java`: Trong `getAllUsersForView()`, đóng gói `map.put("hireDate", u.getHireDate());`.
+  - `AdminDashboardController.java`: Bổ sung `FlashMessageUtil.forwardFlashMessages(request, session);` tại đầu `doGet` kèm kiểm tra phân quyền `Admin`.
+  - `web/admin_dashboard.jsp`: Thêm cột `<th><fmt:message key="admin.dashboard.table.hiredate" /></th>`, định dạng ngày qua `<fmt:formatDate value="${user.hireDate}" pattern="dd/MM/yyyy" />`.
+- **Task 16.2 (Tab Cấp lại mật khẩu `tab-passwords`):**
+  - `AdminService.java`: Viết `resetUserPasswordByAdmin(adminUserId, targetUserIdStr, newPassword, confirmPassword)`. Validate chặt chẽ: Chặn tự reset (`E9001`), kiểm tra tồn tại tài khoản (`Constants.ERROR_USER_NOT_FOUND`), tái sử dụng `userService.validatePassword(newPassword)` và kiểm tra khớp mật khẩu xác nhận (`Constants.ERROR_CONFIRM_PSW`), cập nhật qua `userDAO.updatePassword`.
+  - `AdminDashboardController.java`: Xử lý `action="resetPassword"`, lưu mã thành công `Constants.SUCCESS_ADMIN_RESET_PSW` (`S9001`) và điều hướng `sendRedirect("AdminDashboardController?tab=tab-passwords")`.
+  - `web/admin_dashboard.jsp`: Thêm Tab nút bấm `tab-passwords` và giao diện Form cấp lại mật khẩu trong `.admin-password-box`, lọc ẩn tài khoản của chính Admin đang đăng nhập.
+- **Task 16.3 (Đổi Vai trò trực tiếp & Thu hồi Security Key):**
+  - `UserDAO.java`:
+    + `updateUserRole(userId, newRole)` với `try-with-resources`.
+    + `ensureShipperProfileExists(userId)`: Tự động khởi tạo hồ sơ nếu chưa có (`'Offline'`, `0`, `3`).
+    + `isShipperHavingActiveOrders(userId)`: Kiểm tra đơn hàng đang giao.
+    + `setShipperOffline(userId)`: Đưa trạng thái về Offline.
+  - `AccountManagerDAO.java`:
+    + `updateRoleByUserId(userId, newRole)` với `try-with-resources`.
+    + `revokeUnusedKey(keyId)`: Cập nhật `IsActive = 0 WHERE KeyID = ? AND UserID IS NULL AND IsActive = 1`.
+  - `AdminService.java`:
+    + `getAllKeysForView()`: Bổ sung `map.put("keyId", k.getKeyId());`.
+    + `changeUserRoleByAdmin(adminUserId, targetUserIdStr, newRole)`: Chặn tự đổi role (`E9002`), validate whitelist role (`E9003`), chặn chuyển đổi nếu Shipper còn đơn đang giao (`E9005`), cập nhật cả `Users` và `AccountManager`.
+    + `revokeSecurityKey(keyIdStr)`: Thu hồi key chưa dùng (`E9004` nếu thất bại).
+  - `AdminDashboardController.java`: Xử lý `action="changeRole"` (S9002) và `action="revokeKey"` (S9003) với PRG chuẩn mực.
+  - `web/admin_dashboard.jsp`:
+    + Bảng `#tab-users`: Thêm dropdown chọn Role inline kèm nút Lưu cho các tài khoản không phải Admin hiện tại.
+    + Bảng `#tab-keys`: Thêm cột Thao tác với nút [Thu hồi] cho các key còn hiệu lực và chưa được kích hoạt (`key.active and empty key.userId`).
+  - `src/java/resources/messages_vi.properties` & `messages_en.properties`: Khai báo toàn bộ các mã lỗi/thành công và nhãn giao diện (tiếng Việt mã hóa Unicode Escape `\uXXXX` 100%).
+  - `web/css/global.css`: Định kiểu `.admin-password-box`, `.role-shipper`, `.select-role-inline`.
+
+### 3. File tác động & Biên dịch:
+- `src/java/utility/Constants.java`
+- `src/java/resources/messages_vi.properties`
+- `src/java/resources/messages_en.properties`
+- `src/java/dao/UserDAO.java`
+- `src/java/dao/AccountManagerDAO.java`
+- `src/java/service/AdminService.java`
+- `src/java/controller/admin/AdminDashboardController.java`
+- `web/admin_dashboard.jsp`
+- `web/css/global.css`
+- `.agent/WorkList.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+
+### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc:
+- **Zero Model Leakage & Zero DAO Leakage:** Toàn bộ Controller không import Model hay DAO. Mọi dữ liệu trả về View đều qua Map thuần túy (`Map<String, Object>`).
+- **Bảo toàn dữ liệu phân hệ Giao hàng khi đổi Role:** Đổi vai trò tài khoản không chỉ là thao tác `UPDATE Users`, mà còn gắn liền với trạng thái hoạt động thực tế của tài khoản đó ở các bảng chuyên biệt (`ShipperProfiles`, `DeliveryTasks`). Việc chặn chuyển đổi khi Shipper đang có đơn (`ActiveOrders > 0`) giúp ngăn ngừa rủi ro treo đơn hàng vô chủ trong luồng giao hàng.
+
+---
+
+## [2026-10-23] - Hoàn thiện Task 17: Tự Động Xử Lý Cảnh Báo Hết Hạn Khi Cập Nhật Kho & Đồng Bộ Thông Báo Kho Ra Màn Hình Ngoài, Kèm Hotfix Nhãn Security Key Admin
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Cảnh báo Zombie Expired/Expiring Soon kẹt trong kho:**
+  - Khi Manager cập nhật lại số lượng nguyên liệu trên trang Quản lý kho, hàm `updateIngredient()` chỉ gọi `updateIngredient` mà không dọn dẹp các lô cũ đã quá hạn trong `IngredientBatches`. Do đó mỗi khi `scanIngredientStock()` kích hoạt, các cảnh báo `Expired` hoặc `Expiring Soon` bị tái sinh liên tục dù nguyên liệu đã được nhập mới.
+- **Thiếu đồng bộ thông báo kho ra Bảng tin & Quả chuông toàn cục:**
+  - Các sự cố kho nghiêm trọng (`OutOfStock`, `LowStock`, `Expired`, `Expiring Soon`) chỉ được ghi vào bảng `InventoryAlerts` và hiển thị trên màn hình Quản lý kho. Nhân viên và Quản lý ở ngoài trang chủ (`index.jsp`) hoặc các trang khác không nhận được thông báo để xử lý kịp thời.
+- **Lỗi hiển thị `???admin.dashboard.status.unused???` trên Tab Security Key:**
+  - Trong `web/admin_dashboard.jsp`, cột UserID của key chưa gán gọi thẻ `<fmt:message key="admin.dashboard.status.unused" />`, nhưng trong các file `.properties` key lại được đặt tên là `admin.dashboard.status.unused_key`, dẫn đến việc JSP in ra lỗi chuỗi chưa dịch.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Hotfix nhãn `admin.dashboard.status.unused`:**
+  - Bổ sung `admin.dashboard.status.unused=Ch\u01b0a g\u00e1n` vào `src/java/resources/messages_vi.properties` (chuẩn mã hóa `\uXXXX`).
+  - Bổ sung `admin.dashboard.status.unused=Unassigned` vào `src/java/resources/messages_en.properties`.
+- **Task 17.1 (Tự động dọn lô quá hạn & đóng cảnh báo khi cập nhật kho):**
+  - `src/java/dao/IngredientDAO.java`:
+    + Bổ sung phương thức `resolveExpiryAlertsOnRestock(int ingredientId)` bọc `try-with-resources`:
+      1. Đưa số lượng tồn `Quantity = 0` cho các lô quá hạn/sắp hết hạn ($\le 3$ ngày) của nguyên liệu trong `IngredientBatches`:
+         `UPDATE IngredientBatches SET Quantity = 0 WHERE IngredientID = ? AND ExpirationDate <= DATEADD(day, 3, CAST(GETDATE() AS DATE)) AND Quantity > 0`
+      2. Đóng trạng thái toàn bộ cảnh báo `Expired` và `Expiring Soon` đang mở (`Active`, `Confirmed`) trong `InventoryAlerts`:
+         `UPDATE InventoryAlerts SET Status = 'Closed' WHERE IngredientID = ? AND AlertType IN ('Expired', 'Expiring Soon') AND Status IN ('Active', 'Confirmed')`
+  - `src/java/service/IngredientService.java`:
+    + Trong `updateIngredient(...)`, ngay sau `ingredientDao.updateIngredient(existing);`, lập tức gọi liên tiếp:
+      `ingredientDao.resolveExpiryAlertsOnRestock(ingredientId);`
+      `ingredientDao.closeResolvedStockAlerts();`
+    + Đảm bảo đồng bộ kép: Vừa xóa sạch cảnh báo hết hàng/tồn kho thấp, vừa triệt tiêu vĩnh viễn cảnh báo hết hạn zombie.
+- **Task 17.2 (Đồng bộ Cảnh báo Kho tự động sang `Notifications`):**
+  - `src/java/dao/UserDAO.java`: Bổ sung `getActiveManagerAndStaffUserIds()` (`SELECT UserID FROM Users WHERE IsActive = 1 AND Role IN ('Manager', 'Staff')`).
+  - `src/java/dao/IngredientDAO.java`: Nâng cấp `insertInventoryAlert(int ingredientId, String alertType)` sử dụng `Statement.RETURN_GENERATED_KEYS` để trả về `int alertId` vừa sinh ra.
+  - `src/java/service/IngredientService.java`:
+    + Khởi tạo `NotificationService` và `UserDAO`.
+    + Xây dựng hàm trợ năng đơn trách nhiệm `broadcastInventoryAlertNotification(Ingredient ing, String alertType, int alertId)`: Định dạng nội dung chi tiết rõ ràng theo Phương án A đã chọn (`[Hết hàng]`, `[Sắp hết hàng]`, `[Đã hết hạn]`, `[Sắp hết hạn]` + Tên nguyên liệu + Số lượng/Đơn vị) và gửi tới toàn bộ Manager & Staff đang hoạt động.
+    + Trong `scanIngredientStock()`: Tại cả 4 nhánh cảnh báo, chỉ phát thông báo khi `!ingredientDao.isAlertActive(...)` và `insertInventoryAlert` thành công, đảm bảo mỗi sự cố kho chỉ gửi duy nhất 1 lần, không bị spam khi client polling.
+
+### 3. File tác động & Biên dịch:
+- `src/java/resources/messages_vi.properties`
+- `src/java/resources/messages_en.properties`
+- `src/java/dao/UserDAO.java`
+- `src/java/dao/IngredientDAO.java`
+- `src/java/service/IngredientService.java`
+- `.agent/WorkList.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+
+### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc:
+- **Xử lý Dữ liệu Zombie trong Quản lý Tồn kho:** Khi cập nhật dữ liệu bảng cha (`Ingredients`), bắt buộc phải rà soát và đồng bộ các bản ghi chi tiết ở bảng con (`IngredientBatches`, `InventoryAlerts`) để tránh sự bất nhất về nghiệp vụ giữa số liệu tồn kho tổng và tình trạng từng lô hàng.
+- **Bảo đảm Hiệu năng khi Tích hợp Broadcast Thông báo (Decoupled Notification):** Luồng bắn thông báo tự động từ hệ thống cảnh báo kho được bọc trong khối `try-catch` riêng biệt để nếu có sự cố nhỏ trong việc gửi thông báo phụ thì tiến trình quét kho cốt lõi vẫn hoàn thành trơn tru không bị gián đoạn.
+
+---
+
+## [2026-10-23] - Hoàn thiện Task 18: Quản Lý Danh Mục Động Cho Thực Đơn & Kho Nguyên Liệu (Phương án 6A)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Vấn đề ban đầu:** Danh mục món ăn (`MenuCategories`) và danh mục nguyên liệu kho (`IngredientCategories`) bị fix cứng trong CSDL hoặc thiếu chức năng quản trị động trên giao diện web. Người quản lý không thể chủ động thêm các nhóm món mới (như Trà Sữa, Cà Phê, Tráng Miệng...) hay nhóm nguyên liệu mới (Sữa, Trái Cây, Đóng Hộp...).
+- **Yêu cầu Task 18:** Triển khai quản lý danh mục động theo Phương án 6A:
+  - Cung cấp nút mở Modal Quản lý danh mục ngay trên thanh công cụ của trang Quản lý Thực đơn (`menu_management.jsp`) và Quản lý Kho (`inventory_managerment.jsp`).
+  - Cho phép thêm danh mục mới với đầy đủ kiểm tra tính hợp lệ và chống trùng lặp tên.
+  - Cho phép xóa an toàn các danh mục chưa chứa món ăn hoặc nguyên liệu (`inUse == false`), hiển thị badge trạng thái *"Đang có món"* / *"Đang có nguyên liệu"* và ẩn/vô hiệu hóa nút xóa đối với danh mục đang được sử dụng.
+  - Áp dụng cơ chế PRG (Post-Redirect-Get) giữ mở modal tự động qua tham số URL `?manageCategory=true` sau khi thêm hoặc xóa danh mục để quản lý xem ngay danh sách mới nhất.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tầng DAO (`MenuCategoryDAO.java` & `IngredientDAO.java`):**
+  - `MenuCategoryDAO.java`:
+    + Bổ sung `insertCategory(String categoryName)` thêm danh mục món mới vào bảng `MenuCategories`.
+    + Bổ sung `isCategoryInUse(int categoryId)` kiểm tra xem danh mục có đang chứa món ăn trong bảng `Products` hay không (`SELECT COUNT(1) FROM Products WHERE CategoryID = ?`).
+    + Bổ sung `deleteCategory(int categoryId)` xóa danh mục rỗng khỏi bảng `MenuCategories`.
+  - `IngredientDAO.java`:
+    + Bổ sung `isIngredientCategoryNameExists(String categoryName)` kiểm tra trùng tên không phân biệt hoa thường (`LOWER(CategoryName) = LOWER(?)`).
+    + Bổ sung `insertIngredientCategory(String categoryName)` thêm danh mục kho mới vào bảng `IngredientCategories`.
+    + Bổ sung `isIngredientCategoryInUse(int categoryId)` kiểm tra xem danh mục có đang chứa nguyên liệu trong bảng `Ingredients` hay không (`SELECT COUNT(1) FROM Ingredients WHERE CategoryID = ?`).
+    + Bổ sung `deleteIngredientCategory(int categoryId)` xóa danh mục kho rỗng khỏi `IngredientCategories`.
+    + Toàn bộ phương thức DAO đều sử dụng `try-with-resources`, bắt `SQLException` và ném `ValidationException` kèm mã lỗi `DEXXX`.
+- **Tầng Nghiệp vụ (`ProductService.java` & `IngredientService.java`):**
+  - `ProductService.java`:
+    + Trong `getAllCategoriesForView()`: Bổ sung thuộc tính `map.put("inUse", menuCategoryDAO.isCategoryInUse(cat.getCategoryId()));`.
+    + Thêm `createCategory(String categoryName)`: Kiểm tra độ dài, kiểm tra trùng lặp tên (`E0219` - `Constants.ERROR_MENU_CATEGORY_EXISTS`).
+    + Thêm `deleteCategory(String categoryIdStr)`: Kiểm tra `isCategoryInUse`, nếu đang có món thì chặn xóa (`E0220` - `Constants.ERROR_MENU_CATEGORY_IN_USE`).
+  - `IngredientService.java`:
+    + Trong `getCategoriesForView()`: Bổ sung `m.put("inUse", ingredientDao.isIngredientCategoryInUse(entry.getKey()));`.
+    + Thêm `createCategory(String categoryName, String userRole)`: Kiểm tra quyền Manager (`E0307`), tên rỗng (`E0409`), trùng tên (`E0410`).
+    + Thêm `deleteCategory(String categoryIdStr, String userRole)`: Kiểm tra quyền Manager (`E0307`), kiểm tra `isIngredientCategoryInUse`, nếu đang có nguyên liệu thì chặn xóa (`E0411`).
+  - Toàn bộ dữ liệu trả về đều đóng gói dạng `Map<String, Object>`, không để rò rỉ Model.
+- **Tầng Controller (`MenuManagementController.java` & `InventoryManagementController.java`):**
+  - `MenuManagementController.java`:
+    + Hứng `action="createCategory"` và `action="deleteCategory"`.
+    + Lưu Flash Message vào Session (`S0213` - `SUCCESS_CREATE_MENU_CATEGORY`, `S0214` - `SUCCESS_DELETE_MENU_CATEGORY`).
+    + Thực hiện PRG redirect về `MenuManagementController?manageCategory=true`.
+  - `InventoryManagementController.java`:
+    + Hứng `action="createCategory"` và `action="deleteCategory"`.
+    + Lưu Flash Message vào Session (`S0405` - `SUCCESS_CREATE_INGREDIENT_CATEGORY`, `S0406` - `SUCCESS_DELETE_INGREDIENT_CATEGORY`).
+    + Thực hiện PRG redirect về `InventoryManagementController?manageCategory=true`.
+- **Tầng Giao diện (JSP / CSS / JS / i18n):**
+  - `web/menu_management.jsp`: Thêm nút `📁 Quản lý danh mục` bên cạnh nút Thêm món mới.
+  - `web/components/product_form_modal.jsp`: Nhúng Modal `#menuCategoryModal` hiển thị form thêm mới và danh sách danh mục có badge trạng thái "Đang có món" / "Trống" và nút Xóa an toàn.
+  - `web/inventory_managerment.jsp`: Thêm nút `📁 Quản lý danh mục` bên cạnh nút Thêm nguyên liệu (chỉ hiển thị cho Manager).
+  - `web/components/inventory_form_modal.jsp`: Nhúng Modal `#inventoryCategoryModal` hiển thị form thêm mới và danh sách danh mục kho kèm nút Xóa an toàn.
+  - `web/js/main.js`: Bổ sung các hàm điều khiển modal (`openMenuCategoryModal`, `closeMenuCategoryModal`, `openInventoryCategoryModal`, `closeInventoryCategoryModal`), phím tắt Escape và tự động mở lại modal nếu URL chứa `manageCategory=true`.
+  - `web/css/global.css`: Bổ sung kiểu dáng thanh lịch cho category table, badge trạng thái `badge-in-use`, `badge-empty`, và responsive layout cho modal quản lý danh mục.
+  - `messages_vi.properties` & `messages_en.properties`: Bổ sung đầy đủ dải mã `S0213`, `S0214`, `S0405`, `S0406`, `E0219`, `E0220`, `E0409`, `E0410`, `E0411` cùng bộ nhãn UI `menu.category.*` và `inventory.category.*` (tiếng Việt mã hóa Unicode Escape 100%).
+
+### 3. File tác động & Biên dịch:
+- `src/java/utility/Constants.java`
+- `src/java/dao/MenuCategoryDAO.java`
+- `src/java/service/ProductService.java`
+- `src/java/controller/MenuManagementController.java`
+- `src/java/dao/IngredientDAO.java`
+- `src/java/service/IngredientService.java`
+- `src/java/controller/InventoryManagementController.java`
+- `web/menu_management.jsp`
+- `web/components/product_form_modal.jsp`
+- `web/inventory_managerment.jsp`
+- `web/components/inventory_form_modal.jsp`
+- `web/js/main.js`
+- `web/css/global.css`
+- `src/java/resources/messages_vi.properties`
+- `src/java/resources/messages_en.properties`
+- `.agent/WorkList.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+
+### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc:
+- **Xóa an toàn với ràng buộc toàn vẹn quan hệ (Referential Integrity Check):** Luôn kiểm tra ràng buộc nghiệp vụ ở cả tầng DAO (`COUNT(1) > 0`) và ném ngoại lệ rõ ràng ở tầng Service trước khi thực thi lệnh `DELETE`. Điều này bảo vệ dữ liệu khỏi ngoại lệ Foreign Key Constraint vô hình của CSDL và cung cấp thông báo thân thiện tới người dùng.
+- **Trải nghiệm liền mạch với PRG kèm cờ trạng thái Modal (`?manageCategory=true`):** Khi thao tác quản lý danh mục trên Modal, nếu redirect PRG thông thường thì trang sẽ tải lại và đóng modal, khiến người dùng phải mở lại modal thủ công để xem kết quả. Bằng cách thêm cờ tham số URL và kích hoạt tự động mở modal trong JavaScript, trải nghiệm người dùng được bảo đảm mượt mà như Single Page Application mà vẫn duy trì tính đơn giản của kiến trúc Servlet/JSP.
+
+---
+
+## [2026-10-23] - Hoàn thiện Toàn diện Task 19 (Task 19.1 đến 19.5): Tổng Rà Soát, Vá Lỗ Hổng Bảo Mật & Hoàn Thiện Chất Lượng Toàn Diện (Final Hardening & Polish - Beta 1)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Lỗ hổng bảo mật phân quyền & Controller thiếu an toàn (Task 19.1):**
+  + Hai Servlet `GenerateKeyController.java` và `ToggleUserController.java` được cấu hình độc lập nhưng thiếu kiểm tra chặt chẽ quyền Admin tập trung, có thể bị gọi lén qua URL hoặc script giả mạo. Ngoài ra, Admin có thể tự khóa chính tài khoản của mình dẫn tới mất quyền quản trị.
+  + `SettingsController.java` thiếu kiểm tra `loginUser == null` khi session hết hạn dẫn tới `NullPointerException` (HTTP 500), đồng thời trong `doPost` lại gọi đệ quy `doGet(request, response)` thay vì chuyển hướng PRG chuẩn mực.
+- **Tắc nghẽn luồng khách vãng lai tại Bộ lọc bảo mật (Task 19.2):**
+  + Trong `AuthFilter.java`, whitelist `isAuthPage` chưa chứa `DashboardController`, khiến khách vãng lai khi truy cập trang giới thiệu hệ thống Landing Page (`index.jsp`) bị chặn và ép chuyển hướng sang `login.jsp`. Dòng kiểm tra `register.jsp` bị lặp lại 2 lần.
+- **Rò rỉ tài nguyên kết nối JDBC diện rộng (Task 19.3):**
+  + Hơn 60 phương thức từ các giai đoạn đầu trong `UserDAO.java`, `OrderDAO.java`, `IngredientDAO.java`, `ProductDAO.java`, `MenuCategoryDAO.java`, `AccountManagerDAO.java` khởi tạo `PreparedStatement` và `ResultSet` nhưng không bọc trong khối `try-with-resources`, dẫn đến nguy cơ cạn kiệt Connection / Statement Pool của MS SQL Server khi tải cao.
+- **Vi phạm quy chuẩn cấm Inline CSS/JS & Trùng lặp Script (Task 19.4):**
+  + `web/login.jsp` chứa `style="margin-top: 15px;"` và `onclick="..."` nội tuyến tại popup `bannedPopup`.
+  + `web/menu.jsp` chứa khối `style="..."` trực tiếp tại thanh công cụ tìm kiếm và thông báo giỏ hàng trống.
+  + `web/attendance.jsp` và `web/hr_management.jsp` nạp lại `<script src=".../main.js"></script>` ở cuối trang dù `footer.jsp` đã nạp sẵn.
+- **Thiếu sót cấu hình Đa ngôn ngữ và Servlet Descriptor (Task 19.5):**
+  + `messages_en.properties` thiếu key `login.banned.message` và có lỗi khoảng trắng `register.label.fullname =Fullname:`.
+  + `web/WEB-INF/web.xml` thiếu khai báo `<servlet>` và `<servlet-mapping>` cho `DispatchController` và `ShipperController`.
+  + `MenuManagementController.java` và `OrderManagementController.java` vẫn còn khai báo các phương thức helper `forwardFlashMessages` private trùng lặp thay vì dùng `FlashMessageUtil`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Task 19.1: Vá lỗ hổng bảo mật & Chuẩn hóa PRG Controller (Phương án A):**
+  + Hợp nhất toàn bộ xử lý `action="generateKey"` và `action="toggleUser"` vào phương thức `doPost` của `AdminDashboardController.java`, kế thừa toàn vẹn lớp bảo vệ xác thực quyền Admin (`Role == 'Admin'`).
+  + Bổ sung cơ chế chặn Admin tự khóa tài khoản của chính mình (`adminUserId != targetUserId`), nếu vi phạm sẽ ném ngoại lệ `Constants.ERROR_ADMIN_CANNOT_CHANGE_SELF_ROLE` (`E9002`).
+  + Cập nhật các form trong `web/admin_dashboard.jsp` trỏ về `AdminDashboardController` với hidden action `generateKey` và `toggleUser`.
+  + Xóa bỏ hoàn toàn 2 file controller thừa `GenerateKeyController.java` và `ToggleUserController.java`, gỡ bỏ các khai báo servlet tương ứng trong `web.xml`.
+  + Tái cấu trúc toàn diện `SettingsController.java`: Kiểm tra `loginUser == null` ở đầu cả `doGet` và `doPost`, áp dụng mô hình PRG chuẩn mực với `FlashMessageUtil.forwardFlashMessages` và `sendRedirect("SettingsController")`, xóa bỏ hoàn toàn lệnh gọi `doGet()` trong `doPost`.
+- **Task 19.2: Mở thông luồng Khách vãng lai (`AuthFilter.java`):**
+  + Thêm điều kiện `|| uri.endsWith("DashboardController")` vào whitelist `isAuthPage` trong `AuthFilter.java`, cho phép người dùng chưa đăng nhập tự do truy cập Landing Page.
+  + Gỡ bỏ dòng trùng lặp `|| uri.endsWith("register.jsp")`.
+- **Task 19.3: Chuyển đổi 100% JDBC sang `try-with-resources`:**
+  + Tái cấu trúc triệt để toàn bộ các phương thức truy vấn và cập nhật trong `UserDAO.java`, `OrderDAO.java` (đặc biệt là khối giao dịch phức tạp `insertOrder` và `loadOrderDetails`), `IngredientDAO.java`, `ProductDAO.java`, `MenuCategoryDAO.java`, `AccountManagerDAO.java`.
+  + 100% các đối tượng `PreparedStatement`, `Statement`, `ResultSet` và `getGeneratedKeys()` đều được bao bọc an toàn trong cú pháp `try (PreparedStatement st = ...; ResultSet rs = ...)`.
+  + Xác nhận toàn bộ 10 DAO trong dự án không còn bất kỳ đối tượng tài nguyên JDBC nào bị bỏ sót ngoài `try-with-resources`.
+- **Task 19.4: Dọn dẹp Inline CSS/JS & Trùng lặp Script:**
+  + `web/login.jsp`: Thay thế `style` và `onclick` nội tuyến bằng class `.btn-banned-close` và gọi hàm `closeBannedPopup()` được định nghĩa chuẩn tắc trong `web/js/main.js`.
+  + `web/css/global.css`: Định nghĩa các class CSS dùng chung `.btn-banned-close`, `.menu-header-bar`, `.menu-empty-container`.
+  + `web/menu.jsp`: Thay thế toàn bộ mã inline CSS bằng class ngữ nghĩa `.menu-header-bar` và `.menu-empty-container`.
+  + `web/attendance.jsp` & `web/hr_management.jsp`: Xóa bỏ thẻ `<script src=".../main.js"></script>` dư thừa ở cuối trang.
+- **Task 19.5: Chuẩn hóa Đa ngôn ngữ, `web.xml` & Tái sử dụng FlashMessageUtil:**
+  + `src/java/resources/messages_en.properties`: Bổ sung `login.banned.message=Your account has been deactivated. Please contact the administrator for assistance!` và chuẩn hóa `register.label.fullname=Fullname:`.
+  + `web/WEB-INF/web.xml`: Bổ sung đầy đủ khai báo servlet và servlet-mapping cho `DispatchController` và `ShipperController` (bao gồm `<multipart-config>` hỗ trợ upload ảnh giao hàng).
+  + `MenuManagementController.java` & `OrderManagementController.java`: Loại bỏ các hàm helper private trùng lặp, tích hợp `FlashMessageUtil.forwardFlashMessages(request, session)`.
+
+### 3. File tác động & Biên dịch:
+- `src/java/controller/admin/AdminDashboardController.java`
+- `src/java/controller/admin/GenerateKeyController.java` *(Đã xóa)*
+- `src/java/controller/admin/ToggleUserController.java` *(Đã xóa)*
+- `web/admin_dashboard.jsp`
+- `src/java/controller/SettingsController.java`
+- `src/java/filter/AuthFilter.java`
+- `src/java/dao/AccountManagerDAO.java`
+- `src/java/dao/MenuCategoryDAO.java`
+- `src/java/dao/ProductDAO.java`
+- `src/java/dao/UserDAO.java`
+- `src/java/dao/OrderDAO.java`
+- `src/java/dao/IngredientDAO.java`
+- `web/login.jsp`
+- `web/menu.jsp`
+- `web/attendance.jsp`
+- `web/hr_management.jsp`
+- `web/js/main.js`
+- `web/css/global.css`
+- `src/java/resources/messages_en.properties`
+- `web/WEB-INF/web.xml`
+- `src/java/controller/MenuManagementController.java`
+- `src/java/controller/OrderManagementController.java`
+- `.agent/WorkList.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 73 source files)**.
+
+### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc cốt lõi:
+- **Tập trung hóa quyền hạn (Principle of Least Privilege & Centralized Authorization):** Các tác vụ nhạy cảm của Admin (tạo key, khóa tài khoản, cấp lại mật khẩu, đổi role) không nên phân tán rải rác ở nhiều servlet nhỏ riêng biệt vì rất dễ dẫn đến việc quên kiểm tra quyền hoặc logic bảo mật không đồng nhất. Tập trung các action này vào một Controller chính thống duy nhất có bảo vệ Role tập trung giúp mã nguồn an toàn tuyệt đối và dễ kiểm soát.
+- **Phòng chống tấn công tự khóa (Self-Lockout Prevention):** Trong bất kỳ hệ thống quản trị nào, quyền Super Admin phải luôn có lớp bảo vệ logic để ngăn Admin vô tình tự khóa tài khoản hoặc tự hạ quyền của chính mình (`adminUserId == targetUserId`), ngăn chặn thảm họa "mất chìa khóa vạn năng".
+- **Tuyệt đối giải phóng tài nguyên JDBC bằng `try-with-resources`:** Cơ chế `AutoCloseable` của Java 7+ là giải pháp tối ưu nhất để tránh rò rỉ Connection / Statement / ResultSet trong môi trường máy chủ Servlet đa luồng (Tomcat). Không bao giờ được mở `PreparedStatement` hoặc `ResultSet` bên ngoài khối `try (...)`.
+
+
+
+
+
+

@@ -11,9 +11,14 @@
     <div class="flex-between mt-15 mb-20">
         <h2 class="m-0"><fmt:message key="inventory.heading" /></h2>
         <c:if test="${IS_MANAGER}">
-            <button type="button" class="btn-login" onclick="openCreateIngredientModal()">
-                + <fmt:message key="inventory.btn.add" />
-            </button>
+            <div class="d-flex gap-10">
+                <button type="button" class="btn-login btn-secondary" onclick="openInventoryCategoryModal()">
+                    📁 <fmt:message key="inventory.category.btn.manage" />
+                </button>
+                <button type="button" class="btn-login" onclick="openCreateIngredientModal()">
+                    + <fmt:message key="inventory.btn.add" />
+                </button>
+            </div>
         </c:if>
     </div>
 

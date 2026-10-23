@@ -45,19 +45,30 @@ public class AttendanceController extends HttpServlet {
         int userId = Integer.parseInt(userSession.get("userId"));
         LocalDate today = LocalDate.now();
 
+        String weekParam = request.getParameter("weekDate");
+        LocalDate timetableWeekDate = today;
+        if (weekParam != null && !weekParam.trim().isEmpty()) {
+            try {
+                timetableWeekDate = LocalDate.parse(weekParam.trim());
+            } catch (Exception ignored) {
+                timetableWeekDate = today;
+            }
+        }
+
         int month = parseQueryInt(request.getParameter("month"), today.getMonthValue());
         int year = parseQueryInt(request.getParameter("year"), today.getYear());
 
         try {
             Map<String, Object> todayAttendance = attendanceService.getTodayAttendanceForView(userId);
+            Map<String, Object> weeklyTimetable = attendanceService.getStaffWeeklyTimetable(userId, timetableWeekDate);
             List<Map<String, Object>> historyList = attendanceService.getAttendanceHistoryForView(userId, month, year);
             Map<String, Object> summary = attendanceService.getMonthlySummaryForView(userId, month, year);
-            List<Map<String, Object>> availableShifts = attendanceService.getAllAvailableShiftsForView();
 
             request.setAttribute("TODAY_ATTENDANCE", todayAttendance);
+            request.setAttribute("WEEKLY_TIMETABLE", weeklyTimetable);
+            request.setAttribute("TIMETABLE_WEEK_DATE", timetableWeekDate.toString());
             request.setAttribute("ATTENDANCE_HISTORY", historyList);
             request.setAttribute("ATTENDANCE_SUMMARY", summary);
-            request.setAttribute("AVAILABLE_SHIFTS", availableShifts);
             request.setAttribute("CURRENT_MONTH", month);
             request.setAttribute("CURRENT_YEAR", year);
         } catch (ValidationException e) {
@@ -92,11 +103,8 @@ public class AttendanceController extends HttpServlet {
                 String otReason = request.getParameter("otReason");
                 attendanceService.checkOut(userId, otReason);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ATTENDANCE_CHECK_OUT);
-            } else if ("assignDemoShift".equals(action)) {
-                int shiftId = parseQueryInt(request.getParameter("shiftId"), 0);
-                attendanceService.assignDefaultShiftIfNone(userId, shiftId);
-            } else if ("resetDemoShift".equals(action)) {
-                attendanceService.resetTodayShiftForTest(userId);
+            } else {
+                throw new ValidationException(Constants.ERROR_INVALID_ACTION);
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());

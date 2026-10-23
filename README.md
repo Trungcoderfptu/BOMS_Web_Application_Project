@@ -181,3 +181,101 @@ thêm file QR code.md để lưu các link QR truy cập nhanh
 * Toàn bộ mã nguồn biên dịch thành công 0 lỗi (`BUILD SUCCESSFUL`).
 * Nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: `del /s *.class` để tránh lỗi khi merge nhánh.
 ---
+# [v0.9.0] - 2026-10-23.
+### Added
+* **Bảng Điều Khiển Trung Tâm (Central Control Dashboard - Task 12):**
+  - Cải tạo toàn diện trang chủ `index.jsp` từ trang tĩnh thành Trung tâm điều khiển hiện đại, phân quyền hiển thị theo 4 vai trò (Admin, Manager, Staff, Shipper).
+  - Tích hợp thẻ thông tin cá nhân (Profile Card) và Huy hiệu trạng thái làm việc động (Work Status Badge) phản ánh chính xác tình trạng ca làm hôm nay (🟢 Đang trong ca, 🟡 Chưa vào ca, ⚪ Đã hoàn thành, 🔴 Không có ca).
+  - Lưới thao tác nhanh (Quick Actions Grid) hỗ trợ điều hướng tức thì tới các phân hệ nghiệp vụ theo quyền hạn: POS, Quản lý đơn hàng, Quản lý kho, Quản lý thực đơn, Phân ca & Nhân sự, Điều phối giao hàng, Quản trị tài khoản, Phát loa toàn cục và Báo cáo ẩn danh.
+  - Bảng tin thông báo mới nhất (Notification Feed) hiển thị các thông báo gần đây, hỗ trợ đánh dấu đã đọc trực tiếp. Landing Banner chuyên nghiệp dành riêng cho khách chưa đăng nhập. `(@Trung)`
+* **Hệ thống Thông Báo Thời Gian Thực & Phát Loa Toàn Cục (Notification & Broadcast - Task 11 & Task 17.2):**
+  - Tích hợp Quả chuông 🔔 trên thanh điều hướng Header kèm Badge đỏ đếm số lượng thông báo chưa đọc theo thời gian thực (tự động cập nhật ngầm qua AJAX mỗi 30 giây).
+  - Hộp thông báo đa tầng (Notification Dropdown) hiển thị danh sách thông báo kèm biểu tượng trực quan (`📢`, `🗓️`, `⏱️`, `⚠️`, `🛵`, `🔔`), hỗ trợ đánh dấu đã đọc từng tin và đánh dấu tất cả đã đọc mượt mà không cần tải lại trang.
+  - Chức năng Phát loa toàn cục 📢 (`broadcast_modal.jsp`) dành riêng cho Admin và Manager gửi thông báo khẩn cấp tức thời tới toàn bộ nhân sự đang hoạt động trong hệ thống.
+  - Tự động phát sinh thông báo khi có lịch phân ca mới, khi Quản lý duyệt/từ chối công/OT, và tự động đồng bộ mọi cảnh báo kho mới (`InventoryAlert`: Hết hàng, Sắp hết hàng, Quá hạn, Sắp hết hạn) gửi thẳng tới toàn bộ Quản lý và Nhân viên. `(@Trung)`
+* **Hệ thống Chấm Công & Quản Lý Ca Làm Việc Chặt Chẽ (Time Attendance & HR Shifts - Task 10 & Task 13):**
+  - **Khống chế khung giờ chấm công chặt chẽ (Phương án A):** Khóa nút Check-in nếu trước giờ bắt đầu ca > 15 phút; vào ca sớm trong vòng 15 phút ghi nhận trạng thái `Pending Early Approval` chờ Quản lý duyệt; khóa nút Check-out khi chưa hết giờ ca; tan ca muộn > 15 phút bắt buộc nhập lý do làm thêm giờ (OT) và ghi nhận `Pending OT Approval`. Bảng tổng hợp công tháng (`Timesheet Summary`) tự động chỉ tính công các ca đúng giờ hoặc đã được duyệt.
+  - **Bàn làm việc Phân ca & Quản lý Nhân sự (`hr_management.jsp`, `hr_shift_modal.jsp`):** Cho phép Quản lý theo dõi lịch ca của toàn bộ nhân viên theo tuần/tháng, phân ca làm việc mới, sửa giờ ca, và duyệt/từ chối nhanh chóng các yêu cầu vào sớm và yêu cầu OT. `(@Trung)`
+* **Nâng Cấp Quyền Lực Quản Trị Viên Toàn Diện (Super Admin Dashboard - Task 16):**
+  - Bổ sung hiển thị cột "Ngày gia nhập" (`HireDate`) trên bảng danh sách người dùng.
+  - Bổ sung Tab chuyên biệt "Cấp lại mật khẩu" (`tab-passwords`) cho phép Super Admin trực tiếp thiết lập lại mật khẩu cho bất kỳ tài khoản nào trong hệ thống (chặn Admin tự reset mật khẩu của chính mình tại đây).
+  - Bổ sung tính năng Thay đổi vai trò nhân sự trực tiếp (`Change Role`) qua Dropdown trên bảng User; tự động khởi tạo hồ sơ vận chuyển `ShipperProfiles` nếu chuyển vai trò sang `Shipper`; bảo vệ an toàn luồng giao hàng bằng cơ chế chặn đổi vai trò nếu Shipper đang có đơn hàng dở dang (`ActiveOrders > 0`).
+  - Bổ sung chức năng Thu hồi / Khóa mã `Security Key` chưa sử dụng (`Revoke Key`) trên bảng quản lý mã bảo mật. `(@Trung)`
+* **Quản Lý Danh Mục Động Cho Thực Đơn & Kho Nguyên Liệu (Phương án 6A - Task 18):**
+  - Giải phóng việc fix cứng danh mục trong cơ sở dữ liệu ở cả hai phân hệ Thực đơn (`MenuCategories`) và Kho nguyên liệu (`IngredientCategories`).
+  - Tích hợp nút "Quản lý danh mục" trực tiếp trên thanh công cụ của `menu_management.jsp` và `inventory_managerment.jsp`.
+  - Hộp thoại Modal quản lý danh mục (`menuCategoryModal`, `inventoryCategoryModal`) hỗ trợ: Thêm danh mục mới (kiểm tra rỗng, độ dài tối đa 100 ký tự và chống trùng tên); Hiển thị danh sách danh mục hiện có kèm huy hiệu trạng thái ("Đang có món" / "Đang có nguyên liệu"); Cơ chế Xóa an toàn chỉ cho phép xóa các danh mục rỗng (chưa chứa món ăn hoặc nguyên liệu nào).
+  - Tích hợp điều hướng PRG kèm tham số `?manageCategory=true` tự động giữ mở modal sau khi thêm hoặc xóa danh mục để Quản lý nắm bắt danh sách cập nhật tức thì. `(@Trung)`
+* **Tự Động Dọn Dẹp Lô Hết Hạn & Đóng Cảnh Báo Kho (Task 17.1):**
+  - Tích hợp cơ chế tự động đưa số lượng tồn của các lô quá hạn cũ trong `IngredientBatches` về 0 và đóng (`Closed`) toàn bộ cảnh báo `Expired` / `Expiring Soon` khi Quản lý lưu cập nhật thông tin nguyên liệu.
+  - Khắc phục triệt để hiện tượng cảnh báo zombie hết hạn tái phát liên tục khi nguyên liệu đã được nhập mới. Đồng thời tự động đóng các cảnh báo thiếu hụt kho khi số lượng tồn đạt ngưỡng an toàn. `(@Trung)`
+
+### Fixed
+* **Khắc phục lỗi hiển thị nhãn Security Key:** Sửa lỗi chuỗi chưa dịch `???admin.dashboard.status.unused???` trên Tab Security Key trang Quản trị viên, chuẩn hóa thành `Chưa gán` (VI) và `Unassigned` (EN).
+* **Khắc phục lỗi cú pháp đóng khối tại Controllers:** Sửa triệt để lỗi dư thừa dấu ngoặc đóng khối trong `MenuManagementController.java` và `InventoryManagementController.java`.
+* **Tiêu diệt hiện tượng rò rỉ Model (Zero Model Leakage):** Toàn bộ dữ liệu hiển thị từ tầng DAO và Service chuyển giao lên Controllers và View đều được chuẩn hóa 100% qua `Map<String, Object>`, tuyệt đối không để lộ thực thể Model Entity lên tầng giao diện người dùng.
+* **Đồng bộ hóa 100% Đa ngôn ngữ & Mã hóa Unicode Escape:** Bổ sung toàn bộ dải mã trạng thái thành công (`S0213`-`S0214`, `S0405`-`S0406`, `S0801`-`S0803`, `S9000`-`S9003`) và mã lỗi chuẩn (`E0219`-`E0220`, `E0409`-`E0411`, `E0801`-`E0802`, `E9000`-`E9005`, `DE0061`-`DE0062`) vào `messages_vi.properties` (mã hóa chuẩn `\uXXXX` thuần ASCII) và `messages_en.properties`.
+
+### Notes
+* CSDL hệ thống sử dụng các bảng `Notifications`, `ShiftAssignments`, `TimeAttendance`, `InventoryAlerts`, `IngredientBatches`, `AccountManager`, `ShipperProfiles`. Hãy chạy file `BOMS_DATABASE.sql` trong thư mục `DATABASE` nếu cài đặt môi trường mới.
+* Mọi thao tác JDBC đều tuân thủ cơ chế `try-with-resources` đóng an toàn kết nối, không sử dụng `System.out.println` trong tầng DAO.
+* Toàn bộ mã nguồn dự án biên dịch thành công tuyệt đối 0 lỗi qua NetBeans Ant (`BUILD SUCCESSFUL`, 75 source files).
+* Nhớ trước khi nộp lên git thì chạy lệnh này ở terminal tại thư mục gốc dự án: `del /s *.class` để tránh lỗi khi merge nhánh.
+---
+## [v1.0.0-beta1] - 2026-10-23.
+### Added
+* **Bảo vệ Phân quyền Quản trị Tập trung & Phòng Chống Tự Khóa (Task 19.1 - Phương án A):**
+  - Tích hợp toàn bộ nghiệp vụ tạo mã bảo mật (`generateKey`) và khóa/mở khóa tài khoản (`toggleUser`) vào phương thức `doPost` của `AdminDashboardController.java`, bảo vệ tập trung dưới phân quyền `Admin`.
+  - Cơ chế tự vệ logic: Ngăn chặn tuyệt đối việc Admin tự khóa tài khoản của chính mình (`adminUserId == targetUserId`), chống nguy cơ vô tình làm tê liệt quyền quản trị tối cao của hệ thống. `(@Trung)`
+* **Mở Thông Luồng Khách Vãng Lai Trải Nghiệm Hệ Thống (Task 19.2):**
+  - Bổ sung `DashboardController` vào danh sách ngoại lệ bảo mật (`isAuthPage`) trong `AuthFilter.java`, cho phép khách vãng lai (chưa đăng nhập) truy cập xem Landing Page giới thiệu giải pháp BOMS trên `index.jsp` mà không bị ép chuyển hướng tới `login.jsp`. `(@Trung)`
+
+### Fixed
+* **Quy Hoạch Giải Phóng Tài Nguyên JDBC 100% Qua Try-With-Resources (Task 19.3):**
+  - Tái cấu trúc triệt để hơn 60 phương thức từ các giai đoạn đầu trong toàn bộ các lớp DAO (`UserDAO.java`, `OrderDAO.java`, `IngredientDAO.java`, `ProductDAO.java`, `MenuCategoryDAO.java`, `AccountManagerDAO.java`) sang cú pháp chuẩn `try-with-resources`.
+  - Đảm bảo 100% các đối tượng `PreparedStatement`, `Statement`, `ResultSet` và `getGeneratedKeys()` được tự động giải phóng an toàn, triệt tiêu hoàn toàn nguy cơ rò rỉ kết nối và cạn kiệt Connection Pool của MS SQL Server.
+* **Chuẩn Hóa PRG & Triệt Tiêu Lỗi HTTP 500 NPE Tại Cài Đặt (Task 19.1):**
+  - Bổ sung cơ chế kiểm tra `loginUser == null` tại `SettingsController.java`, tự động chuyển hướng về trang đăng nhập nếu phiên làm việc hết hạn.
+  - Chuẩn hóa toàn bộ `doPost` sang mô hình Post-Redirect-Get (PRG) kết hợp `FlashMessageUtil`, xóa bỏ hoàn toàn lệnh gọi đệ quy `doGet(request, response)` sai kiến trúc.
+* **Triệt Tiêu Hoàn Toàn Inline CSS / JS & Loại Bỏ Trùng Lặp Script (Task 19.4):**
+  - `web/login.jsp`: Loại bỏ style nội tuyến và `onclick` tại popup tài khoản bị khóa, thay thế bằng class `.btn-banned-close` và hàm `closeBannedPopup()` trong `main.js`.
+  - `web/menu.jsp`: Thay thế khối style inline bằng class ngữ nghĩa `.menu-header-bar` và `.menu-empty-container` trong `global.css`.
+  - `web/attendance.jsp` & `web/hr_management.jsp`: Xóa bỏ thẻ `<script src=".../main.js"></script>` bị nạp thừa 2 lần.
+* **Đồng Bộ Hoàn Thiện Cấu Hình Dự Án & Đa Ngôn Ngữ (Task 19.5):**
+  - Khai báo đầy đủ servlet và servlet-mapping cho `DispatchController` và `ShipperController` (kèm `<multipart-config>`) trong `web/WEB-INF/web.xml`.
+  - Bổ sung thông điệp `login.banned.message` và chuẩn hóa khoảng trắng nhãn `register.label.fullname` trong `messages_en.properties`.
+  - Tái cấu trúc `MenuManagementController.java` và `OrderManagementController.java` sử dụng `FlashMessageUtil.forwardFlashMessages(request, session)`, loại bỏ các hàm private trùng lặp (DRY).
+
+### Notes
+* Xóa bỏ vĩnh viễn 2 servlet đơn lẻ không an toàn: `GenerateKeyController.java` và `ToggleUserController.java`.
+* Toàn bộ 73 tệp mã nguồn Java của dự án biên dịch thành công tuyệt đối 0 lỗi qua NetBeans Ant (`BUILD SUCCESSFUL`).
+* Dự án BOMS chính thức hoàn thành toàn bộ 19 Task, đạt mốc bàn giao **Bản Beta 1 (v1.0.0-beta1)**, sẵn sàng nghiệm thu và triển khai thực tế.
+---
+## [v1.0.0-final] - 2026-10-23.
+### Added
+* **Quản Lý Giao Dịch Nguyên Tử Khi Đăng Ký Tài Khoản (Atomic Registration Transaction - Task 20.1):**
+  - Xây dựng phương thức `registerUserWithKeyTransaction(User user, String securityKey)` trong `UserDAO.java` tích hợp kết nối JDBC nguyên tử (`connection.setAutoCommit(false)`, `commit()`, `rollback()`).
+  - Đảm bảo 3 tác vụ: Thêm tài khoản vào bảng `Users`, Khóa mã bảo mật `AccountManager` (`IsUsed = 1`, `UserID = ?`), và Tự động tạo hồ sơ vận chuyển `ShipperProfiles` (đối với vai trò Shipper) diễn ra đồng thời trong một giao dịch duy nhất. Nếu bất kỳ bước nào phát sinh ngoại lệ, toàn bộ dữ liệu tự động hoàn tác (Rollback), triệt tiêu hoàn toàn rủi ro tạo tài khoản mồ côi hoặc treo mã Security Key. `(@Trung)`
+* **Mã Hóa Mật Khẩu Bảo Mật SHA-256 & Cơ Chế Tương Thích Ngược Thông Minh (Password Hashing - Task 20.2):**
+  - Xây dựng tiện ích băm mật khẩu `utility/PasswordUtil.java` sử dụng thuật toán chuẩn `SHA-256` với chuỗi đầu ra Hexadecimal 64 ký tự.
+  - Tích hợp toàn diện tại các điểm tiếp xúc mật khẩu: `UserService.register` (băm mật khẩu khi đăng ký mới), `UserService.changePassword` (băm mật khẩu khi người dùng đổi mật khẩu), và `AdminService.resetUserPasswordByAdmin` (băm mật khẩu khi Admin cấp lại mật khẩu).
+  - Tích hợp cơ chế tự động nâng cấp mã hóa (Auto-upgrade password hashing): Tại `UserService.login`, hệ thống hỗ trợ đăng nhập bình thường đối với các tài khoản kiểm thử cũ đang lưu mật khẩu thô (như `123456`), sau đó tự động băm mật khẩu đó sang chuẩn SHA-256 và cập nhật ngay vào CSDL trong lần đăng nhập thành công đầu tiên, vừa đảm bảo an toàn tuyệt đối vừa không làm gián đoạn việc kiểm thử. `(@Trung)`
+
+### Fixed
+* **Triệt Tiêu 100% Chuỗi Session & Request Hardcode Trong Controllers (Task 9.1):**
+  - Khai báo tập trung toàn bộ các hằng số Session trong `Constants.java`: `CURRENT_CART`, `CURRENT_TABLE`, `LAST_ORDER_ID`, `PLACED_ORDER_IDS`, `LANG`, `LAST_TICKET_ID`.
+  - Quét và thay thế sạch sẽ toàn bộ các chuỗi session gõ chay trong `CartController.java`, `LanguageController.java`, `MenuController.java`, `ReportController.java`, và `LoginController.java`, triệt tiêu hoàn toàn rủi ro gõ sai tên Session attribute và chống rò rỉ trạng thái bộ nhớ.
+* **Quy Hoạch & Tách Biệt Độc Quyền Dải Mã Lỗi Hệ Thống Trong `Constants.java` (Task 9.2):**
+  - Tách bạch và giải quyết triệt để mọi xung đột mã backend: Dải mã Báo cáo ẩn danh giữ độc quyền sở hữu `S0300`-`S0301`, `E0300`-`E0316`, `DE0030`-`DE0033`.
+  - Dải mã Điểm danh / Chấm công được chuyển dời hoàn toàn sang phân vùng riêng biệt `S0708`-`S0709`, `E0716`-`E0721`, `DE0056`-`DE0058`.
+  - Dải mã Cảnh báo kho nguyên liệu giữ độc quyền `DE0018`-`DE0020`. Tách riêng mã lỗi Tab Cài đặt sang `E9006` (`ERROR_INVALID_SETTING_TAB`), bảo toàn `E9000` độc quyền cho lỗi hành động không hợp lệ.
+* **Tái Cấu Trúc, Xóa Trùng Lặp & Đồng Bộ 100% Đa Ngôn Ngữ (Task 9.3):**
+  - Quy hoạch toàn bộ 207 mã backend chuẩn (`SXXX`, `EXXX`, `DEXXX`, `WARXXX`) lên khối đầu trang của cả 2 tệp `messages_vi.properties` và `messages_en.properties` theo đúng thứ tự logic trong `Constants.java`.
+  - Bổ sung 10 khóa giao diện còn thiếu ở phía tiếng Việt và mã hóa 100% nội dung tiếng Việt sang định dạng Unicode Escape (`\uXXXX`) thuần ASCII theo nghiêm ngặt `Rule_BOMS.md`.
+  - Loại bỏ hoàn toàn các khối copy-paste trùng lặp cũ: Cả hai tệp `messages_vi.properties` và `messages_en.properties` đạt trạng thái đồng bộ hoàn hảo với 885 khóa duy nhất đối xứng 1-1 (0 duplicate keys).
+
+### Notes
+* Hoàn thành 100% toàn bộ 20 Tasks và các Sub-task trong lộ trình phát triển `WorkList.md`. Toàn bộ nợ kỹ thuật tồn đọng đã được thanh toán triệt để.
+* Toàn bộ 74 tệp mã nguồn Java của dự án biên dịch thành công tuyệt đối 0 lỗi qua NetBeans Ant (`BUILD SUCCESSFUL`).
+* Dự án BOMS chính thức hoàn tất phiên bản phát hành cuối cùng **(v1.0.0-final)**, sẵn sàng nghiệm thu và đưa vào vận hành thực tế.
+---

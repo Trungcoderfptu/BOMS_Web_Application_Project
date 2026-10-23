@@ -21,6 +21,7 @@ public class User {
     private String role;
     private Date hireDate;
     private String address;
+    private String avatar;
     private boolean isActive;
 
     public User() {
@@ -36,6 +37,20 @@ public class User {
         this.role = role;
         this.hireDate = hireDate;
         this.address = address;
+        this.isActive = isActive;
+    }
+
+    public User(int userID, String username, String password, String fullName, String primaryEmail, String primaryPhone, String role, Date hireDate, String address, String avatar, boolean isActive) {
+        this.userID = userID;
+        this.username = username;
+        this.password = password;
+        this.fullName = fullName;
+        this.Email = primaryEmail;
+        this.primaryPhone = primaryPhone;
+        this.role = role;
+        this.hireDate = hireDate;
+        this.address = address;
+        this.avatar = avatar;
         this.isActive = isActive;
     }
 
@@ -109,6 +124,14 @@ public class User {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 
     public boolean isActive() {

@@ -16,6 +16,7 @@ import model.MenuCategory;
 import model.Product;
 import model.ProductIngredient;
 import utility.Constants;
+import utility.ImageUploadUtility;
 import utility.ValidationException;
 import utility.Validator;
 
@@ -66,10 +67,32 @@ public class ProductService {
                 Map<String, Object> map = new HashMap<>();
                 map.put("categoryId", String.valueOf(cat.getCategoryId()));
                 map.put("categoryName", cat.getCategoryName());
+                map.put("inUse", menuCategoryDAO.isCategoryInUse(cat.getCategoryId()));
                 result.add(map);
             }
         }
         return result;
+    }
+
+    public void createCategory(String categoryName) throws ValidationException {
+        Validator.checkEmpty(categoryName, Constants.ERROR_EMPTY_PRODUCT_CATEGORY);
+        Validator.checkMaxLength(categoryName.trim(), 100, Constants.ERROR_EMPTY_PRODUCT_CATEGORY);
+
+        if (menuCategoryDAO.getCategoryByName(categoryName.trim()) != null) {
+            throw new ValidationException(Constants.ERROR_MENU_CATEGORY_EXISTS);
+        }
+
+        menuCategoryDAO.insertCategory(categoryName.trim());
+    }
+
+    public void deleteCategory(String categoryIdStr) throws ValidationException {
+        int categoryId = Validator.checkInteger(categoryIdStr, Constants.ERROR_PRODUCT_NOT_FOUND);
+
+        if (menuCategoryDAO.isCategoryInUse(categoryId)) {
+            throw new ValidationException(Constants.ERROR_MENU_CATEGORY_IN_USE);
+        }
+
+        menuCategoryDAO.deleteCategory(categoryId);
     }
 
     /**
@@ -233,6 +256,9 @@ public class ProductService {
 
         Map<Integer, Double> recipeMap = parseAndValidateRecipes(recipeIngredientIds, recipeQuantities);
 
+        // Dọn dẹp ảnh nội bộ cũ nếu đổi sang link web ngoài hoặc đổi file ảnh mới
+        cleanOldInternalImage(existing.getImageUrl(), imageUrl);
+
         // Cập nhật thuộc tính
         boolean isAvailable = isAvailableStr != null ? Boolean.parseBoolean(isAvailableStr) : existing.isAvailable();
         existing.setCategoryId(categoryId);
@@ -246,6 +272,18 @@ public class ProductService {
         // Đồng bộ lại công thức: Xóa cũ và nạp mới
         ingredientDAO.deleteProductIngredientsByProductId(productId);
         saveProductRecipes(productId, recipeMap);
+    }
+
+    private void cleanOldInternalImage(String oldImageUrl, String newImageUrl) {
+        if (oldImageUrl != null && oldImageUrl.trim().startsWith("uploads/")) {
+            String trimmedOld = oldImageUrl.trim();
+            String trimmedNew = (newImageUrl != null) ? newImageUrl.trim() : "";
+            boolean isNewWebLink = trimmedNew.startsWith("http://") || trimmedNew.startsWith("https://");
+            boolean isDifferentUpload = trimmedNew.startsWith("uploads/") && !trimmedNew.equals(trimmedOld);
+            if (isNewWebLink || isDifferentUpload) {
+                ImageUploadUtility.deleteImage(trimmedOld);
+            }
+        }
     }
 
     /**

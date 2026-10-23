@@ -11,6 +11,7 @@ import java.util.Map;
 import model.AccountManager;
 import model.User;
 import utility.Constants;
+import utility.PasswordUtil;
 import utility.ValidationException;
 import utility.Validator;
 
@@ -40,8 +41,12 @@ public class UserService {
         if (!user.getActive()) {
             throw new ValidationException(Constants.ERROR_LOCK_ACC); // Tài khoản bị khóa
         }
-        if (!user.getPassword().equals(password)) {
+        if (!PasswordUtil.checkPassword(password, user.getPassword())) {
             throw new ValidationException(Constants.ERROR_LOGIN_FALL); // Sai password
+        }
+        // Tự động nâng cấp sang băm SHA-256 nếu tài khoản cũ còn lưu plain text
+        if (password.equals(user.getPassword())) {
+            userDAO.updatePassword(user.getUserID(), PasswordUtil.hashPassword(password));
         }
         if (!user.getRole().equalsIgnoreCase(role)) {
             throw new ValidationException(Constants.ERROR_LOGIN_FAIL_ROLE); // Sai quyền
@@ -82,14 +87,15 @@ public class UserService {
             throw new ValidationException(Constants.ERROR_CONFIRM_PSW);
         }
         User user = userDAO.getUserById(userId);
-        if (user == null || !user.isActive() || !user.getPassword().equals(oldPassword)) {
+        if (user == null || !user.isActive() || !PasswordUtil.checkPassword(oldPassword, user.getPassword())) {
             throw new ValidationException(Constants.ERROR_WORONG_OPW);
         }
 
-        if (newPassword.equals(user.getPassword())) {
+        String hashedNewPassword = PasswordUtil.hashPassword(newPassword);
+        if (hashedNewPassword.equals(user.getPassword()) || newPassword.equals(user.getPassword())) {
             throw new ValidationException(Constants.ERROR_NEW_PSW_MATCH_OLD);
         }
-        userDAO.updatePassword(userId, newPassword);
+        userDAO.updatePassword(userId, hashedNewPassword);
     }
 
     public void register(String username, String fullName, String password, String confirmPassword, String email, String phone, String address, String securityId) throws ValidationException {
@@ -114,9 +120,9 @@ public class UserService {
         AccountManager validKey = findSecurityKey(securityId);
         validateSecurityKey(validKey);
         String assignedRole = validKey.getRole();
-        User newUser = new User(0, username, password, fullName, email, phone, assignedRole, new java.sql.Date(System.currentTimeMillis()), address, true);
-        userDAO.insertUser(newUser);
-        accountDAO.updateUserIdForKey(validKey.getSecurityKey(), newUser.getUserID());
+        String hashedPassword = PasswordUtil.hashPassword(password);
+        User newUser = new User(0, username, hashedPassword, fullName, email, phone, assignedRole, new java.sql.Date(System.currentTimeMillis()), address, true);
+        userDAO.registerUserWithKeyTransaction(newUser, validKey.getSecurityKey());
     }
 
     public void toggleUserStatus(int userId) throws ValidationException {
@@ -130,6 +136,7 @@ public class UserService {
         userInfo.put("username", user.getUsername());
         userInfo.put("fullName", user.getFullName());
         userInfo.put("role", user.getRole());
+        userInfo.put("avatar", user.getAvatar() != null ? user.getAvatar() : "");
         return userInfo;
     }
 
@@ -142,7 +149,27 @@ public class UserService {
         profile.put("role", user.getRole());
         profile.put("hireDate", user.getHireDate() != null ? user.getHireDate().toString() : "");
         profile.put("address", user.getAddress() != null ? user.getAddress() : Constants.ERROR_NOT_UPDATED);
+        profile.put("avatar", user.getAvatar() != null ? user.getAvatar() : "");
         return profile;
+    }
+
+    public String updateAvatar(int userId, String avatarUrl) throws ValidationException {
+        validateUserId(userId);
+        User user = userDAO.getUserById(userId);
+        if (user == null || !user.isActive()) {
+            throw new ValidationException(Constants.ERROR_PROFILE);
+        }
+        userDAO.updateAvatar(userId, avatarUrl);
+        return avatarUrl;
+    }
+
+    public void deleteAvatar(int userId) throws ValidationException {
+        validateUserId(userId);
+        User user = userDAO.getUserById(userId);
+        if (user == null || !user.isActive()) {
+            throw new ValidationException(Constants.ERROR_PROFILE);
+        }
+        userDAO.updateAvatar(userId, null);
     }
 
     // orther support method

@@ -25,10 +25,28 @@
                         <jsp:include page="components/language_switcher.jsp" />
                         <jsp:include page="components/theme_toggle.jsp" />
                     </div>
-                    <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager')}">
-                        <button id="btnInventoryAlertBell" type="button" class="btn-icon-alert" title="<fmt:message key='alert.bell.title' />" onclick="openInventoryAlertModal()">
-                            🔔<span id="inventoryAlertBadge" class="alert-badge d-none">0</span>
-                        </button>
+                    <c:if test="${not empty sessionScope.USER_SESSION}">
+                        <%-- Task 11.4: Nút Phát loa toàn cục (Admin / Manager) --%>
+                        <c:if test="${sessionScope.USER_SESSION.role == 'Admin' or sessionScope.USER_SESSION.role == 'Manager'}">
+                            <button id="btnBroadcastMegaphone" type="button" class="btn-icon-alert" title="<fmt:message key='broadcast.btn.title' />" onclick="openBroadcastModal()">
+                                📢
+                            </button>
+                        </c:if>
+
+                        <%-- Cảnh báo kho nguyên liệu (Staff / Manager) --%>
+                        <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
+                            <button id="btnInventoryAlertBell" type="button" class="btn-icon-alert" title="<fmt:message key='alert.bell.title' />" onclick="openInventoryAlertModal()">
+                                ⚠️<span id="inventoryAlertBadge" class="alert-badge d-none">0</span>
+                            </button>
+                        </c:if>
+
+                        <%-- Task 11.3: Quả chuông Thông báo hệ thống & Dropdown --%>
+                        <div class="notification-wrapper position-relative">
+                            <button id="btnNotificationBell" type="button" class="btn-icon-alert" title="<fmt:message key='notification.bell.title' />" onclick="toggleNotificationDropdown(event)">
+                                🔔<span id="unreadNotifBadge" class="alert-badge d-none">0</span>
+                            </button>
+                            <jsp:include page="components/notification_dropdown.jsp" />
+                        </div>
                     </c:if>
                     <div class="dropdown-wrapper">
                         <c:choose>
@@ -42,7 +60,14 @@
                             </c:when>
                             <c:otherwise>
                                 <button id="btnAvatar">
-                                    ${sessionScope.USER_SESSION.username.substring(0,2).toUpperCase()}
+                                    <c:choose>
+                                        <c:when test="${not empty sessionScope.USER_SESSION.avatar}">
+                                            <img src="${pageContext.request.contextPath}/${sessionScope.USER_SESSION.avatar}" alt="Avatar" class="header-avatar-img">
+                                        </c:when>
+                                        <c:otherwise>
+                                            ${sessionScope.USER_SESSION.username.substring(0,2).toUpperCase()}
+                                        </c:otherwise>
+                                    </c:choose>
                                 </button>
                                 <div id="menuTaiKhoan">
                                     <strong>${sessionScope.USER_SESSION.fullName}</strong>
@@ -64,11 +89,14 @@
         <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager')}">
             <jsp:include page="components/inventory_alert_modal.jsp" />
         </c:if>
+        <c:if test="${not empty sessionScope.USER_SESSION and (sessionScope.USER_SESSION.role == 'Admin' or sessionScope.USER_SESSION.role == 'Manager')}">
+            <jsp:include page="components/broadcast_modal.jsp" />
+        </c:if>
 
         <aside id="menuDoc">
             <button id="btnDongMenuDoc">✖ <fmt:message key="header.sidebar.close" /></button>
             <ul class="no-bullet">
-                <li><a href="${pageContext.request.contextPath}/index.jsp"><fmt:message key="header.sidebar.deshbard" /></a></li>
+                <li><a href="${pageContext.request.contextPath}/DashboardController"><fmt:message key="header.sidebar.deshbard" /></a></li>
                 <%-- Admin: Chỉ phụ trách quản lý tài khoản --%>
                 <c:if test="${sessionScope.USER_SESSION.role == 'Admin'}">
                     <li><a href="${pageContext.request.contextPath}/AdminDashboardController"><fmt:message key="header.sidebar.admin_daskboard" /></a></li>
@@ -81,7 +109,7 @@
                     <li><a href="${pageContext.request.contextPath}/MenuManagementController"><fmt:message key="header.sidebar.menu_management" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/InventoryManagementController"><fmt:message key="header.sidebar.inventory" /></a></li>
                     <li><a href="${pageContext.request.contextPath}/ReportManagementController"><fmt:message key="header.sidebar.reports" /></a></li>
-                    <li><a href="#"><fmt:message key="header.sidebar.hr" /></a></li>
+                    <li><a href="${pageContext.request.contextPath}/HrManagementController"><fmt:message key="header.sidebar.hr" /></a></li>
                 </c:if>
 
                 <%-- Staff: Đặt món tại quầy, Quản lý đơn hàng, Tạo thực đơn, Xem kho, Chấm công, Gửi báo cáo ẩn danh --%>

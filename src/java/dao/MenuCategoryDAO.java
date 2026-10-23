@@ -19,9 +19,8 @@ public class MenuCategoryDAO extends DBContext {
     public List<MenuCategory> getAllCategories() throws ValidationException {
         List<MenuCategory> list = new ArrayList<>();
         String sql = "SELECT CategoryID, CategoryName FROM MenuCategories ORDER BY CategoryID ASC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+        try (PreparedStatement st = connection.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
                 list.add(mapResultSetToMenuCategory(rs));
             }
@@ -33,12 +32,12 @@ public class MenuCategoryDAO extends DBContext {
 
     public MenuCategory getCategoryById(int categoryId) throws ValidationException {
         String sql = "SELECT CategoryID, CategoryName FROM MenuCategories WHERE CategoryID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, categoryId);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                return mapResultSetToMenuCategory(rs);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToMenuCategory(rs);
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_PRODUCT);
@@ -48,17 +47,52 @@ public class MenuCategoryDAO extends DBContext {
 
     public MenuCategory getCategoryByName(String categoryName) throws ValidationException {
         String sql = "SELECT CategoryID, CategoryName FROM MenuCategories WHERE LOWER(CategoryName) = LOWER(?)";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, categoryName.trim());
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                return mapResultSetToMenuCategory(rs);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToMenuCategory(rs);
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_PRODUCT);
         }
         return null;
+    }
+
+    public void insertCategory(String categoryName) throws ValidationException {
+        String sql = "INSERT INTO MenuCategories (CategoryName) VALUES (?)";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setString(1, categoryName.trim());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_PRODUCT);
+        }
+    }
+
+    public boolean isCategoryInUse(int categoryId) throws ValidationException {
+        String sql = "SELECT COUNT(1) FROM Products WHERE CategoryID = ?";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setInt(1, categoryId);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_PRODUCT);
+        }
+    }
+
+    public void deleteCategory(int categoryId) throws ValidationException {
+        String sql = "DELETE FROM MenuCategories WHERE CategoryID = ?";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setInt(1, categoryId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_PRODUCT);
+        }
     }
 
     private MenuCategory mapResultSetToMenuCategory(ResultSet rs) throws SQLException {

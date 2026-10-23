@@ -35,38 +35,41 @@ public class OrderDAO extends DBContext {
             originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
 
-            PreparedStatement stOrder = connection.prepareStatement(sqlOrder, Statement.RETURN_GENERATED_KEYS);
-            stOrder.setString(1, order.getOrderType());
-            setNullableInt(stOrder, 2, order.getStaffId());
-            setNullableInt(stOrder, 3, order.getTableId());
-            setNullableInt(stOrder, 4, order.getAreaId());
-            setNullableInt(stOrder, 5, order.getShipperId());
-            stOrder.setString(6, order.getCustomerName());
-            stOrder.setString(7, order.getCustomerPhone());
-            stOrder.setString(8, order.getDeliveryAddress());
-            stOrder.setString(9, order.getStatus() != null ? order.getStatus() : "Accepted");
-            stOrder.setDouble(10, order.getTotalAmount());
-            stOrder.setTimestamp(11, order.getCreatedAt() != null ? order.getCreatedAt() : new Timestamp(System.currentTimeMillis()));
-            stOrder.setTimestamp(12, order.getCookingStartedAt());
-            stOrder.executeUpdate();
-
-            ResultSet rs = stOrder.getGeneratedKeys();
             int newOrderId = 0;
-            if (rs.next()) {
-                newOrderId = rs.getInt(1);
-                order.setOrderId(newOrderId);
+            try (PreparedStatement stOrder = connection.prepareStatement(sqlOrder, Statement.RETURN_GENERATED_KEYS)) {
+                stOrder.setString(1, order.getOrderType());
+                setNullableInt(stOrder, 2, order.getStaffId());
+                setNullableInt(stOrder, 3, order.getTableId());
+                setNullableInt(stOrder, 4, order.getAreaId());
+                setNullableInt(stOrder, 5, order.getShipperId());
+                stOrder.setString(6, order.getCustomerName());
+                stOrder.setString(7, order.getCustomerPhone());
+                stOrder.setString(8, order.getDeliveryAddress());
+                stOrder.setString(9, order.getStatus() != null ? order.getStatus() : "Accepted");
+                stOrder.setDouble(10, order.getTotalAmount());
+                stOrder.setTimestamp(11, order.getCreatedAt() != null ? order.getCreatedAt() : new Timestamp(System.currentTimeMillis()));
+                stOrder.setTimestamp(12, order.getCookingStartedAt());
+                stOrder.executeUpdate();
+
+                try (ResultSet rs = stOrder.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        newOrderId = rs.getInt(1);
+                        order.setOrderId(newOrderId);
+                    }
+                }
             }
 
             if (order.getOrderDetails() != null && !order.getOrderDetails().isEmpty()) {
-                PreparedStatement stDetail = connection.prepareStatement(sqlDetail);
-                for (OrderDetail detail : order.getOrderDetails()) {
-                    stDetail.setInt(1, newOrderId);
-                    stDetail.setInt(2, detail.getProductId());
-                    stDetail.setInt(3, detail.getQuantity());
-                    stDetail.setDouble(4, detail.getUnitPrice());
-                    stDetail.addBatch();
+                try (PreparedStatement stDetail = connection.prepareStatement(sqlDetail)) {
+                    for (OrderDetail detail : order.getOrderDetails()) {
+                        stDetail.setInt(1, newOrderId);
+                        stDetail.setInt(2, detail.getProductId());
+                        stDetail.setInt(3, detail.getQuantity());
+                        stDetail.setDouble(4, detail.getUnitPrice());
+                        stDetail.addBatch();
+                    }
+                    stDetail.executeBatch();
                 }
-                stDetail.executeBatch();
             }
 
             connection.commit();
@@ -88,14 +91,14 @@ public class OrderDAO extends DBContext {
     public Order getOrderById(int orderId) throws ValidationException {
         String sql = "SELECT OrderID, OrderType, StaffID, TableID, AreaID, ShipperID, CustomerName, CustomerPhone, "
                 + "DeliveryAddress, Status, TotalAmount, CreatedAt, CookingStartedAt FROM Orders WHERE OrderID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, orderId);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                Order order = mapResultSetToOrder(rs);
-                order.setOrderDetails(loadOrderDetails(orderId));
-                return order;
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    Order order = mapResultSetToOrder(rs);
+                    order.setOrderDetails(loadOrderDetails(orderId));
+                    return order;
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
@@ -107,14 +110,14 @@ public class OrderDAO extends DBContext {
         String sql = "SELECT TOP 1 OrderID, OrderType, StaffID, TableID, AreaID, ShipperID, CustomerName, CustomerPhone, "
                 + "DeliveryAddress, Status, TotalAmount, CreatedAt, CookingStartedAt FROM Orders "
                 + "WHERE TableID = ? AND Status <> 'Cancelled' ORDER BY CreatedAt DESC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, tableId);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                Order order = mapResultSetToOrder(rs);
-                order.setOrderDetails(loadOrderDetails(order.getOrderId()));
-                return order;
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    Order order = mapResultSetToOrder(rs);
+                    order.setOrderDetails(loadOrderDetails(order.getOrderId()));
+                    return order;
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
@@ -127,14 +130,14 @@ public class OrderDAO extends DBContext {
         String sql = "SELECT OrderID, OrderType, StaffID, TableID, AreaID, ShipperID, CustomerName, CustomerPhone, "
                 + "DeliveryAddress, Status, TotalAmount, CreatedAt, CookingStartedAt FROM Orders "
                 + "WHERE TableID = ? ORDER BY CreatedAt DESC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, tableId);
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                Order order = mapResultSetToOrder(rs);
-                order.setOrderDetails(loadOrderDetails(order.getOrderId()));
-                list.add(order);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    Order order = mapResultSetToOrder(rs);
+                    order.setOrderDetails(loadOrderDetails(order.getOrderId()));
+                    list.add(order);
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
@@ -146,9 +149,8 @@ public class OrderDAO extends DBContext {
         List<Order> list = new ArrayList<>();
         String sql = "SELECT OrderID, OrderType, StaffID, TableID, AreaID, ShipperID, CustomerName, CustomerPhone, "
                 + "DeliveryAddress, Status, TotalAmount, CreatedAt, CookingStartedAt FROM Orders ORDER BY CreatedAt DESC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+        try (PreparedStatement st = connection.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
                 Order order = mapResultSetToOrder(rs);
                 order.setOrderDetails(loadOrderDetails(order.getOrderId()));
@@ -178,16 +180,16 @@ public class OrderDAO extends DBContext {
 
         sql.append("ORDER BY CreatedAt DESC");
 
-        try {
-            PreparedStatement st = connection.prepareStatement(sql.toString());
+        try (PreparedStatement st = connection.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
                 st.setObject(i + 1, params.get(i));
             }
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                Order order = mapResultSetToOrder(rs);
-                order.setOrderDetails(loadOrderDetails(order.getOrderId()));
-                list.add(order);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    Order order = mapResultSetToOrder(rs);
+                    order.setOrderDetails(loadOrderDetails(order.getOrderId()));
+                    list.add(order);
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
@@ -204,8 +206,7 @@ public class OrderDAO extends DBContext {
             sql = "UPDATE Orders SET Status = ? WHERE OrderID = ?";
         }
 
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, newStatus);
             st.setInt(2, orderId);
             return st.executeUpdate() > 0;
@@ -216,8 +217,7 @@ public class OrderDAO extends DBContext {
 
     public boolean cancelOrder(int orderId) throws ValidationException {
         String sql = "UPDATE Orders SET Status = 'Cancelled' WHERE OrderID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, orderId);
             return st.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -233,8 +233,7 @@ public class OrderDAO extends DBContext {
         } else {
             sql = "UPDATE Orders SET OrderType = ?, Status = ?, ShipperID = NULL WHERE OrderID = ?";
         }
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, newOrderType);
             st.setString(2, newStatus);
             st.setInt(3, orderId);
@@ -246,8 +245,7 @@ public class OrderDAO extends DBContext {
 
     public boolean updateOrderToDelivery(int orderId, String customerName, String customerPhone, String deliveryAddress, int areaId) throws ValidationException {
         String sql = "UPDATE Orders SET OrderType = 'Delivery', CustomerName = ?, CustomerPhone = ?, DeliveryAddress = ?, AreaID = ?, Status = 'Waiting for dispatch', ShipperID = NULL WHERE OrderID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, customerName);
             st.setString(2, customerPhone);
             st.setString(3, deliveryAddress);
@@ -265,27 +263,29 @@ public class OrderDAO extends DBContext {
                 + "p.CategoryID, p.ProductName, p.Price, p.ImageUrl, p.IsAvailable "
                 + "FROM OrderDetails od LEFT JOIN Products p ON od.ProductID = p.ProductID "
                 + "WHERE od.OrderID = ?";
-        PreparedStatement st = connection.prepareStatement(sql);
-        st.setInt(1, orderId);
-        ResultSet rs = st.executeQuery();
-        while (rs.next()) {
-            OrderDetail detail = new OrderDetail(
-                    rs.getInt("OrderID"),
-                    rs.getInt("ProductID"),
-                    rs.getInt("Quantity"),
-                    rs.getDouble("UnitPrice")
-            );
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setInt(1, orderId);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    OrderDetail detail = new OrderDetail(
+                            rs.getInt("OrderID"),
+                            rs.getInt("ProductID"),
+                            rs.getInt("Quantity"),
+                            rs.getDouble("UnitPrice")
+                    );
 
-            Product product = new Product(
-                    rs.getInt("ProductID"),
-                    rs.getInt("CategoryID"),
-                    rs.getString("ProductName"),
-                    rs.getDouble("Price"),
-                    rs.getString("ImageUrl"),
-                    rs.getBoolean("IsAvailable")
-            );
-            detail.setProduct(product);
-            details.add(detail);
+                    Product product = new Product(
+                            rs.getInt("ProductID"),
+                            rs.getInt("CategoryID"),
+                            rs.getString("ProductName"),
+                            rs.getDouble("Price"),
+                            rs.getString("ImageUrl"),
+                            rs.getBoolean("IsAvailable")
+                    );
+                    detail.setProduct(product);
+                    details.add(detail);
+                }
+            }
         }
         return details;
     }

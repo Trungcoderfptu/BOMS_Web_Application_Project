@@ -72,9 +72,25 @@ public class InventoryManagementController extends HttpServlet {
                 handleUpdateIngredient(request, session, userRole);
             } else if ("delete".equals(action)) {
                 handleDeleteIngredient(request, session, userRole);
+            } else if ("createCategory".equals(action)) {
+                String categoryName = request.getParameter("categoryName");
+                ingredientService.createCategory(categoryName, userRole);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CREATE_INGREDIENT_CATEGORY);
+                response.sendRedirect(request.getContextPath() + "/InventoryManagementController?manageCategory=true");
+                return;
+            } else if ("deleteCategory".equals(action)) {
+                String categoryId = request.getParameter("categoryId");
+                ingredientService.deleteCategory(categoryId, userRole);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_DELETE_INGREDIENT_CATEGORY);
+                response.sendRedirect(request.getContextPath() + "/InventoryManagementController?manageCategory=true");
+                return;
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+            if ("createCategory".equals(action) || "deleteCategory".equals(action)) {
+                response.sendRedirect(request.getContextPath() + "/InventoryManagementController?manageCategory=true");
+                return;
+            }
         }
 
         response.sendRedirect(request.getContextPath() + "/InventoryManagementController");

@@ -5,8 +5,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import service.UserService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 public class RegisterController extends HttpServlet {
@@ -22,12 +24,8 @@ public class RegisterController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        jakarta.servlet.http.HttpSession session = request.getSession();
-        String successMsg = (String) session.getAttribute(Constants.SUCCESS_MESSAGE);
-        if (successMsg != null) {
-            request.setAttribute(Constants.SUCCESS_MESSAGE, successMsg);
-            session.removeAttribute(Constants.SUCCESS_MESSAGE);
-        }
+        HttpSession session = request.getSession();
+        FlashMessageUtil.forwardFlashMessages(request, session);
 
         request.getRequestDispatcher("register.jsp").forward(request, response);
     }

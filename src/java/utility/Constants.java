@@ -27,6 +27,12 @@ public class Constants {
     public static final String ERROR_MESSAGE = "ERROR_MESSAGE";
     public static final String SUCCESS_MESSAGE = "SUCCESS_MESSAGE";
     public static final String ACTIVE_TAB = "ACTIVE_TAB";
+    public static final String CURRENT_CART = "CURRENT_CART";
+    public static final String CURRENT_TABLE = "CURRENT_TABLE";
+    public static final String LAST_ORDER_ID = "LAST_ORDER_ID";
+    public static final String PLACED_ORDER_IDS = "PLACED_ORDER_IDS";
+    public static final String LANG = "LANG";
+    public static final String LAST_TICKET_ID = "LAST_TICKET_ID";
 
     // =========================================================================
     // 3. DẢI MÃ THÀNH CÔNG (SUCCESS CODES - SXXX)
@@ -38,6 +44,8 @@ public class Constants {
 
     // Dải S010X: Hồ sơ cá nhân (Profile)
     public static final String SUCCESS_UPDATE_PROFILE = "S0100";
+    public static final String SUCCESS_UPDATE_AVATAR = "S0103";
+    public static final String SUCCESS_DELETE_AVATAR = "S0104";
 
     // Dải S020X: Bán hàng, Giỏ hàng & Đơn hàng (POS / QR Table)
     public static final String SUCCESS_CHECKOUT = "S0200";
@@ -52,10 +60,24 @@ public class Constants {
     public static final String SUCCESS_CHANGE_PRODUCT_STATUS = "S0210";
     public static final String SUCCESS_DISPATCH_ORDER = "S0211";
     public static final String SUCCESS_REVERT_DELIVERY_ORDER = "S0212";
+    public static final String SUCCESS_CREATE_MENU_CATEGORY = "S0213";
+    public static final String SUCCESS_DELETE_MENU_CATEGORY = "S0214";
 
-    // Dải S030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
-    public static final String SUCCESS_ATTENDANCE_CHECK_IN = "S0301";
-    public static final String SUCCESS_ATTENDANCE_CHECK_OUT = "S0302";
+    // Dải S070X: Quản lý Nhân sự & Chấm công (Time Attendance & HR - Task 10)
+    public static final String SUCCESS_CREATE_SHIFT = "S0701";
+    public static final String SUCCESS_UPDATE_SHIFT = "S0702";
+    public static final String SUCCESS_ASSIGN_SHIFT = "S0703";
+    public static final String SUCCESS_REMOVE_ASSIGNMENT = "S0704";
+    public static final String SUCCESS_APPROVE_ATTENDANCE = "S0705";
+    public static final String SUCCESS_REJECT_ATTENDANCE = "S0706";
+    public static final String SUCCESS_BULK_ASSIGN_SHIFT = "S0707";
+    public static final String SUCCESS_ATTENDANCE_CHECK_IN = "S0708";
+    public static final String SUCCESS_ATTENDANCE_CHECK_OUT = "S0709";
+
+    // Dải S080X: Hệ thống Thông báo & Phát thanh (Task 11)
+    public static final String SUCCESS_MARK_NOTIFICATION_READ = "S0801";
+    public static final String SUCCESS_MARK_ALL_NOTIFICATIONS_READ = "S0802";
+    public static final String SUCCESS_BROADCAST_MESSAGE = "S0803";
     // Dải S030X: Báo cáo ẩn danh (UC-07, UC-08)
     public static final String SUCCESS_SUBMIT_REPORT = "S0300";
     public static final String SUCCESS_UPDATE_REPORT = "S0301";
@@ -65,6 +87,8 @@ public class Constants {
     public static final String SUCCESS_CREATE_INGREDIENT = "S0402";
     public static final String SUCCESS_UPDATE_INGREDIENT = "S0403";
     public static final String SUCCESS_DELETE_INGREDIENT = "S0404";
+    public static final String SUCCESS_CREATE_INGREDIENT_CATEGORY = "S0405";
+    public static final String SUCCESS_DELETE_INGREDIENT_CATEGORY = "S0406";
 
     // Dải S050X: Cảnh báo Tồn kho & Hết hạn (Alerts)
     public static final String SUCCESS_CONFIRM_ALERT = "S0501";
@@ -72,6 +96,9 @@ public class Constants {
 
     // Dải S9XXX: Nghiệp vụ Quản trị hệ thống (Admin)
     public static final String SUCCESS_ACCOUNT_STATE_CHANGE = "S9000";
+    public static final String SUCCESS_ADMIN_RESET_PSW = "S9001";
+    public static final String SUCCESS_ADMIN_CHANGE_ROLE = "S9002";
+    public static final String SUCCESS_REVOKE_KEY = "S9003";
 
     // Dải S060X: Điều phối & Giao hàng (Dispatch & Shipper - UC-09 & UC-10)
     public static final String SUCCESS_ASSIGN_SHIPPER = "S0601";
@@ -86,6 +113,7 @@ public class Constants {
     // 4. DẢI MÃ LỖI NGHIỆP VỤ & XÁC THỰC (EXCEPTION CODES - EXXX)
     // =========================================================================
     // Dải E000X: Xác thực & Đăng nhập (Login)
+    public static final String ERROR_SYSTEM = "E0000";
     public static final String ERROR_USERNAME = "E0001";
     public static final String ERROR_PASSWORD = "E0002";
     public static final String ERROR_ROLE = "E0003";
@@ -104,6 +132,7 @@ public class Constants {
     // Dải E010X: Hồ sơ nhân sự (Profile & Info)
     public static final String ERROR_PROFILE = "E0100";
     public static final String ERROR_NOT_UPDATED = "IE0101";
+    public static final String ERROR_EMPTY_AVATAR = "E0105";
 
     // Dải E100X: Validation định dạng dữ liệu thô (Tầng 1 - Utility)
     public static final String ERROR_USER_LENG = "E1000";
@@ -142,14 +171,35 @@ public class Constants {
     public static final String ERROR_INVALID_DELIVERY_AREA = "E0216";
     public static final String ERROR_ORDER_CANNOT_DISPATCH = "E0217";
     public static final String ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS = "E0218";
+    public static final String ERROR_MENU_CATEGORY_EXISTS = "E0219";
+    public static final String ERROR_MENU_CATEGORY_IN_USE = "E0220";
 
-    // Dải E030X: Quản lý Chấm công & Ca làm việc (Time Attendance - UC-05 & UC-06)
-    public static final String ERROR_ATTENDANCE_NO_SHIFT = "E0301";
-    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_IN = "E0302";
-    public static final String ERROR_ATTENDANCE_NOT_CHECKED_IN = "E0303";
-    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_OUT = "E0304";
-    public static final String ERROR_ATTENDANCE_PENDING_ORDERS = "E0305";
-    public static final String ERROR_ATTENDANCE_EMPTY_OT_REASON = "E0306";
+    // Dải E070X: Quản lý Nhân sự & Chấm công (HR & Shift Management - Task 10)
+    public static final String ERROR_SHIFT_NAME_EMPTY = "E0701";
+    public static final String ERROR_SHIFT_TIME_INVALID = "E0702";
+    public static final String ERROR_SHIFT_EXISTS = "E0703";
+    public static final String ERROR_ASSIGNMENT_EXISTS = "E0704";
+    public static final String ERROR_CANNOT_DELETE_ASSIGNMENT = "E0705";
+    public static final String ERROR_CANNOT_DELETE_SHIFT = "E0706";
+    public static final String ERROR_ATTENDANCE_NOT_FOUND = "E0707";
+    public static final String ERROR_INVALID_DATE_FORMAT = "E0708";
+    public static final String ERROR_USER_NOT_FOUND = "E0709";
+    public static final String ERROR_ATTENDANCE_TOO_EARLY = "E0710";
+    public static final String ERROR_ATTENDANCE_TOO_EARLY_CHECKOUT = "E0711";
+    public static final String ERROR_INVALID_DATE_RANGE = "E0712";
+    public static final String ERROR_EMPTY_DAYS_OF_WEEK = "E0713";
+    public static final String ERROR_NO_ASSIGNMENT_CREATED = "E0714";
+    public static final String ERROR_CANNOT_ASSIGN_NON_STAFF = "E0715";
+    public static final String ERROR_ATTENDANCE_NO_SHIFT = "E0716";
+    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_IN = "E0717";
+    public static final String ERROR_ATTENDANCE_NOT_CHECKED_IN = "E0718";
+    public static final String ERROR_ATTENDANCE_ALREADY_CHECKED_OUT = "E0719";
+    public static final String ERROR_ATTENDANCE_PENDING_ORDERS = "E0720";
+    public static final String ERROR_ATTENDANCE_EMPTY_OT_REASON = "E0721";
+
+    // Dải E080X: Hệ thống Thông báo & Phát thanh (Task 11)
+    public static final String ERROR_EMPTY_BROADCAST_MESSAGE = "E0801";
+    public static final String ERROR_NOTIFICATION_NOT_FOUND = "E0802";
     // Dải E030X: Báo cáo ẩn danh (UC-07, UC-08)
     public static final String ERROR_REPORT_EMPTY_CATEGORY = "E0300";
     public static final String ERROR_REPORT_EMPTY_TITLE = "E0301";
@@ -178,13 +228,22 @@ public class Constants {
     public static final String ERROR_INVALID_INGREDIENT_QTY = "E0406";
     public static final String ERROR_INSUFFICIENT_PERMISSION = "E0407";
     public static final String ERROR_INVALID_INGREDIENT_DATA = "E0408";
+    public static final String ERROR_EMPTY_INGREDIENT_CATEGORY = "E0409";
+    public static final String ERROR_INGREDIENT_CATEGORY_EXISTS = "E0410";
+    public static final String ERROR_INGREDIENT_CATEGORY_IN_USE = "E0411";
 
     // Dải E050X: Cảnh báo Tồn kho & Hết hạn (Alerts)
     public static final String ERROR_ALERT_NOT_FOUND = "E0501";
 
     // Dải E9XXX: Cấu hình & Nghiệp vụ Quản trị (Admin / System)
-    public static final String SERROR_INVALID_SETTING_TAB = "E9000";
+    public static final String ERROR_INVALID_SETTING_TAB = "E9006";
+    public static final String SERROR_INVALID_SETTING_TAB = ERROR_INVALID_SETTING_TAB;
     public static final String ERROR_INVALID_ACTION = "E9000";
+    public static final String ERROR_ADMIN_CANNOT_RESET_SELF_PSW = "E9001";
+    public static final String ERROR_ADMIN_CANNOT_CHANGE_SELF_ROLE = "E9002";
+    public static final String ERROR_INVALID_ROLE_SELECTION = "E9003";
+    public static final String ERROR_KEY_CANNOT_REVOKE = "E9004";
+    public static final String ERROR_SHIPPER_HAS_ACTIVE_ORDERS = "E9005";
 
     // =========================================================================
     // 5. DẢI MÃ LỖI CƠ SỞ DỮ LIỆU (DATABASE EXCEPTION CODES - DEXXX)
@@ -225,9 +284,20 @@ public class Constants {
     public static final String ERROR_DATABASE_UPDATE_ORDER = "DE0017";
 
     // Nhóm Chấm công & Ca làm việc (Attendance DAO)
-    public static final String ERROR_DATABASE_GET_ATTENDANCE = "DE0018";
-    public static final String ERROR_DATABASE_INSERT_ATTENDANCE = "DE0019";
-    public static final String ERROR_DATABASE_UPDATE_ATTENDANCE = "DE0020";
+    public static final String ERROR_DATABASE_GET_ATTENDANCE = "DE0056";
+    public static final String ERROR_DATABASE_INSERT_ATTENDANCE = "DE0057";
+    public static final String ERROR_DATABASE_UPDATE_ATTENDANCE = "DE0058";
+
+    // Nhóm Quản lý Nhân sự & Ca làm việc (HR & Shift Management DAO)
+    public static final String ERROR_DATABASE_INSERT_SHIFT = "DE0051";
+    public static final String ERROR_DATABASE_UPDATE_SHIFT = "DE0052";
+    public static final String ERROR_DATABASE_ASSIGN_SHIFT = "DE0053";
+    public static final String ERROR_DATABASE_DELETE_ASSIGNMENT = "DE0054";
+    public static final String ERROR_DATABASE_APPROVE_ATTENDANCE = "DE0055";
+
+    // Nhóm Thông báo & Phát thanh (Notification DAO - Task 11)
+    public static final String ERROR_DATABASE_GET_NOTIFICATION = "DE0061";
+    public static final String ERROR_DATABASE_UPDATE_NOTIFICATION = "DE0062";
     // Nhóm Báo cáo ẩn danh & Thông báo (Report DAO, Notification DAO)
     public static final String ERROR_DATABASE_GET_REPORT = "DE0030";
     public static final String ERROR_DATABASE_INSERT_REPORT = "DE0031";
@@ -271,6 +341,8 @@ public class Constants {
     public static final String NOTE_SHIPPER_CLAIM = "Shipper chu dong tiep nhan don";
     public static final String NOTE_SHIPPER_ACCEPT = "Shipper xac nhan nhan don";
     public static final String NOTE_SHIPPER_REJECT = "Shipper tu choi nhan don";
+    public static final String NOTE_STAFF_CANCEL_ORDER = "Don hang bi huy boi nhan vien";
+    public static final String NOTE_REVERT_DELIVERY_ORDER = "Thu hoi don giao hang ve phuc vu tai cho";
 
     // ================= DELIVERY DATABASE ERROR CODES =================
     public static final String ERROR_DATABASE_DELIVERY = "DE0040";
@@ -284,4 +356,13 @@ public class Constants {
     public static final String ERROR_CANNOT_REJECT = "E0605";
     public static final String ERROR_SHIPPER_FULL = "E0606";
     public static final String ERROR_EMPTY_FAIL_REASON = "E0607";
+
+    // ================= HR & SHIFT MANAGEMENT =================
+    public static final String ATTENDANCE_STATUS_ON_TIME = "On Time";
+    public static final String ATTENDANCE_STATUS_LATE = "Late";
+    public static final String ATTENDANCE_STATUS_PENDING_EARLY = "Pending Early Approval";
+    public static final String ATTENDANCE_STATUS_LEFT_EARLY = "Left Early";
+    public static final String ATTENDANCE_STATUS_PENDING_OT = "Pending OT Approval";
+    public static final String ATTENDANCE_STATUS_APPROVED = "Approved";
+    public static final String ATTENDANCE_STATUS_REJECTED = "Rejected";
 }

@@ -1,6 +1,7 @@
 package service;
 
 import dao.IngredientDAO;
+import dao.UserDAO;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,9 +15,13 @@ import utility.Validator;
 
 public class IngredientService {
     private final IngredientDAO ingredientDao;
+    private final NotificationService notificationService;
+    private final UserDAO userDAO;
 
     public IngredientService() {
         this.ingredientDao = new IngredientDAO();
+        this.notificationService = new NotificationService();
+        this.userDAO = new UserDAO();
     }
 
     /**
@@ -59,10 +64,34 @@ public class IngredientService {
                 Map<String, Object> m = new HashMap<>();
                 m.put("categoryId", entry.getKey());
                 m.put("categoryName", entry.getValue());
+                m.put("inUse", ingredientDao.isIngredientCategoryInUse(entry.getKey()));
                 list.add(m);
             }
         }
         return list;
+    }
+
+    public void createCategory(String categoryName, String userRole) throws ValidationException {
+        validateManagerPermission(userRole);
+        Validator.checkEmpty(categoryName, Constants.ERROR_EMPTY_INGREDIENT_CATEGORY);
+        Validator.checkMaxLength(categoryName.trim(), 100, Constants.ERROR_EMPTY_INGREDIENT_CATEGORY);
+
+        if (ingredientDao.isIngredientCategoryNameExists(categoryName.trim())) {
+            throw new ValidationException(Constants.ERROR_INGREDIENT_CATEGORY_EXISTS);
+        }
+
+        ingredientDao.insertIngredientCategory(categoryName.trim());
+    }
+
+    public void deleteCategory(String categoryIdStr, String userRole) throws ValidationException {
+        validateManagerPermission(userRole);
+        int categoryId = Validator.checkInteger(categoryIdStr, Constants.ERROR_INGREDIENT_NOT_FOUND);
+
+        if (ingredientDao.isIngredientCategoryInUse(categoryId)) {
+            throw new ValidationException(Constants.ERROR_INGREDIENT_CATEGORY_IN_USE);
+        }
+
+        ingredientDao.deleteIngredientCategory(categoryId);
     }
 
     /**
@@ -151,6 +180,8 @@ public class IngredientService {
         existing.setWarningThreshold(threshold);
 
         ingredientDao.updateIngredient(existing);
+        ingredientDao.resolveExpiryAlertsOnRestock(ingredientId);
+        ingredientDao.closeResolvedStockAlerts();
     }
 
     /**
@@ -223,11 +254,13 @@ public class IngredientService {
                 if (ing.isActive()) {
                     if (ing.getQuantity() <= 0) {
                         if (!ingredientDao.isAlertActive(ing.getIngredientId(), "OutOfStock")) {
-                            ingredientDao.insertInventoryAlert(ing.getIngredientId(), "OutOfStock");
+                            int alertId = ingredientDao.insertInventoryAlert(ing.getIngredientId(), "OutOfStock");
+                            broadcastInventoryAlertNotification(ing, "OutOfStock", alertId);
                         }
                     } else if (ing.getQuantity() <= ing.getWarningThreshold()) {
                         if (!ingredientDao.isAlertActive(ing.getIngredientId(), "LowStock")) {
-                            ingredientDao.insertInventoryAlert(ing.getIngredientId(), "LowStock");
+                            int alertId = ingredientDao.insertInventoryAlert(ing.getIngredientId(), "LowStock");
+                            broadcastInventoryAlertNotification(ing, "LowStock", alertId);
                         }
                     }
                 }
@@ -239,7 +272,9 @@ public class IngredientService {
         if (expiredIds != null) {
             for (Integer ingId : expiredIds) {
                 if (!ingredientDao.isAlertActive(ingId, "Expired")) {
-                    ingredientDao.insertInventoryAlert(ingId, "Expired");
+                    int alertId = ingredientDao.insertInventoryAlert(ingId, "Expired");
+                    Ingredient ing = ingredientDao.getIngredientById(ingId);
+                    broadcastInventoryAlertNotification(ing, "Expired", alertId);
                 }
             }
         }
@@ -249,9 +284,44 @@ public class IngredientService {
         if (expiringSoonIds != null) {
             for (Integer ingId : expiringSoonIds) {
                 if (!ingredientDao.isAlertActive(ingId, "Expiring Soon")) {
-                    ingredientDao.insertInventoryAlert(ingId, "Expiring Soon");
+                    int alertId = ingredientDao.insertInventoryAlert(ingId, "Expiring Soon");
+                    Ingredient ing = ingredientDao.getIngredientById(ingId);
+                    broadcastInventoryAlertNotification(ing, "Expiring Soon", alertId);
                 }
             }
+        }
+    }
+
+    private void broadcastInventoryAlertNotification(Ingredient ing, String alertType, int alertId) {
+        if (ing == null || alertId <= 0) {
+            return;
+        }
+
+        String ingName = ing.getIngredientName() != null ? ing.getIngredientName() : "Nguyên liệu #" + ing.getIngredientId();
+        String unit = ing.getUnit() != null ? ing.getUnit() : "";
+        String message;
+
+        if ("OutOfStock".equalsIgnoreCase(alertType)) {
+            message = "[Hết hàng] Nguyên liệu " + ingName + " đã hết hàng trong kho (Số lượng: 0 " + unit + ")!";
+        } else if ("LowStock".equalsIgnoreCase(alertType)) {
+            message = "[Sắp hết hàng] Nguyên liệu " + ingName + " sắp hết (Còn " + ing.getQuantity() + " " + unit + ", dưới ngưỡng " + ing.getWarningThreshold() + " " + unit + ")!";
+        } else if ("Expired".equalsIgnoreCase(alertType)) {
+            message = "[Đã hết hạn] Nguyên liệu " + ingName + " có lô hàng đã quá hạn sử dụng!";
+        } else if ("Expiring Soon".equalsIgnoreCase(alertType)) {
+            message = "[Sắp hết hạn] Nguyên liệu " + ingName + " có lô hàng sắp hết hạn trong vòng 3 ngày tới!";
+        } else {
+            message = "[Cảnh báo kho] Nguyên liệu " + ingName + " cần kiểm tra (" + alertType + ")!";
+        }
+
+        try {
+            List<Integer> targetUserIds = userDAO.getActiveManagerAndStaffUserIds();
+            if (targetUserIds != null) {
+                for (Integer uid : targetUserIds) {
+                    notificationService.createNotification(uid, "InventoryAlert", alertId, message);
+                }
+            }
+        } catch (Exception ignored) {
+            // Không làm gián đoạn luồng kiểm tra kho nếu phát sinh ngoại lệ gửi thông báo phụ
         }
     }
 

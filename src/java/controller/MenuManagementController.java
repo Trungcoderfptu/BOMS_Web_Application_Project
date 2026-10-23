@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import service.ProductService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ImageUploadUtility;
 import utility.ValidationException;
 
@@ -53,7 +54,7 @@ public class MenuManagementController extends HttpServlet {
             return;
         }
 
-        forwardFlashMessages(request, session);
+        FlashMessageUtil.forwardFlashMessages(request, session);
 
         String filterCategory = request.getParameter("filterCategory");
         if (filterCategory == null || filterCategory.trim().isEmpty()) {
@@ -104,15 +105,7 @@ public class MenuManagementController extends HttpServlet {
                 String productName = request.getParameter("productName");
                 String categoryId = request.getParameter("categoryId");
                 String price = request.getParameter("price");
-                String imageUrl = request.getParameter("imageUrl");
-
-                Part imagePart = getPartSafely(request, "productImageFile");
-                if (imagePart != null && imagePart.getSize() > 0) {
-                    String uploadedPath = ImageUploadUtility.saveImage(imagePart, "products");
-                    if (uploadedPath != null) {
-                        imageUrl = uploadedPath;
-                    }
-                }
+                String imageUrl = resolveImageUrl(request);
 
                 String[] recipeIngredientIds = request.getParameterValues("recipeIngredientId");
                 String[] recipeQuantities = request.getParameterValues("recipeQuantity");
@@ -125,16 +118,8 @@ public class MenuManagementController extends HttpServlet {
                 String productName = request.getParameter("productName");
                 String categoryId = request.getParameter("categoryId");
                 String price = request.getParameter("price");
-                String imageUrl = request.getParameter("imageUrl");
+                String imageUrl = resolveImageUrl(request);
                 String isAvailable = request.getParameter("isAvailable");
-
-                Part imagePart = getPartSafely(request, "productImageFile");
-                if (imagePart != null && imagePart.getSize() > 0) {
-                    String uploadedPath = ImageUploadUtility.saveImage(imagePart, "products");
-                    if (uploadedPath != null) {
-                        imageUrl = uploadedPath;
-                    }
-                }
 
                 String[] recipeIngredientIds = request.getParameterValues("recipeIngredientId");
                 String[] recipeQuantities = request.getParameterValues("recipeQuantity");
@@ -145,9 +130,23 @@ public class MenuManagementController extends HttpServlet {
                 String productId = request.getParameter("productId");
                 productService.toggleProductStatus(productId);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CHANGE_PRODUCT_STATUS);
+            } else if ("createCategory".equals(action)) {
+                String categoryName = request.getParameter("categoryName");
+                productService.createCategory(categoryName);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CREATE_MENU_CATEGORY);
+                redirectUrl = "MenuManagementController?manageCategory=true";
+            } else if ("deleteCategory".equals(action)) {
+                String categoryId = request.getParameter("categoryId");
+                productService.deleteCategory(categoryId);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_DELETE_MENU_CATEGORY);
+                redirectUrl = "MenuManagementController?manageCategory=true";
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+            String action = request.getParameter("action");
+            if ("createCategory".equals(action) || "deleteCategory".equals(action)) {
+                redirectUrl = "MenuManagementController?manageCategory=true";
+            }
         } catch (IllegalStateException e) {
             // Bắt lỗi kích thước file multipart vượt quá trần cấu hình, bảo vệ socket không bị reset
             session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_IMAGE_SIZE_EXCEEDED);
@@ -156,6 +155,18 @@ public class MenuManagementController extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/" + redirectUrl);
+    }
+
+    private String resolveImageUrl(HttpServletRequest request) throws ValidationException {
+        Part imagePart = getPartSafely(request, "productImageFile");
+        if (imagePart != null && imagePart.getSize() > 0) {
+            String uploadedPath = ImageUploadUtility.saveImage(imagePart, "products");
+            if (uploadedPath != null) {
+                return uploadedPath;
+            }
+        }
+        String imageUrl = request.getParameter("imageUrl");
+        return (imageUrl != null && !imageUrl.trim().isEmpty()) ? imageUrl.trim() : null;
     }
 
     private Part getPartSafely(HttpServletRequest request, String partName) {
@@ -190,17 +201,6 @@ public class MenuManagementController extends HttpServlet {
             return false;
         }
         return "Staff".equalsIgnoreCase(role) || "Manager".equalsIgnoreCase(role) || "Admin".equalsIgnoreCase(role);
-    }
-
-    private void forwardFlashMessages(HttpServletRequest request, HttpSession session) {
-        if (session.getAttribute(Constants.SUCCESS_MESSAGE) != null) {
-            request.setAttribute(Constants.SUCCESS_MESSAGE, session.getAttribute(Constants.SUCCESS_MESSAGE));
-            session.removeAttribute(Constants.SUCCESS_MESSAGE);
-        }
-        if (session.getAttribute(Constants.ERROR_MESSAGE) != null) {
-            request.setAttribute(Constants.ERROR_MESSAGE, session.getAttribute(Constants.ERROR_MESSAGE));
-            session.removeAttribute(Constants.ERROR_MESSAGE);
-        }
     }
 
     @Override

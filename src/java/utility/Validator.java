@@ -94,4 +94,23 @@ public class Validator {
             throw new ValidationException(errorMessage);
         }
     }
+
+    public static void validateShiftName(String shiftName) throws ValidationException {
+        checkEmpty(shiftName, Constants.ERROR_SHIFT_NAME_EMPTY);
+        checkMaxLength(shiftName, 50, Constants.ERROR_SHIFT_NAME_EMPTY);
+    }
+
+    public static void validateShiftTime(String startTimeStr, String endTimeStr) throws ValidationException {
+        checkEmpty(startTimeStr, Constants.ERROR_SHIFT_TIME_INVALID);
+        checkEmpty(endTimeStr, Constants.ERROR_SHIFT_TIME_INVALID);
+        try {
+            java.time.LocalTime start = java.time.LocalTime.parse(startTimeStr.trim());
+            java.time.LocalTime end = java.time.LocalTime.parse(endTimeStr.trim());
+            if (!end.isAfter(start)) {
+                throw new ValidationException(Constants.ERROR_SHIFT_TIME_INVALID);
+            }
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new ValidationException(Constants.ERROR_SHIFT_TIME_INVALID);
+        }
+    }
 }

@@ -18,7 +18,9 @@ import utility.Constants;
 import utility.ValidationException;
 
 /**
- *
+ * Điều phối các thao tác giỏ hàng và chốt đơn tại quầy / tại bàn.
+ * Tuân thủ Rule_BOMS.md: không hardcode Session keys.
+ * 
  * @author AD
  */
 public class CartController extends HttpServlet {
@@ -65,7 +67,7 @@ public class CartController extends HttpServlet {
                 handleCancelTableOrderAction(request, session);
             }
         } catch (ValidationException e) {
-            session.setAttribute("ACTIVE_TAB", "cart");
+            session.setAttribute(Constants.ACTIVE_TAB, "cart");
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
         }
 
@@ -77,7 +79,7 @@ public class CartController extends HttpServlet {
         if (tableId != null && !tableId.trim().isEmpty()) {
             return tableId.trim();
         }
-        return (String) session.getAttribute("CURRENT_TABLE");
+        return (String) session.getAttribute(Constants.CURRENT_TABLE);
     }
 
     private String buildRedirectUrl(String tableId) {
@@ -89,70 +91,70 @@ public class CartController extends HttpServlet {
 
     private void handleAddAction(HttpServletRequest request, HttpSession session) throws ValidationException {
         int productId = Integer.parseInt(request.getParameter("productId"));
-        Object currentCart = session.getAttribute("CURRENT_CART");
+        Object currentCart = session.getAttribute(Constants.CURRENT_CART);
         currentCart = cartService.addProductToCart(currentCart, productId);
-        session.setAttribute("CURRENT_CART", currentCart);
+        session.setAttribute(Constants.CURRENT_CART, currentCart);
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ADD_TO_CART);
     }
 
     private void handleUpdateAction(HttpServletRequest request, HttpSession session) throws ValidationException {
         int productId = Integer.parseInt(request.getParameter("productId"));
         int quantity = Integer.parseInt(request.getParameter("quantity"));
-        Object currentCart = session.getAttribute("CURRENT_CART");
+        Object currentCart = session.getAttribute(Constants.CURRENT_CART);
         currentCart = cartService.updateItemQuantity(currentCart, productId, quantity);
-        session.setAttribute("CURRENT_CART", currentCart);
-        session.setAttribute("ACTIVE_TAB", "cart");
+        session.setAttribute(Constants.CURRENT_CART, currentCart);
+        session.setAttribute(Constants.ACTIVE_TAB, "cart");
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_CART);
     }
 
     private void handleRemoveAction(HttpServletRequest request, HttpSession session) throws ValidationException {
         int productId = Integer.parseInt(request.getParameter("productId"));
-        Object currentCart = session.getAttribute("CURRENT_CART");
+        Object currentCart = session.getAttribute(Constants.CURRENT_CART);
         currentCart = cartService.removeItemFromCart(currentCart, productId);
-        session.setAttribute("CURRENT_CART", currentCart);
-        session.setAttribute("ACTIVE_TAB", "cart");
+        session.setAttribute(Constants.CURRENT_CART, currentCart);
+        session.setAttribute(Constants.ACTIVE_TAB, "cart");
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_REMOVE_FROM_CART);
     }
 
     private void handleClearAction(HttpSession session) throws ValidationException {
-        Object currentCart = session.getAttribute("CURRENT_CART");
+        Object currentCart = session.getAttribute(Constants.CURRENT_CART);
         cartService.clearCart(currentCart);
-        session.removeAttribute("CURRENT_CART");
-        session.setAttribute("ACTIVE_TAB", "cart");
+        session.removeAttribute(Constants.CURRENT_CART);
+        session.setAttribute(Constants.ACTIVE_TAB, "cart");
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CLEAR_CART);
     }
 
     private void handleCheckoutAction(HttpSession session, String tableId) throws ValidationException {
-        Object currentCart = session.getAttribute("CURRENT_CART");
+        Object currentCart = session.getAttribute(Constants.CURRENT_CART);
         @SuppressWarnings("unchecked")
         Map<String, String> userSession = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
         int orderId = cartService.checkout(currentCart, tableId, userSession);
-        session.removeAttribute("CURRENT_CART");
-        session.setAttribute("LAST_ORDER_ID", orderId);
+        session.removeAttribute(Constants.CURRENT_CART);
+        session.setAttribute(Constants.LAST_ORDER_ID, orderId);
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CHECKOUT);
         if (tableId != null && !tableId.trim().isEmpty()) {
             recordPlacedOrderForTableSession(session, orderId);
-            session.setAttribute("ACTIVE_TAB", "orders");
+            session.setAttribute(Constants.ACTIVE_TAB, "orders");
         }
     }
 
     @SuppressWarnings("unchecked")
     private void recordPlacedOrderForTableSession(HttpSession session, int orderId) {
-        List<Integer> placedOrderIds = (List<Integer>) session.getAttribute("PLACED_ORDER_IDS");
+        List<Integer> placedOrderIds = (List<Integer>) session.getAttribute(Constants.PLACED_ORDER_IDS);
         if (placedOrderIds == null) {
             placedOrderIds = new ArrayList<>();
         }
         if (!placedOrderIds.contains(orderId)) {
             placedOrderIds.add(orderId);
         }
-        session.setAttribute("PLACED_ORDER_IDS", placedOrderIds);
+        session.setAttribute(Constants.PLACED_ORDER_IDS, placedOrderIds);
     }
 
     private void handleCancelTableOrderAction(HttpServletRequest request, HttpSession session) throws ValidationException {
         int orderId = Integer.parseInt(request.getParameter("orderId"));
         orderService.cancelOrder(orderId);
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CANCEL_ORDER);
-        session.setAttribute("ACTIVE_TAB", "orders");
+        session.setAttribute(Constants.ACTIVE_TAB, "orders");
     }
 
     @Override

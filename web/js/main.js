@@ -168,6 +168,25 @@ function initMainApp() {
         });
     }
 
+    const broadcastModal = document.getElementById('broadcastModal');
+    if (broadcastModal) {
+        broadcastModal.addEventListener('click', function (e) {
+            if (e.target === broadcastModal) {
+                closeBroadcastModal();
+            }
+        });
+    }
+
+    const notifDropdown = document.getElementById('notificationDropdown');
+    const notifBell = document.getElementById('btnNotificationBell');
+    if (notifDropdown && notifBell) {
+        document.addEventListener('click', function (e) {
+            if (!notifDropdown.contains(e.target) && !notifBell.contains(e.target)) {
+                notifDropdown.classList.add('d-none');
+            }
+        });
+    }
+
     initCancelCountdowns();
 
     // ================= ATTENDANCE SERVER CLOCK =================
@@ -198,6 +217,7 @@ function initMainApp() {
         }
     }
     initInventoryAlertPolling();
+    initNotificationPolling();
 }
 
 if (document.readyState === "loading") {
@@ -741,7 +761,14 @@ function openEditProductModal(productId, productName, categoryId, price, imageUr
 
     if (cleanImageUrl) {
         switchImageTab('url');
-        if (previewImg) previewImg.src = cleanImageUrl;
+        if (previewImg) {
+            if (cleanImageUrl.startsWith('http')) {
+                previewImg.src = cleanImageUrl;
+            } else {
+                const basePath = window.location.pathname.substring(0, window.location.pathname.indexOf('/', 1));
+                previewImg.src = (basePath ? basePath + '/' : '/') + cleanImageUrl.replace(/^\//, '');
+            }
+        }
         if (previewBox) previewBox.classList.remove('d-none');
     } else {
         switchImageTab('upload');
@@ -773,20 +800,35 @@ function closeProductModal() {
     }
 }
 
-// ================= ATTENDANCE OT MODAL =================
-function openOtReasonModal() {
-    const modal = document.getElementById('otReasonModal');
+// ================= MENU CATEGORY MODAL =================
+function openMenuCategoryModal() {
+    const modal = document.getElementById('menuCategoryModal');
     if (modal) {
         modal.classList.remove('d-none');
-        const input = document.getElementById('otReasonInput');
-        if (input) {
-            input.focus();
-        }
+        const input = document.getElementById('newMenuCategoryName');
+        if (input) input.focus();
     }
 }
 
-function closeOtReasonModal() {
-    const modal = document.getElementById('otReasonModal');
+function closeMenuCategoryModal() {
+    const modal = document.getElementById('menuCategoryModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+// ================= INVENTORY CATEGORY MODAL =================
+function openInventoryCategoryModal() {
+    const modal = document.getElementById('inventoryCategoryModal');
+    if (modal) {
+        modal.classList.remove('d-none');
+        const input = document.getElementById('newInventoryCategoryName');
+        if (input) input.focus();
+    }
+}
+
+function closeInventoryCategoryModal() {
+    const modal = document.getElementById('inventoryCategoryModal');
     if (modal) {
         modal.classList.add('d-none');
     }
@@ -796,6 +838,8 @@ function closeOtReasonModal() {
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         if (typeof closeProductModal === 'function') closeProductModal();
+        if (typeof closeMenuCategoryModal === 'function') closeMenuCategoryModal();
+        if (typeof closeInventoryCategoryModal === 'function') closeInventoryCategoryModal();
         if (typeof closeOtReasonModal === 'function') closeOtReasonModal();
         if (typeof closeInventoryModal === 'function') closeInventoryModal();
         if (typeof closeThresholdModal === 'function') closeThresholdModal();
@@ -806,6 +850,18 @@ document.addEventListener('keydown', function(event) {
         if (typeof closeDeliveryInfoModal === 'function') closeDeliveryInfoModal();
         if (typeof closeShipperCompleteModal === 'function') closeShipperCompleteModal();
         if (typeof closeShipperFailModal === 'function') closeShipperFailModal();
+    }
+});
+
+// Auto open category modal if manageCategory query param is present (Option A)
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('manageCategory') === 'true') {
+        if (document.getElementById('menuCategoryModal')) {
+            openMenuCategoryModal();
+        } else if (document.getElementById('inventoryCategoryModal')) {
+            openInventoryCategoryModal();
+        }
     }
 });
 
@@ -1087,4 +1143,357 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
+}
+
+// ================= HR & SHIFT MANAGEMENT MODAL HANDLERS =================
+function openCreateShiftModal() {
+    const modal = document.getElementById('shiftModal');
+    const form = modal ? modal.querySelector('form') : null;
+    if (form) {
+        form.reset();
+        const actionInput = document.getElementById('shiftModalAction');
+        const idInput = document.getElementById('shiftModalId');
+        if (actionInput) actionInput.value = 'createShift';
+        if (idInput) idInput.value = '0';
+    }
+    if (modal) {
+        modal.classList.remove('d-none');
+    }
+}
+
+function openEditShiftModal(shiftId, shiftName, startTime, endTime) {
+    const modal = document.getElementById('shiftModal');
+    if (!modal) return;
+    const actionInput = document.getElementById('shiftModalAction');
+    const idInput = document.getElementById('shiftModalId');
+    const nameInput = document.getElementById('shiftNameInput');
+    const startInput = document.getElementById('startTimeInput');
+    const endInput = document.getElementById('endTimeInput');
+
+    if (actionInput) actionInput.value = 'updateShift';
+    if (idInput) idInput.value = shiftId;
+    if (nameInput) nameInput.value = shiftName || '';
+    if (startInput) startInput.value = startTime || '';
+    if (endInput) endInput.value = endTime || '';
+
+    modal.classList.remove('d-none');
+}
+
+function closeShiftModal() {
+    const modal = document.getElementById('shiftModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function openAssignShiftModal() {
+    const modal = document.getElementById('assignShiftModal');
+    if (modal) {
+        modal.classList.remove('d-none');
+        setAssignMode('single');
+    }
+}
+
+function openQuickAssignModal(userId, fullName, date) {
+    const modal = document.getElementById('assignShiftModal');
+    if (modal) {
+        setAssignMode('single');
+        const userSelect = document.getElementById('assignUserIdSelect');
+        if (userSelect && userId) {
+            userSelect.value = userId;
+        }
+        const workDateInput = document.getElementById('assignWorkDateInput');
+        if (workDateInput && date) {
+            workDateInput.value = date;
+        }
+        modal.classList.remove('d-none');
+    }
+}
+
+function closeAssignShiftModal() {
+    const modal = document.getElementById('assignShiftModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+function setAssignMode(mode) {
+    const btnSingle = document.getElementById('btnModeSingle');
+    const btnBulk = document.getElementById('btnModeBulk');
+    const secSingle = document.getElementById('sectionSingleDate');
+    const secBulk = document.getElementById('sectionBulkDate');
+    const actionInput = document.getElementById('assignFormAction');
+    const workDateInput = document.getElementById('assignWorkDateInput');
+    const startDateInput = document.getElementById('bulkStartDateInput');
+    const endDateInput = document.getElementById('bulkEndDateInput');
+
+    if (!btnSingle || !btnBulk) return;
+
+    if (mode === 'bulk') {
+        btnSingle.classList.remove('active');
+        btnBulk.classList.add('active');
+        if (secSingle) secSingle.classList.add('d-none');
+        if (secBulk) secBulk.classList.remove('d-none');
+        if (actionInput) actionInput.value = 'bulkAssignShift';
+        if (workDateInput) workDateInput.removeAttribute('required');
+        if (startDateInput) startDateInput.setAttribute('required', 'required');
+        if (endDateInput) endDateInput.setAttribute('required', 'required');
+    } else {
+        btnBulk.classList.remove('active');
+        btnSingle.classList.add('active');
+        if (secBulk) secBulk.classList.add('d-none');
+        if (secSingle) secSingle.classList.remove('d-none');
+        if (actionInput) actionInput.value = 'assignShift';
+        if (workDateInput) workDateInput.setAttribute('required', 'required');
+        if (startDateInput) startDateInput.removeAttribute('required');
+        if (endDateInput) endDateInput.removeAttribute('required');
+    }
+}
+
+function selectWeekdays(type) {
+    const checkboxes = document.querySelectorAll('.day-cb');
+    checkboxes.forEach(cb => {
+        const val = parseInt(cb.value, 10);
+        if (type === 'all') {
+            cb.checked = true;
+        } else if (type === 'workdays') {
+            cb.checked = (val >= 1 && val <= 5);
+        }
+    });
+}
+
+// ================= NOTIFICATION & BROADCAST (TASK 11) =================
+let __latestNotifications = [];
+
+function initNotificationPolling() {
+    const notifBell = document.getElementById('btnNotificationBell');
+    if (!notifBell) return;
+
+    // Initial fetch
+    pollNotifications();
+
+    // Polling every 30 seconds
+    setInterval(pollNotifications, 30000);
+}
+
+function pollNotifications() {
+    const badge = document.getElementById('unreadNotifBadge');
+    if (!badge) return;
+
+    fetch('NotificationController?action=getUnread', { cache: 'no-store' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (!data || !data.success) return;
+            const count = data.unreadCount || 0;
+            updateNotificationBadge(count);
+        })
+        .catch(function (err) {
+            // Silently catch background polling errors
+        });
+}
+
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('unreadNotifBadge');
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('d-none');
+        badge.classList.add('alert-badge-pulse');
+    } else {
+        badge.textContent = '0';
+        badge.classList.add('d-none');
+        badge.classList.remove('alert-badge-pulse');
+    }
+}
+
+function toggleNotificationDropdown(event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const dropdown = document.getElementById('notificationDropdown');
+    if (!dropdown) return;
+
+    const isHidden = dropdown.classList.contains('d-none');
+    if (isHidden) {
+        dropdown.classList.remove('d-none');
+        loadRecentNotifications();
+    } else {
+        dropdown.classList.add('d-none');
+    }
+}
+
+function loadRecentNotifications() {
+    const loading = document.getElementById('notificationLoading');
+    const emptyState = document.getElementById('notificationEmptyState');
+    const list = document.getElementById('notificationItemsList');
+    if (!list) return;
+
+    if (loading) loading.classList.remove('d-none');
+    if (emptyState) emptyState.classList.add('d-none');
+    list.innerHTML = '';
+
+    fetch('NotificationController?action=getRecent&limit=10', { cache: 'no-store' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (loading) loading.classList.add('d-none');
+            if (!data || !data.success) {
+                if (emptyState) emptyState.classList.remove('d-none');
+                return;
+            }
+
+            const notifs = data.notifications || [];
+            __latestNotifications = notifs;
+            updateNotificationBadge(data.unreadCount || 0);
+
+            if (notifs.length === 0) {
+                if (emptyState) emptyState.classList.remove('d-none');
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('d-none');
+            renderNotificationList(notifs);
+        })
+        .catch(function (err) {
+            if (loading) loading.classList.add('d-none');
+            if (emptyState) emptyState.classList.remove('d-none');
+        });
+}
+
+function renderNotificationList(notifications) {
+    const list = document.getElementById('notificationItemsList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    notifications.forEach(function (n) {
+        const li = document.createElement('li');
+        li.className = 'notification-item' + (n.isRead ? '' : ' unread');
+        li.id = 'notifItem_' + n.notificationId;
+
+        const icon = n.icon || '🔔';
+        const markReadHtml = n.isRead ? '' : '<button type="button" class="btn-mark-read-item" onclick="event.stopPropagation(); markNotificationAsRead(' + n.notificationId + ')">&#10003;</button>';
+        const unreadDot = n.isRead ? '' : '<span class="notification-unread-dot"></span>';
+
+        li.innerHTML = '<div class="notification-icon-box">' + icon + '</div>'
+            + '<div class="notification-content-box">'
+            + '  <div class="notification-message">' + escapeHtml(n.message) + '</div>'
+            + '  <div class="notification-meta">'
+            + '    <span>' + escapeHtml(n.createdAt) + '</span>'
+            + '    <div>' + markReadHtml + '</div>'
+            + '  </div>'
+            + '</div>'
+            + unreadDot;
+
+        if (!n.isRead) {
+            li.addEventListener('click', function () {
+                markNotificationAsRead(n.notificationId);
+            });
+        }
+
+        list.appendChild(li);
+    });
+}
+
+function markNotificationAsRead(notificationId) {
+    if (!notificationId) return;
+
+    fetch('NotificationController', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=markAsRead&notificationId=' + encodeURIComponent(notificationId)
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+        if (data && data.success) {
+            // 1. Cập nhật số lượng thông báo chưa đọc trên Badge chuông
+            if (data.unreadCount !== undefined) {
+                updateNotificationBadge(data.unreadCount);
+            }
+
+            // 2. Xóa thông báo khỏi Dropdown Header và hiển thị Empty State nếu danh sách trống
+            const item = document.getElementById('notifItem_' + notificationId);
+            if (item) {
+                item.remove();
+            }
+            const list = document.getElementById('notificationItemsList');
+            const emptyState = document.getElementById('notificationEmptyState');
+            if (list && list.children.length === 0 && emptyState) {
+                emptyState.classList.remove('d-none');
+            }
+
+            // 3. Đồng bộ giao diện bảng tin trên Dashboard Feed (index.jsp): gỡ class unread và dấu chấm đỏ
+            const feedItem = document.getElementById('feedItem_' + notificationId);
+            if (feedItem) {
+                feedItem.classList.remove('unread');
+                const feedDot = feedItem.querySelector('.notification-unread-dot');
+                if (feedDot) feedDot.remove();
+            }
+        }
+    })
+    .catch(function (err) {
+        // Silently ignore
+    });
+}
+
+function markAllNotificationsAsRead() {
+    fetch('NotificationController', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=markAllAsRead'
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+        if (data && data.success) {
+            // 1. Cập nhật Badge chuông về 0 (ẩn)
+            updateNotificationBadge(0);
+
+            // 2. Xóa toàn bộ danh sách trong Dropdown và hiển thị Empty State
+            const list = document.getElementById('notificationItemsList');
+            if (list) {
+                list.innerHTML = '';
+            }
+            const emptyState = document.getElementById('notificationEmptyState');
+            if (emptyState) {
+                emptyState.classList.remove('d-none');
+            }
+
+            // 3. Đồng bộ toàn bộ các tin trên Dashboard Feed (index.jsp) sang trạng thái đã đọc
+            const feedItems = document.querySelectorAll('.feed-item.unread');
+            feedItems.forEach(function (el) {
+                el.classList.remove('unread');
+                const dot = el.querySelector('.notification-unread-dot');
+                if (dot) dot.remove();
+            });
+        }
+    })
+    .catch(function (err) {
+        // Silently ignore
+    });
+}
+
+// ================= BROADCAST MODAL HANDLERS =================
+function openBroadcastModal() {
+    const modal = document.getElementById('broadcastModal');
+    if (!modal) return;
+    modal.classList.remove('d-none');
+    const input = document.getElementById('broadcastMessageInput');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+}
+
+function closeBroadcastModal() {
+    const modal = document.getElementById('broadcastModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
+// ================= BANNED ACCOUNT POPUP =================
+function closeBannedPopup() {
+    const popup = document.getElementById('bannedPopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
 }

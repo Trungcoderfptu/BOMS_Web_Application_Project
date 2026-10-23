@@ -44,6 +44,7 @@ CREATE TABLE Users (
     Role          VARCHAR(20)    NOT NULL,
     HireDate      DATE           NULL,
     Address       NVARCHAR(255)  NULL,
+    Avatar        VARCHAR(255)   NULL,
     IsActive      BIT            NOT NULL DEFAULT 1,
     CONSTRAINT CK_Users_Role CHECK (Role IN ('Admin', 'Manager', 'Staff', 'Shipper'))
 );

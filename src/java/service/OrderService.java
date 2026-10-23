@@ -113,10 +113,10 @@ public class OrderService {
             if ("Delivery".equalsIgnoreCase(currentOrder.getOrderType()) && currentOrder.getShipperId() != null && currentOrder.getShipperId() > 0) {
                 int sId = currentOrder.getShipperId();
                 deliveryDAO.insertStatusHistory(new DeliveryStatusHistory(
-                        0, orderId, sId, "Cancelled", "Don hang bi huy boi nhan vien", null, new java.sql.Timestamp(System.currentTimeMillis())
+                        0, orderId, sId, "Cancelled", Constants.NOTE_STAFF_CANCEL_ORDER, null, new java.sql.Timestamp(System.currentTimeMillis())
                 ));
                 int activeCount = deliveryDAO.countActiveOrdersByShipperId(sId);
-                deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? "Ready" : "Delivering"), activeCount);
+                deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? Constants.SHIPPER_STATUS_READY : Constants.SHIPPER_STATUS_DELIVERING), activeCount);
             }
             // Chuyển sang Cancelled -> hoàn trả kho nguyên liệu
             restoreOrderIngredients(currentOrder);
@@ -139,10 +139,10 @@ public class OrderService {
         if ("Delivery".equalsIgnoreCase(order.getOrderType()) && order.getShipperId() != null && order.getShipperId() > 0) {
             int sId = order.getShipperId();
             deliveryDAO.insertStatusHistory(new DeliveryStatusHistory(
-                    0, orderId, sId, "Cancelled", "Don hang bi huy boi nhan vien", null, new java.sql.Timestamp(System.currentTimeMillis())
+                    0, orderId, sId, "Cancelled", Constants.NOTE_STAFF_CANCEL_ORDER, null, new java.sql.Timestamp(System.currentTimeMillis())
             ));
             int activeCount = deliveryDAO.countActiveOrdersByShipperId(sId);
-            deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? "Ready" : "Delivering"), activeCount);
+            deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? Constants.SHIPPER_STATUS_READY : Constants.SHIPPER_STATUS_DELIVERING), activeCount);
         }
         restoreOrderIngredients(order);
         boolean cancelled = orderDAO.cancelOrder(orderId);
@@ -166,12 +166,12 @@ public class OrderService {
         if (shipperId != null && shipperId > 0) {
             DeliveryStatusHistory history = new DeliveryStatusHistory(
                     0, order.getOrderId(), shipperId, newStatus,
-                    "Thu hoi don giao hang ve phuc vu tai cho", null, new java.sql.Timestamp(System.currentTimeMillis())
+                    Constants.NOTE_REVERT_DELIVERY_ORDER, null, new java.sql.Timestamp(System.currentTimeMillis())
             );
             deliveryDAO.insertStatusHistory(history);
 
             int activeCount = deliveryDAO.countActiveOrdersByShipperId(shipperId);
-            String shipperStatus = (activeCount == 0) ? "Ready" : "Delivering";
+            String shipperStatus = (activeCount == 0) ? Constants.SHIPPER_STATUS_READY : Constants.SHIPPER_STATUS_DELIVERING;
             deliveryDAO.updateShipperStatusAndCount(shipperId, shipperStatus, activeCount);
         }
 

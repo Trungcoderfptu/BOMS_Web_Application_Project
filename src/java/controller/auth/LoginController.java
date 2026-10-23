@@ -50,11 +50,13 @@ public class LoginController extends HttpServlet {
 
             HttpSession session = request.getSession();
             // Dọn dẹp phiên khách vãng lai cũ nếu có (bàn và giỏ hàng)
-            session.removeAttribute("CURRENT_TABLE");
-            session.removeAttribute("CURRENT_CART");
+            session.removeAttribute(Constants.CURRENT_TABLE);
+            session.removeAttribute(Constants.CURRENT_CART);
+            session.removeAttribute(Constants.PLACED_ORDER_IDS);
+            session.removeAttribute(Constants.ACTIVE_TAB);
             session.setAttribute(Constants.USER_SESSION, loginUser);
 
-            response.sendRedirect("index.jsp");
+            response.sendRedirect("DashboardController");
 
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());

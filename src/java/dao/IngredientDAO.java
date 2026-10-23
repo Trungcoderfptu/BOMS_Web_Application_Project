@@ -25,9 +25,8 @@ public class IngredientDAO extends DBContext {
         List<Ingredient> list = new ArrayList<>();
         String sql = "SELECT IngredientID, CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive "
                 + "FROM Ingredients ORDER BY IngredientID ASC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+        try (PreparedStatement st = connection.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
                 list.add(mapResultSetToIngredient(rs));
             }
@@ -40,12 +39,12 @@ public class IngredientDAO extends DBContext {
     public Ingredient getIngredientById(int ingredientId) throws ValidationException {
         String sql = "SELECT IngredientID, CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive "
                 + "FROM Ingredients WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, ingredientId);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                return mapResultSetToIngredient(rs);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToIngredient(rs);
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
@@ -56,17 +55,17 @@ public class IngredientDAO extends DBContext {
     public List<ProductIngredient> getIngredientsByProductId(int productId) throws ValidationException {
         List<ProductIngredient> result = new ArrayList<>();
         String sql = "SELECT ProductID, IngredientID, QuantityUsed FROM ProductIngredients WHERE ProductID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, productId);
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                ProductIngredient pi = new ProductIngredient(
-                        rs.getInt("ProductID"),
-                        rs.getInt("IngredientID"),
-                        rs.getDouble("QuantityUsed")
-                );
-                result.add(pi);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    ProductIngredient pi = new ProductIngredient(
+                            rs.getInt("ProductID"),
+                            rs.getInt("IngredientID"),
+                            rs.getDouble("QuantityUsed")
+                    );
+                    result.add(pi);
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
@@ -77,12 +76,12 @@ public class IngredientDAO extends DBContext {
     public List<Integer> getProductIdsUsingIngredient(int ingredientId) throws ValidationException {
         List<Integer> productIds = new ArrayList<>();
         String sql = "SELECT DISTINCT ProductID FROM ProductIngredients WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, ingredientId);
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                productIds.add(rs.getInt("ProductID"));
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    productIds.add(rs.getInt("ProductID"));
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
@@ -92,8 +91,7 @@ public class IngredientDAO extends DBContext {
 
     public void deductStock(int ingredientId, double amount) throws ValidationException {
         String sql = "UPDATE Ingredients SET Quantity = CASE WHEN Quantity - ? < 0 THEN 0 ELSE Quantity - ? END WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setDouble(1, amount);
             st.setDouble(2, amount);
             st.setInt(3, ingredientId);
@@ -105,8 +103,7 @@ public class IngredientDAO extends DBContext {
 
     public void updateIngredientQuantity(int ingredientId, double newQuantity) throws ValidationException {
         String sql = "UPDATE Ingredients SET Quantity = ? WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setDouble(1, newQuantity);
             st.setInt(2, ingredientId);
             st.executeUpdate();
@@ -117,8 +114,7 @@ public class IngredientDAO extends DBContext {
 
     public void restoreStock(int ingredientId, double amount) throws ValidationException {
         String sql = "UPDATE Ingredients SET Quantity = Quantity + ? WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setDouble(1, amount);
             st.setInt(2, ingredientId);
             st.executeUpdate();
@@ -133,13 +129,13 @@ public class IngredientDAO extends DBContext {
                 + "FROM ProductIngredients pi "
                 + "JOIN Ingredients i ON pi.IngredientID = i.IngredientID "
                 + "WHERE pi.ProductID = ? AND i.Quantity < (pi.QuantityUsed * ?)";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, productId);
             st.setInt(2, quantity);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("LackingCount") == 0;
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("LackingCount") == 0;
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
@@ -150,8 +146,7 @@ public class IngredientDAO extends DBContext {
     public void insertIngredient(Ingredient ing) throws ValidationException {
         String sql = "INSERT INTO Ingredients (CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        try (PreparedStatement st = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             st.setInt(1, ing.getCategoryId());
             st.setString(2, ing.getIngredientName());
             st.setString(3, ing.getUnit());
@@ -161,9 +156,10 @@ public class IngredientDAO extends DBContext {
             st.setDouble(7, ing.getWarningThreshold());
             st.setBoolean(8, ing.isActive());
             st.executeUpdate();
-            ResultSet rs = st.getGeneratedKeys();
-            if (rs.next()) {
-                ing.setIngredientId(rs.getInt(1));
+            try (ResultSet rs = st.getGeneratedKeys()) {
+                if (rs.next()) {
+                    ing.setIngredientId(rs.getInt(1));
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
@@ -173,8 +169,7 @@ public class IngredientDAO extends DBContext {
     public void updateIngredient(Ingredient ing) throws ValidationException {
         String sql = "UPDATE Ingredients SET CategoryID = ?, IngredientName = ?, Unit = ?, Quantity = ?, Price = ?, "
                 + "StorageLocation = ?, WarningThreshold = ?, IsActive = ? WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, ing.getCategoryId());
             st.setString(2, ing.getIngredientName());
             st.setString(3, ing.getUnit());
@@ -193,8 +188,7 @@ public class IngredientDAO extends DBContext {
     public void deleteIngredient(int ingredientId) throws ValidationException {
         // Xóa mềm: Chuyển IsActive = false
         String sql = "UPDATE Ingredients SET IsActive = 0 WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, ingredientId);
             st.executeUpdate();
         } catch (SQLException e) {
@@ -204,8 +198,7 @@ public class IngredientDAO extends DBContext {
 
     public void insertProductIngredient(ProductIngredient pi) throws ValidationException {
         String sql = "INSERT INTO ProductIngredients (ProductID, IngredientID, QuantityUsed) VALUES (?, ?, ?)";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, pi.getProductId());
             st.setInt(2, pi.getIngredientId());
             st.setDouble(3, pi.getQuantityUsed());
@@ -217,8 +210,7 @@ public class IngredientDAO extends DBContext {
 
     public void deleteProductIngredientsByProductId(int productId) throws ValidationException {
         String sql = "DELETE FROM ProductIngredients WHERE ProductID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, productId);
             st.executeUpdate();
         } catch (SQLException e) {
@@ -242,8 +234,7 @@ public class IngredientDAO extends DBContext {
     
     public boolean updateThresholdIngredient(int ingredientId, double threshold) throws ValidationException {
         String sql = "UPDATE Ingredients SET WarningThreshold = ? WHERE IngredientID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setDouble(1, threshold);
             st.setInt(2, ingredientId);
             st.executeUpdate();
@@ -255,13 +246,13 @@ public class IngredientDAO extends DBContext {
 
     public boolean isIngredientNameExists(String name, int excludeId) throws ValidationException {
         String sql = "SELECT COUNT(*) FROM Ingredients WHERE LOWER(IngredientName) = LOWER(?) AND IngredientID != ? AND IsActive = 1";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, name.trim());
             st.setInt(2, excludeId);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
@@ -273,14 +264,14 @@ public class IngredientDAO extends DBContext {
         List<Ingredient> search = new ArrayList<>();
         String sql = "SELECT IngredientID, CategoryID, IngredientName, Unit, Quantity, Price, StorageLocation, WarningThreshold, IsActive "
                 + "FROM Ingredients WHERE (IngredientName LIKE '%' + ? + '%' OR ? = '') AND IsActive = 1 ORDER BY IngredientID ASC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             String term = (ingredientName != null) ? ingredientName.trim() : "";
             st.setString(1, term);
             st.setString(2, term);
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                search.add(mapResultSetToIngredient(rs));
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    search.add(mapResultSetToIngredient(rs));
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
@@ -291,9 +282,8 @@ public class IngredientDAO extends DBContext {
     public java.util.Map<Integer, String> getIngredientCategoryMap() throws ValidationException {
         java.util.Map<Integer, String> map = new java.util.HashMap<>();
         String sql = "SELECT CategoryID, CategoryName FROM IngredientCategories ORDER BY CategoryID ASC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+        try (PreparedStatement st = connection.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
                 map.put(rs.getInt("CategoryID"), rs.getString("CategoryName"));
             }
@@ -302,6 +292,56 @@ public class IngredientDAO extends DBContext {
         }
         return map;
     }
+
+    public boolean isIngredientCategoryNameExists(String categoryName) throws ValidationException {
+        String sql = "SELECT COUNT(1) FROM IngredientCategories WHERE LOWER(CategoryName) = LOWER(?)";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setString(1, categoryName.trim());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
+        }
+    }
+
+    public void insertIngredientCategory(String categoryName) throws ValidationException {
+        String sql = "INSERT INTO IngredientCategories (CategoryName) VALUES (?)";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setString(1, categoryName.trim());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
+        }
+    }
+
+    public boolean isIngredientCategoryInUse(int categoryId) throws ValidationException {
+        String sql = "SELECT COUNT(1) FROM Ingredients WHERE CategoryID = ?";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setInt(1, categoryId);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_INGREDIENT);
+        }
+    }
+
+    public void deleteIngredientCategory(int categoryId) throws ValidationException {
+        String sql = "DELETE FROM IngredientCategories WHERE CategoryID = ?";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setInt(1, categoryId);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_INGREDIENT);
+        }
+    }
     
     // =========================================================================
     // INVENTORY ALERTS (FE-04)
@@ -309,13 +349,13 @@ public class IngredientDAO extends DBContext {
 
     public boolean isAlertActive(int ingredientId, String alertType) throws ValidationException {
         String sql = "SELECT COUNT(*) FROM InventoryAlerts WHERE IngredientID = ? AND AlertType = ? AND Status IN ('Active', 'Confirmed')";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, ingredientId);
             st.setString(2, alertType);
-            ResultSet rs = st.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_ALERT);
@@ -323,13 +363,35 @@ public class IngredientDAO extends DBContext {
         return false;
     }
 
-    public void insertInventoryAlert(int ingredientId, String alertType) throws ValidationException {
+    public int insertInventoryAlert(int ingredientId, String alertType) throws ValidationException {
         String sql = "INSERT INTO InventoryAlerts (IngredientID, AlertType, Status, CreatedAt) VALUES (?, ?, 'Active', GETDATE())";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
             st.setInt(1, ingredientId);
             st.setString(2, alertType);
             st.executeUpdate();
+            try (ResultSet rs = st.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+            return 0;
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ALERT);
+        }
+    }
+
+    public void resolveExpiryAlertsOnRestock(int ingredientId) throws ValidationException {
+        String updateBatchesSql = "UPDATE IngredientBatches SET Quantity = 0 WHERE IngredientID = ? AND ExpirationDate <= DATEADD(day, 3, CAST(GETDATE() AS DATE)) AND Quantity > 0";
+        String closeAlertsSql = "UPDATE InventoryAlerts SET Status = 'Closed' WHERE IngredientID = ? AND AlertType IN ('Expired', 'Expiring Soon') AND Status IN ('Active', 'Confirmed')";
+        try {
+            try (PreparedStatement stBatches = connection.prepareStatement(updateBatchesSql)) {
+                stBatches.setInt(1, ingredientId);
+                stBatches.executeUpdate();
+            }
+            try (PreparedStatement stAlerts = connection.prepareStatement(closeAlertsSql)) {
+                stAlerts.setInt(1, ingredientId);
+                stAlerts.executeUpdate();
+            }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ALERT);
         }
@@ -345,9 +407,8 @@ public class IngredientDAO extends DBContext {
                 + "LEFT JOIN Users u ON a.ConfirmedBy = u.UserID "
                 + "WHERE a.Status IN ('Active', 'Confirmed') AND i.IsActive = 1 "
                 + "ORDER BY a.CreatedAt DESC";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+        try (PreparedStatement st = connection.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
                 Ingredient ing = mapResultSetToIngredient(rs);
                 IngredientAlert alert = new IngredientAlert();
@@ -381,8 +442,7 @@ public class IngredientDAO extends DBContext {
 
     public void confirmAlert(int alertId, int userId) throws ValidationException {
         String sql = "UPDATE InventoryAlerts SET Status = 'Confirmed', ConfirmedBy = ?, ConfirmedAt = GETDATE() WHERE AlertID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             if (userId > 0) {
                 st.setInt(1, userId);
             } else {
@@ -397,8 +457,7 @@ public class IngredientDAO extends DBContext {
 
     public void closeAlert(int alertId) throws ValidationException {
         String sql = "UPDATE InventoryAlerts SET Status = 'Closed' WHERE AlertID = ?";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, alertId);
             st.executeUpdate();
         } catch (SQLException e) {
@@ -413,8 +472,7 @@ public class IngredientDAO extends DBContext {
                 + "WHERE a.Status IN ('Active', 'Confirmed') "
                 + "  AND a.AlertType IN ('LowStock', 'OutOfStock') "
                 + "  AND i.Quantity > i.WarningThreshold";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.executeUpdate();
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_ALERT);
@@ -428,9 +486,8 @@ public class IngredientDAO extends DBContext {
                 + "JOIN Ingredients i ON b.IngredientID = i.IngredientID "
                 + "WHERE b.ExpirationDate < CAST(GETDATE() AS DATE) "
                 + "  AND b.Quantity > 0 AND i.IsActive = 1";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
+        try (PreparedStatement st = connection.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
                 list.add(rs.getInt("IngredientID"));
             }
@@ -448,12 +505,12 @@ public class IngredientDAO extends DBContext {
                 + "WHERE b.ExpirationDate >= CAST(GETDATE() AS DATE) "
                 + "  AND b.ExpirationDate <= DATEADD(day, ?, CAST(GETDATE() AS DATE)) "
                 + "  AND b.Quantity > 0 AND i.IsActive = 1";
-        try {
-            PreparedStatement st = connection.prepareStatement(sql);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, withinDays);
-            ResultSet rs = st.executeQuery();
-            while (rs.next()) {
-                list.add(rs.getInt("IngredientID"));
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    list.add(rs.getInt("IngredientID"));
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_ALERT);

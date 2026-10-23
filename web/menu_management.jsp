@@ -10,9 +10,14 @@
 <main class="main-content">
     <div class="flex-between mt-15 mb-20">
         <h2 class="m-0"><fmt:message key="menu.mgmt.heading" /></h2>
-        <button type="button" class="btn-login" onclick="openCreateProductModal()">
-            + <fmt:message key="menu.mgmt.btn.add" />
-        </button>
+        <div class="d-flex gap-10">
+            <button type="button" class="btn-login btn-secondary" onclick="openMenuCategoryModal()">
+                📁 <fmt:message key="menu.category.btn.manage" />
+            </button>
+            <button type="button" class="btn-login" onclick="openCreateProductModal()">
+                + <fmt:message key="menu.mgmt.btn.add" />
+            </button>
+        </div>
     </div>
 
     <%-- Flash Message Thông Báo Một Lần (Chuẩn PRG) --%>
@@ -79,8 +84,14 @@
                             <td class="text-center">
                                 <c:choose>
                                     <c:when test="${not empty product.imageUrl}">
-                                        <c:set var="mgmtImgSrc" value="${fn:startsWith(product.imageUrl, 'http') ? product.imageUrl : pageContext.request.contextPath.concat('/').concat(product.imageUrl)}" />
-                                        <img src="${mgmtImgSrc}" alt="${product.productName}" class="menu-thumb" />
+                                        <c:choose>
+                                            <c:when test="${fn:startsWith(product.imageUrl, 'http')}">
+                                                <img src="${product.imageUrl}" alt="${product.productName}" class="menu-thumb" />
+                                            </c:when>
+                                            <c:otherwise>
+                                                <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${product.productName}" class="menu-thumb" />
+                                            </c:otherwise>
+                                        </c:choose>
                                     </c:when>
                                     <c:otherwise>
                                         <div class="menu-thumb-placeholder">☕</div>

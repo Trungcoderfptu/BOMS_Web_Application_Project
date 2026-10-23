@@ -132,3 +132,98 @@
         </form>
     </div>
 </div>
+
+<%-- MODAL 3: QUẢN LÝ DANH MỤC KHO NGUYÊN LIỆU --%>
+<div id="inventoryCategoryModal" class="modal-overlay d-none" onclick="if(event.target === this) closeInventoryCategoryModal();">
+    <div class="modal-card modal-card-md">
+        <div class="modal-header">
+            <h3 class="m-0"><fmt:message key="inventory.category.modal.title" /></h3>
+            <button type="button" class="btn-modal-close" onclick="closeInventoryCategoryModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <%-- Form thêm danh mục nguyên liệu mới --%>
+            <form action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="mb-20 p-15 card bg-light">
+                <input type="hidden" name="action" value="createCategory" />
+                <label for="newInventoryCategoryName" class="form-label font-bold mb-5 d-block">
+                    <fmt:message key="inventory.category.label.name" /> <span class="text-danger">*</span>
+                </label>
+                <div class="d-flex gap-10">
+                    <input type="text" id="newInventoryCategoryName" name="categoryName" required maxlength="100"
+                           class="filter-input flex-grow-1"
+                           placeholder="<fmt:message key="inventory.category.placeholder.name" />" />
+                    <button type="submit" class="btn-login btn-sm">
+                        + <fmt:message key="inventory.category.btn.create" />
+                    </button>
+                </div>
+            </form>
+
+            <%-- Bảng danh sách danh mục nguyên liệu hiện có --%>
+            <h4 class="mb-10"><fmt:message key="inventory.category.table.title" /></h4>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th class="w-60">ID</th>
+                        <th><fmt:message key="inventory.category.table.name" /></th>
+                        <th class="w-140 text-center"><fmt:message key="inventory.category.table.status" /></th>
+                        <th class="w-100 text-center"><fmt:message key="inventory.category.table.action" /></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <c:choose>
+                        <c:when test="${not empty CATEGORY_LIST}">
+                            <c:forEach var="cat" items="${CATEGORY_LIST}">
+                                <tr>
+                                    <td>${cat.categoryId}</td>
+                                    <td><strong>${cat.categoryName}</strong></td>
+                                    <td class="text-center">
+                                        <c:choose>
+                                            <c:when test="${cat.inUse}">
+                                                <span class="role-badge role-manager">
+                                                    <fmt:message key="inventory.category.status.in_use" />
+                                                </span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="role-badge role-staff">
+                                                    <fmt:message key="inventory.category.status.empty" />
+                                                </span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td class="text-center">
+                                        <c:choose>
+                                            <c:when test="${not cat.inUse}">
+                                                <form action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="m-0 d-inline">
+                                                    <input type="hidden" name="action" value="deleteCategory" />
+                                                    <input type="hidden" name="categoryId" value="${cat.categoryId}" />
+                                                    <button type="submit" class="btn-reject btn-sm"
+                                                            onclick="return confirm('<fmt:message key="inventory.category.confirm.delete" />')">
+                                                        <fmt:message key="inventory.category.btn.delete" />
+                                                    </button>
+                                                </form>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="text-muted">-</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <tr>
+                                <td colspan="4" class="text-center"><fmt:message key="inventory.category.empty" /></td>
+                            </tr>
+                        </c:otherwise>
+                    </c:choose>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-order-cancel" onclick="closeInventoryCategoryModal()">
+                <fmt:message key="inventory.modal.btn.close" />
+            </button>
+        </div>
+    </div>
+</div>

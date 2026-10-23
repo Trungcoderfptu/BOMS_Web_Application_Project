@@ -36,5 +36,11 @@ public final class FlashMessageUtil {
             request.setAttribute(Constants.ERROR_MESSAGE, errorMessage);
             session.removeAttribute(Constants.ERROR_MESSAGE);
         }
+
+        Object activeTab = session.getAttribute(Constants.ACTIVE_TAB);
+        if (activeTab != null) {
+            request.setAttribute(Constants.ACTIVE_TAB, activeTab);
+            session.removeAttribute(Constants.ACTIVE_TAB);
+        }
     }
 }

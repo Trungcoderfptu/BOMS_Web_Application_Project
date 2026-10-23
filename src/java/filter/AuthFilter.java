@@ -29,7 +29,7 @@ public class AuthFilter implements Filter {
 
         String uri = req.getRequestURI();
         String contextPath = req.getContextPath();
-        //Whitelist
+        // Whitelist
         boolean isStaticResource = uri.endsWith(".css")
                 || uri.endsWith(".js") || uri.endsWith(".svg")
                 || uri.endsWith(".png") || uri.endsWith(".jpg")
@@ -39,7 +39,7 @@ public class AuthFilter implements Filter {
                 || uri.endsWith("register.jsp")
                 || uri.endsWith("LoginController")
                 || uri.endsWith("index.jsp")
-                || uri.endsWith("register.jsp")
+                || uri.endsWith("DashboardController")
                 || uri.endsWith("menu.jsp")
                 || uri.endsWith("RegisterController")
                 || uri.endsWith("LanguageController")

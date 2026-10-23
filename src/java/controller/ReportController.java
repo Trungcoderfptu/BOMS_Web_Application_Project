@@ -41,7 +41,7 @@ public class ReportController extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
         HttpSession session = request.getSession();
         FlashMessageUtil.forwardFlashMessages(request, session);
-        moveSessionToRequest(request, session, "LAST_TICKET_ID");
+        moveSessionToRequest(request, session, Constants.LAST_TICKET_ID);
 
         String ticketId = request.getParameter("ticketId");
         if (ticketId != null) {
@@ -65,7 +65,7 @@ public class ReportController extends HttpServlet {
                     files);
             HttpSession session = request.getSession();
             session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_SUBMIT_REPORT);
-            session.setAttribute("LAST_TICKET_ID", ticketId);
+            session.setAttribute(Constants.LAST_TICKET_ID, ticketId);
             response.sendRedirect(request.getContextPath() + "/ReportController");
         } catch (ValidationException e) {
             forwardBackWithError(request, response, e.getMessage());

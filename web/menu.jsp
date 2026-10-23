@@ -26,7 +26,7 @@
                 </c:choose>
             </c:when>
             <c:when test="${not empty CURRENT_TABLE}">
-                <div class="flex-between" style="padding-bottom: 20px; border-bottom: 1px solid var(--border-light); margin-bottom: 20px;">
+                <div class="flex-between menu-header-bar">
                     <h2 class="m-0"><fmt:message key="menu.heading.customer" />: ${CURRENT_TABLE}</h2>
                     <div class="flex-align-center">
                         <jsp:include page="components/language_switcher.jsp" />
@@ -35,7 +35,7 @@
                 </div>
             </c:when>
             <c:otherwise>
-                <div style="text-align: center; margin-top: 100px;">
+                <div class="menu-empty-container">
                     <h2 class="msg-error"><fmt:message key="menu.access.denied" /></h2>
                     <p><fmt:message key="menu.access.scan_qr" /> 
                         <a href="${pageContext.request.contextPath}/login.jsp" class="text-link-success"><fmt:message key="menu.access.login" /></a>
@@ -88,8 +88,14 @@
                                     </c:if>
                                     <c:choose>
                                         <c:when test="${not empty item.imageUrl}">
-                                            <c:set var="menuItemImg" value="${fn:startsWith(item.imageUrl, 'http') ? item.imageUrl : pageContext.request.contextPath.concat('/').concat(item.imageUrl)}" />
-                                            <img src="${menuItemImg}" alt="${item.productName}" class="product-card-img" />
+                                            <c:choose>
+                                                <c:when test="${fn:startsWith(item.imageUrl, 'http')}">
+                                                    <img src="${item.imageUrl}" alt="${item.productName}" class="product-card-img" />
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="${item.productName}" class="product-card-img" />
+                                                </c:otherwise>
+                                            </c:choose>
                                         </c:when>
                                         <c:otherwise>
                                             <span class="placeholder-icon">☕</span>

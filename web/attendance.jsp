@@ -66,16 +66,36 @@
                     <%-- Nút bấm hành động Chấm công --%>
                     <div class="attendance-actions mt-20">
                         <c:if test="${not TODAY_ATTENDANCE.hasCheckedIn}">
-                            <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="m-0">
-                                <input type="hidden" name="action" value="checkIn" />
-                                <button type="submit" class="btn-clock-in w-100">
-                                    🟢 <fmt:message key="attendance.btn.checkin" />
-                                </button>
-                            </form>
+                            <c:choose>
+                                <c:when test="${TODAY_ATTENDANCE.canCheckIn}">
+                                    <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="m-0">
+                                        <input type="hidden" name="action" value="checkIn" />
+                                        <button type="submit" class="btn-clock-in w-100">
+                                            🟢 <fmt:message key="attendance.btn.checkin" />
+                                        </button>
+                                    </form>
+                                </c:when>
+                                <c:otherwise>
+                                    <button type="button" class="btn-clock-in w-100 opacity-50 cursor-not-allowed" disabled>
+                                        🔒 <fmt:message key="attendance.btn.checkin_locked" /> (${TODAY_ATTENDANCE.startTime})
+                                    </button>
+                                    <p class="font-xs text-muted text-center mt-5">
+                                        <fmt:message key="attendance.hint.checkin_locked" />
+                                    </p>
+                                </c:otherwise>
+                            </c:choose>
                         </c:if>
 
                         <c:if test="${TODAY_ATTENDANCE.hasCheckedIn and not TODAY_ATTENDANCE.hasCheckedOut}">
                             <c:choose>
+                                <c:when test="${not TODAY_ATTENDANCE.canCheckOut}">
+                                    <button type="button" class="btn-clock-out w-100 opacity-50 cursor-not-allowed" disabled>
+                                        🔒 <fmt:message key="attendance.btn.checkout_locked" /> (${TODAY_ATTENDANCE.endTime})
+                                    </button>
+                                    <p class="font-xs text-muted text-center mt-5">
+                                        <fmt:message key="attendance.hint.checkout_locked" />
+                                    </p>
+                                </c:when>
                                 <c:when test="${TODAY_ATTENDANCE.isOvertimeEligible}">
                                     <button type="button" class="btn-clock-out w-100" onclick="openOtReasonModal()">
                                         🔴 <fmt:message key="attendance.btn.checkout" /> (OT)
@@ -92,30 +112,10 @@
                             </c:choose>
                         </c:if>
                     </div>
-
-                    <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="mt-15 text-center">
-                        <input type="hidden" name="action" value="resetDemoShift" />
-                        <button type="submit" class="btn-link text-muted font-sm border-0 bg-transparent cursor-pointer" title="<fmt:message key="attendance.btn.reset_hint" />">
-                            🔄 <fmt:message key="attendance.btn.reset_shift" />
-                        </button>
-                    </form>
                 </c:when>
                 <c:otherwise>
                     <div class="empty-shift-box">
                         <p class="msg-info"><fmt:message key="attendance.status.no_shift" /></p>
-                        <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="mt-15 flex-center gap-10">
-                            <input type="hidden" name="action" value="assignDemoShift" />
-                            <select name="shiftId" class="filter-input">
-                                <c:forEach var="shift" items="${AVAILABLE_SHIFTS}">
-                                    <option value="${shift.shiftId}">
-                                        ${shift.shiftName} (${shift.timeRange})
-                                    </option>
-                                </c:forEach>
-                            </select>
-                            <button type="submit" class="btn-login btn-sm">
-                                ➕ <fmt:message key="attendance.btn.demo_shift" />
-                            </button>
-                        </form>
                     </div>
                 </c:otherwise>
             </c:choose>
@@ -151,6 +151,114 @@
                     </c:if>
                 </div>
             </c:if>
+        </div>
+    </div>
+
+    <%-- ================= THỜI KHÓA BIỂU TUẦN CHO NHÂN VIÊN (TASK 14.2 - FAP STYLE) ================= --%>
+    <div class="panel-card mb-25">
+        <div class="panel-header flex-between align-center mb-15">
+            <div>
+                <h3 class="panel-title font-md m-0">
+                    🗓️ <fmt:message key="attendance.timetable.title" />
+                </h3>
+                <span class="text-muted font-xs font-bold">${WEEKLY_TIMETABLE.weekLabel}</span>
+            </div>
+            <div class="week-nav-bar flex-center gap-5">
+                <a href="${pageContext.request.contextPath}/AttendanceController?weekDate=${WEEKLY_TIMETABLE.prevWeekDate}&month=${CURRENT_MONTH}&year=${CURRENT_YEAR}" class="btn-secondary btn-xs">
+                    <fmt:message key="attendance.timetable.prev_week" />
+                </a>
+                <a href="${pageContext.request.contextPath}/AttendanceController?weekDate=${WEEKLY_TIMETABLE.currentWeekDate}&month=${CURRENT_MONTH}&year=${CURRENT_YEAR}" class="btn-secondary btn-xs font-bold">
+                    <fmt:message key="attendance.timetable.current_week" />
+                </a>
+                <a href="${pageContext.request.contextPath}/AttendanceController?weekDate=${WEEKLY_TIMETABLE.nextWeekDate}&month=${CURRENT_MONTH}&year=${CURRENT_YEAR}" class="btn-secondary btn-xs">
+                    <fmt:message key="attendance.timetable.next_week" />
+                </a>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table timetable-grid">
+                <thead>
+                    <tr>
+                        <th class="w-180"><fmt:message key="attendance.timetable.shift_col" /></th>
+                        <c:forEach var="day" items="${WEEKLY_TIMETABLE.days}">
+                            <th class="text-center ${day.isToday ? 'th-today' : ''}">
+                                ${day.dayName}<br>
+                                <span class="font-xs text-muted">${day.shortDate}</span>
+                            </th>
+                        </c:forEach>
+                    </tr>
+                </thead>
+                <tbody>
+                    <c:choose>
+                        <c:when test="${not empty WEEKLY_TIMETABLE.matrix}">
+                            <c:forEach var="shiftRow" items="${WEEKLY_TIMETABLE.matrix}">
+                                <tr>
+                                    <td class="timetable-shift-info font-bold">
+                                        ${shiftRow.shiftName}<br>
+                                        <small class="text-muted font-normal">${shiftRow.timeRange}</small>
+                                    </td>
+                                    <c:forEach var="slot" items="${shiftRow.slots}">
+                                        <td class="timetable-cell ${slot.isToday ? 'cell-today' : ''}">
+                                            <c:choose>
+                                                <c:when test="${slot.hasShift}">
+                                                    <div class="timetable-slot-card">
+                                                        <div class="font-xs font-bold">${slot.shiftName}</div>
+                                                        <div class="font-xxs text-muted mb-5">${slot.timeRange}</div>
+                                                        <c:choose>
+                                                            <c:when test="${slot.hasCheckedOut}">
+                                                                <span class="badge-status-ended font-xxs">
+                                                                    <fmt:message key="attendance.status.shift_ended" /> (${slot.workingHours}h)
+                                                                </span>
+                                                            </c:when>
+                                                            <c:when test="${slot.hasCheckedIn}">
+                                                                <span class="badge-status-working font-xxs">
+                                                                    <fmt:message key="attendance.status.on_shift" /> (${slot.checkInTime})
+                                                                </span>
+                                                                <c:if test="${slot.isToday and slot.canCheckOut}">
+                                                                    <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="mt-5 m-0">
+                                                                        <input type="hidden" name="action" value="checkOut" />
+                                                                        <button type="submit" class="btn-clock-out btn-xs w-100">
+                                                                            🔴 <fmt:message key="attendance.btn.checkout" />
+                                                                        </button>
+                                                                    </form>
+                                                                </c:if>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <span class="badge-status-waiting font-xxs">
+                                                                    <fmt:message key="attendance.status.not_started" />
+                                                                </span>
+                                                                <c:if test="${slot.isToday and slot.canCheckIn}">
+                                                                    <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="mt-5 m-0">
+                                                                        <input type="hidden" name="action" value="checkIn" />
+                                                                        <button type="submit" class="btn-clock-in btn-xs w-100">
+                                                                            🟢 <fmt:message key="attendance.btn.checkin" />
+                                                                        </button>
+                                                                    </form>
+                                                                </c:if>
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                    </div>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="text-muted font-bold">-</span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                    </c:forEach>
+                                </tr>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <tr>
+                                <td colspan="8" class="text-center text-muted p-20">
+                                    <fmt:message key="attendance.status.no_shift" />
+                                </td>
+                            </tr>
+                        </c:otherwise>
+                    </c:choose>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -280,6 +388,5 @@
 
 <jsp:include page="components/ot_reason_modal.jsp" />
 <jsp:include page="footer.jsp" />
-<script src="${pageContext.request.contextPath}/js/main.js"></script>
 </body>
 </html>

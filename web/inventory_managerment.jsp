@@ -12,10 +12,10 @@
         <h2 class="m-0"><fmt:message key="inventory.heading" /></h2>
         <c:if test="${IS_MANAGER}">
             <div class="d-flex gap-10">
-                <button type="button" class="btn-login btn-secondary" onclick="openInventoryCategoryModal()">
+                <button type="button" class="btn-login btn-secondary" data-action="open-inventory-category">
                     📁 <fmt:message key="inventory.category.btn.manage" />
                 </button>
-                <button type="button" class="btn-login" onclick="openCreateIngredientModal()">
+                <button type="button" class="btn-login" data-action="open-create-ingredient">
                     + <fmt:message key="inventory.btn.add" />
                 </button>
             </div>
@@ -84,18 +84,18 @@
                     <c:forEach var="item" items="${INGREDIENT_LIST}">
                         <tr>
                             <td><strong>#${item.ingredientId}</strong></td>
-                            <td><strong>${item.ingredientName}</strong></td>
-                            <td><span class="badge-category">${item.categoryName}</span></td>
+                            <td><strong><c:out value="${item.ingredientName}" /></strong></td>
+                            <td><span class="badge-category"><c:out value="${item.categoryName}" /></span></td>
                             <td class="font-bold">
                                 <fmt:formatNumber value="${item.quantity}" maxFractionDigits="2" />
                             </td>
-                            <td>${item.unit}</td>
+                            <td><c:out value="${item.unit}" /></td>
                             <td class="font-bold text-nowrap">
                                 <fmt:formatNumber value="${item.price}" pattern="#,###" /> ₫
                             </td>
-                            <td>${item.storageLocation}</td>
+                            <td><c:out value="${item.storageLocation}" /></td>
                             <td>
-                                <fmt:formatNumber value="${item.warningThreshold}" maxFractionDigits="2" /> ${item.unit}
+                                <fmt:formatNumber value="${item.warningThreshold}" maxFractionDigits="2" /> <c:out value="${item.unit}" />
                             </td>
                             <td>
                                 <c:choose>
@@ -120,15 +120,26 @@
                                 <td>
                                     <div class="menu-action-buttons">
                                         <button type="button" class="btn-action-edit"
-                                                onclick="openEditIngredientModal('${item.ingredientId}', '${item.categoryId}', '${fn:escapeXml(item.ingredientName)}', '${fn:escapeXml(item.unit)}', '${item.quantity}', '${item.price}', '${fn:escapeXml(item.storageLocation)}', '${item.warningThreshold}')">
+                                                data-action="edit-ingredient"
+                                                data-id="${item.ingredientId}"
+                                                data-cat-id="${item.categoryId}"
+                                                data-name="${fn:escapeXml(item.ingredientName)}"
+                                                data-unit="${fn:escapeXml(item.unit)}"
+                                                data-qty="${item.quantity}"
+                                                data-price="${item.price}"
+                                                data-loc="${fn:escapeXml(item.storageLocation)}"
+                                                data-threshold="${item.warningThreshold}">
                                             <fmt:message key="inventory.btn.edit" />
                                         </button>
                                         <button type="button" class="btn-action-toggle-resume"
-                                                onclick="openThresholdModal('${item.ingredientId}', '${fn:escapeXml(item.ingredientName)}', '${item.warningThreshold}')">
+                                                data-action="open-threshold"
+                                                data-id="${item.ingredientId}"
+                                                data-name="${fn:escapeXml(item.ingredientName)}"
+                                                data-threshold="${item.warningThreshold}">
                                             <fmt:message key="inventory.btn.update_threshold" />
                                         </button>
                                         <form action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="m-0 d-inline"
-                                              onsubmit="return confirm('<fmt:message key="inventory.confirm.delete" />');">
+                                              data-confirm="<fmt:message key="inventory.confirm.delete" />">
                                             <input type="hidden" name="action" value="delete" />
                                             <input type="hidden" name="ingredientId" value="${item.ingredientId}" />
                                             <button type="submit" class="btn-action-toggle-stop">

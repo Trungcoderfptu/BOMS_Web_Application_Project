@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 import service.UserService;
 import utility.Constants;
+import utility.FlashMessageUtil;
 import utility.ValidationException;
 
 /**
@@ -31,6 +32,12 @@ public class LoginController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        if (session != null && session.getAttribute(Constants.USER_SESSION) != null) {
+            response.sendRedirect("DashboardController");
+            return;
+        }
+        FlashMessageUtil.forwardFlashMessages(request, request.getSession());
         request.getRequestDispatcher("login.jsp").forward(request, response);
 
     }
@@ -60,6 +67,9 @@ public class LoginController extends HttpServlet {
 
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+            request.getRequestDispatcher("login.jsp").forward(request, response);
+        } catch (Exception e) {
+            request.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
             request.getRequestDispatcher("login.jsp").forward(request, response);
         }
     }

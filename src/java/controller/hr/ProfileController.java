@@ -94,6 +94,7 @@ public class ProfileController extends HttpServlet {
                     ImageUploadUtility.deleteImage(oldAvatar);
                 }
                 loginUser.put("avatar", "");
+                session.setAttribute(Constants.USER_SESSION, loginUser);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_DELETE_AVATAR);
             } else {
                 Part filePart = getPartSafely(request, "fileAvatar");
@@ -110,6 +111,7 @@ public class ProfileController extends HttpServlet {
                     ImageUploadUtility.deleteImage(oldAvatar);
                 }
                 loginUser.put("avatar", uploadedPath);
+                session.setAttribute(Constants.USER_SESSION, loginUser);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_AVATAR);
             }
         } catch (ValidationException e) {

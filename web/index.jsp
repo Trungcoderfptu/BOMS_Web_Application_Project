@@ -253,7 +253,7 @@
                                     <p class="action-card-desc"><fmt:message key="dashboard.action.reports_desc" /></p>
                                 </div>
                             </a>
-                            <button type="button" class="action-card action-card-btn" onclick="openBroadcastModal()">
+                            <button type="button" class="action-card action-card-btn" data-action="open-broadcast">
                                 <div class="action-card-icon broadcast-icon">📢</div>
                                 <div class="action-card-info text-left">
                                     <h4 class="action-card-title"><fmt:message key="dashboard.action.broadcast" /></h4>
@@ -271,7 +271,7 @@
                                     <p class="action-card-desc"><fmt:message key="dashboard.action.users_desc" /></p>
                                 </div>
                             </a>
-                            <button type="button" class="action-card action-card-btn" onclick="openBroadcastModal()">
+                            <button type="button" class="action-card action-card-btn" data-action="open-broadcast">
                                 <div class="action-card-icon broadcast-icon">📢</div>
                                 <div class="action-card-info text-left">
                                     <h4 class="action-card-title"><fmt:message key="dashboard.action.broadcast" /></h4>
@@ -306,7 +306,7 @@
                                 <p class="action-card-desc"><fmt:message key="dashboard.action.settings_desc" /></p>
                             </div>
                         </a>
-                        <a href="${pageContext.request.contextPath}/LogoutController" class="action-card action-card-logout" onclick="return confirm('<fmt:message key="dashboard.confirm.logout" />');">
+                        <a href="${pageContext.request.contextPath}/LogoutController" class="action-card action-card-logout" data-confirm="<fmt:message key="dashboard.confirm.logout" />">
                             <div class="action-card-icon logout-icon">🚪</div>
                             <div class="action-card-info">
                                 <h4 class="action-card-title text-danger"><fmt:message key="header.menu.logout" /></h4>
@@ -322,7 +322,7 @@
                         <h3 class="font-md font-bold m-0 flex-align-center gap-10">
                             🔔 <fmt:message key="dashboard.section.notifications" />
                         </h3>
-                        <button type="button" class="btn-link font-xs text-primary border-0 bg-transparent cursor-pointer" onclick="markAllNotificationsAsRead()">
+                        <button type="button" class="btn-link font-xs text-primary border-0 bg-transparent cursor-pointer" data-action="mark-all-notifications">
                             <fmt:message key="dashboard.notifications.mark_all_read" />
                         </button>
                     </div>
@@ -338,7 +338,7 @@
                             <c:otherwise>
                                 <ul class="notification-feed-list no-bullet m-0 p-0">
                                     <c:forEach var="notif" items="${DASHBOARD_NOTIFICATIONS}">
-                                        <li id="feedItem_${notif.notificationId}" class="feed-item ${notif.isRead ? '' : 'unread'}" onclick="markNotificationAsRead(${notif.notificationId})">
+                                        <li id="feedItem_${notif.notificationId}" class="feed-item ${notif.isRead ? '' : 'unread'}" data-action="mark-notification" data-notif-id="${notif.notificationId}">
                                             <div class="feed-item-icon">
                                                 ${notif.icon}
                                             </div>

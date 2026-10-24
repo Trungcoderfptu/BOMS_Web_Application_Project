@@ -13,7 +13,7 @@
             <h3 class="modal-title font-md font-bold m-0">
                 📢 <fmt:message key="broadcast.modal.title" />
             </h3>
-            <button type="button" class="btn-close-modal" onclick="closeBroadcastModal()">&times;</button>
+            <button type="button" class="btn-close-modal" data-close-modal="broadcastModal">&times;</button>
         </div>
         <form action="${pageContext.request.contextPath}/NotificationController" method="POST">
             <input type="hidden" name="action" value="broadcast" />
@@ -32,7 +32,7 @@
             </div>
 
             <div class="modal-footer flex-end gap-10">
-                <button type="button" class="btn-secondary" onclick="closeBroadcastModal()">
+                <button type="button" class="btn-secondary" data-close-modal="broadcastModal">
                     <fmt:message key="broadcast.btn.cancel" />
                 </button>
                 <button type="submit" class="btn-primary">

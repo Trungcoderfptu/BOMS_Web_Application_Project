@@ -11,7 +11,7 @@
         <h4 class="font-sm font-bold m-0">
             🔔 <fmt:message key="notification.title" />
         </h4>
-        <button type="button" class="btn-link font-xs text-primary border-0 bg-transparent cursor-pointer" onclick="markAllNotificationsAsRead()">
+        <button type="button" class="btn-link font-xs text-primary border-0 bg-transparent cursor-pointer" data-action="mark-all-notifications">
             <fmt:message key="notification.btn.mark_all_read" />
         </button>
     </div>

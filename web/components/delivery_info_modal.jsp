@@ -4,11 +4,11 @@
 <fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
 <fmt:setBundle basename="resources.messages" />
 
-<div id="deliveryInfoModal" class="modal-overlay d-none" onclick="if(event.target === this) closeDeliveryInfoModal();">
+<div id="deliveryInfoModal" class="modal-overlay d-none">
     <div class="modal-card modal-card-md">
         <div class="modal-header">
             <h3 class="m-0 msg-info"><fmt:message key="modal.delivery.title" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeDeliveryInfoModal()">&times;</button>
+            <button type="button" class="btn-modal-close" data-close-modal="deliveryInfoModal">&times;</button>
         </div>
         <form id="deliveryInfoForm" action="${pageContext.request.contextPath}/OrderManagementController" method="POST" class="m-0">
             <div class="modal-body">
@@ -63,7 +63,7 @@
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="btn-modal-back" onclick="closeDeliveryInfoModal()">
+                <button type="button" class="btn-modal-back" data-close-modal="deliveryInfoModal">
                     <fmt:message key="modal.delivery.btn.cancel" />
                 </button>
                 <button type="submit" class="btn-login">

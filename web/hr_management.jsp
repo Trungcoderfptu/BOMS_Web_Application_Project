@@ -33,30 +33,30 @@
         <c:if test="${not empty SUCCESS_MESSAGE}">
             <div class="alert-box alert-success mb-20 flex-between align-center">
                 <span>✅ <fmt:message key="${SUCCESS_MESSAGE}" /></span>
-                <span class="close-alert cursor-pointer" onclick="this.parentElement.remove()">&times;</span>
+                <span class="close-alert cursor-pointer" data-dismiss="alert">&times;</span>
             </div>
             <c:remove var="SUCCESS_MESSAGE" scope="session" />
         </c:if>
         <c:if test="${not empty ERROR_MESSAGE}">
             <div class="alert-box alert-danger mb-20 flex-between align-center">
                 <span>⚠️ <fmt:message key="${ERROR_MESSAGE}" /></span>
-                <span class="close-alert cursor-pointer" onclick="this.parentElement.remove()">&times;</span>
+                <span class="close-alert cursor-pointer" data-dismiss="alert">&times;</span>
             </div>
             <c:remove var="ERROR_MESSAGE" scope="session" />
         </c:if>
 
         <%-- ================= NAVIGATION TABS ================= --%>
         <div class="tab-header mb-20">
-            <button type="button" class="tab-btn ${ACTIVE_TAB == 'shifts' ? 'active' : ''}" onclick="openTab(event, 'tab-shifts')">
+            <button type="button" class="tab-btn ${ACTIVE_TAB == 'shifts' ? 'active' : ''}" data-hr-tab="tab-shifts">
                 🗓️ <fmt:message key="hr.tab.shifts" />
             </button>
-            <button type="button" class="tab-btn ${ACTIVE_TAB == 'tracking' ? 'active' : ''}" onclick="openTab(event, 'tab-tracking')">
+            <button type="button" class="tab-btn ${ACTIVE_TAB == 'tracking' ? 'active' : ''}" data-hr-tab="tab-tracking">
                 ⏱️ <fmt:message key="hr.tab.tracking" />
                 <c:if test="${not empty PENDING_APPROVALS}">
                     <span class="badge-pending-count ml-5">${PENDING_APPROVALS.size()}</span>
                 </c:if>
             </button>
-            <button type="button" class="tab-btn ${ACTIVE_TAB == 'summary' ? 'active' : ''}" onclick="openTab(event, 'tab-summary')">
+            <button type="button" class="tab-btn ${ACTIVE_TAB == 'summary' ? 'active' : ''}" data-hr-tab="tab-summary">
                 📊 <fmt:message key="hr.tab.summary" />
             </button>
         </div>
@@ -68,7 +68,7 @@
                     <h2 class="panel-title font-md">
                         🕒 <fmt:message key="hr.shifts.section_title" />
                     </h2>
-                    <button type="button" class="btn-primary btn-sm" onclick="openCreateShiftModal()">
+                    <button type="button" id="btnOpenCreateShift" class="btn-primary btn-sm">
                         ➕ <fmt:message key="hr.btn.add_shift" />
                     </button>
                 </div>
@@ -88,7 +88,7 @@
                                 <c:when test="${not empty SHIFTS}">
                                     <c:forEach var="shift" items="${SHIFTS}" varStatus="loop">
                                         <tr>
-                                            <td>${loop.index + 1}</td>
+                                             <td>${loop.index + 1}</td>
                                             <td class="font-bold">${shift.shiftName}</td>
                                             <td>${shift.timeRange}</td>
                                             <td>
@@ -102,7 +102,7 @@
                                                 </c:choose>
                                             </td>
                                             <td class="text-center">
-                                                <button type="button" class="btn-secondary btn-xs" onclick="openEditShiftModal(${shift.shiftId}, '${shift.shiftName}', '${shift.startTime}', '${shift.endTime}')">
+                                                <button type="button" class="btn-secondary btn-xs" data-action="edit-shift" data-shift-id="${shift.shiftId}" data-shift-name="${shift.shiftName}" data-start-time="${shift.startTime}" data-end-time="${shift.endTime}">
                                                     ✏️ <fmt:message key="hr.btn.edit" />
                                                 </button>
                                             </td>
@@ -143,7 +143,7 @@
                                 <fmt:message key="hr.matrix.next_week" />
                             </a>
                         </div>
-                        <button type="button" class="btn-primary btn-sm" onclick="openAssignShiftModal()">
+                        <button type="button" class="btn-primary btn-sm btn-open-assign-shift">
                             ➕ <fmt:message key="hr.btn.assign_shift" />
                         </button>
                     </div>
@@ -157,7 +157,10 @@
                                 <th class="w-100"><fmt:message key="hr.table.role" /></th>
                                 <c:forEach var="day" items="${MANAGER_MATRIX.days}">
                                     <th class="text-center ${day.isToday ? 'th-today' : ''}">
-                                        ${day.dayName}<br>
+                                        <c:choose>
+                                            <c:when test="${not empty day.dayKey}"><fmt:message key="${day.dayKey}" /></c:when>
+                                            <c:otherwise>${day.dayName}</c:otherwise>
+                                        </c:choose><br>
                                         <span class="font-xs text-muted">${day.shortDate}</span>
                                     </th>
                                 </c:forEach>
@@ -168,7 +171,7 @@
                                 <c:when test="${not empty MANAGER_MATRIX.matrix}">
                                     <c:forEach var="staffRow" items="${MANAGER_MATRIX.matrix}">
                                         <tr>
-                                            <td class="font-bold">${staffRow.fullName}</td>
+                                            <td class="font-bold"><c:out value="${staffRow.fullName}" /></td>
                                             <td><span class="role-badge role-${staffRow.role.toLowerCase()}">${staffRow.role}</span></td>
                                             <c:forEach var="cell" items="${staffRow.slots}">
                                                 <td class="matrix-cell ${cell.isToday ? 'cell-today' : ''}">
@@ -182,7 +185,7 @@
                                                                         <span class="badge-sub-status text-success font-xxs">🔒 <fmt:message key="hr.status.locked" /></span>
                                                                     </c:when>
                                                                     <c:otherwise>
-                                                                        <form action="${pageContext.request.contextPath}/HrManagementController" method="POST" class="m-0 d-inline" onsubmit="return confirm('<fmt:message key="hr.confirm.delete_assignment" />');">
+                                                                        <form action="${pageContext.request.contextPath}/HrManagementController" method="POST" class="m-0 d-inline" data-confirm="<fmt:message key="hr.confirm.delete_assignment" />">
                                                                             <input type="hidden" name="action" value="deleteAssignment" />
                                                                             <input type="hidden" name="assignmentId" value="${cell.assignmentId}" />
                                                                             <input type="hidden" name="tab" value="shifts" />
@@ -194,7 +197,7 @@
                                                             </div>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <button type="button" class="btn-matrix-add" onclick="openQuickAssignModal(${cell.userId}, '${cell.fullName}', '${cell.date}')" title="<fmt:message key="hr.matrix.quick_assign" />">+</button>
+                                                            <button type="button" class="btn-matrix-add" data-action="quick-assign" data-user-id="${cell.userId}" data-full-name="<c:out value='${cell.fullName}' />" data-work-date="${cell.date}" title="<fmt:message key="hr.matrix.quick_assign" />">+</button>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
@@ -225,12 +228,12 @@
                     <div class="flex-center gap-10">
                         <form action="${pageContext.request.contextPath}/HrManagementController" method="GET" class="filter-form m-0">
                             <input type="hidden" name="tab" value="shifts" />
-                            <input type="date" name="date" class="form-input form-input-sm" value="${FILTER_DATE}" onchange="this.form.submit()" />
+                            <input type="date" name="date" class="form-input form-input-sm" value="${FILTER_DATE}" data-auto-submit="true" />
                             <button type="submit" class="btn-secondary btn-sm">
                                 🔍 <fmt:message key="hr.btn.view" />
                             </button>
                         </form>
-                        <button type="button" class="btn-primary btn-sm" onclick="openAssignShiftModal()">
+                        <button type="button" class="btn-primary btn-sm btn-open-assign-shift">
                             ➕ <fmt:message key="hr.btn.assign_shift" />
                         </button>
                     </div>
@@ -255,7 +258,7 @@
                                     <c:forEach var="item" items="${DAILY_ASSIGNMENTS}" varStatus="loop">
                                         <tr>
                                             <td>${loop.index + 1}</td>
-                                            <td class="font-bold">${item.fullName}</td>
+                                            <td class="font-bold"><c:out value="${item.fullName}" /></td>
                                             <td><span class="role-badge role-${item.role.toLowerCase()}">${item.role}</span></td>
                                             <td>${item.shiftName}</td>
                                             <td>${item.timeRange}</td>
@@ -275,7 +278,7 @@
                                             <td class="text-center">
                                                 <c:choose>
                                                     <c:when test="${!item.hasAttendance}">
-                                                        <form action="${pageContext.request.contextPath}/HrManagementController" method="POST" class="m-0" onsubmit="return confirm('<fmt:message key="hr.confirm.delete_assignment" />');">
+                                                        <form action="${pageContext.request.contextPath}/HrManagementController" method="POST" class="m-0" data-confirm="<fmt:message key="hr.confirm.delete_assignment" />">
                                                             <input type="hidden" name="action" value="deleteAssignment" />
                                                             <input type="hidden" name="assignmentId" value="${item.assignmentId}" />
                                                             <input type="hidden" name="tab" value="shifts" />
@@ -337,7 +340,7 @@
                                     <c:forEach var="req" items="${PENDING_APPROVALS}" varStatus="loop">
                                         <tr class="highlight-row-warning">
                                             <td>${loop.index + 1}</td>
-                                            <td class="font-bold">${req.fullName}</td>
+                                            <td class="font-bold"><c:out value="${req.fullName}" /></td>
                                             <td>${req.shiftName}</td>
                                             <td>${req.workDate}</td>
                                             <td>
@@ -353,7 +356,7 @@
                                                 </c:if>
                                             </td>
                                             <td>${req.workingHours}h</td>
-                                            <td class="text-muted">${not empty req.otReason ? req.otReason : '-'}</td>
+                                            <td class="text-muted"><c:out value="${not empty req.otReason ? req.otReason : '-'}" /></td>
                                             <td class="text-center">
                                                 <div class="flex-center gap-5">
                                                     <c:if test="${req.checkOutStatus == 'Pending OT Approval'}">
@@ -422,7 +425,7 @@
                     </h2>
                     <form action="${pageContext.request.contextPath}/HrManagementController" method="GET" class="filter-form m-0">
                         <input type="hidden" name="tab" value="tracking" />
-                        <input type="date" name="date" class="form-input form-input-sm" value="${FILTER_DATE}" onchange="this.form.submit()" />
+                        <input type="date" name="date" class="form-input form-input-sm" value="${FILTER_DATE}" data-auto-submit="true" />
                         <button type="submit" class="btn-secondary btn-sm">
                             🔍 <fmt:message key="hr.btn.view" />
                         </button>
@@ -450,7 +453,7 @@
                                     <c:forEach var="row" items="${DAILY_ASSIGNMENTS}" varStatus="loop">
                                         <tr>
                                             <td>${loop.index + 1}</td>
-                                            <td class="font-bold">${row.fullName}</td>
+                                            <td class="font-bold"><c:out value="${row.fullName}" /></td>
                                             <td>${row.shiftName} (${row.timeRange})</td>
                                             <td>${row.checkInTimeStr}</td>
                                             <td>
@@ -565,7 +568,7 @@
                                     <c:forEach var="emp" items="${MONTHLY_SUMMARY}" varStatus="loop">
                                         <tr>
                                             <td>${loop.index + 1}</td>
-                                            <td class="font-bold">${emp.fullName}</td>
+                                            <td class="font-bold"><c:out value="${emp.fullName}" /></td>
                                             <td><span class="role-badge role-${emp.role.toLowerCase()}">${emp.role}</span></td>
                                             <td class="text-center font-bold">${emp.totalAssignedShifts}</td>
                                             <td class="text-center">${emp.totalAttendedShifts}</td>

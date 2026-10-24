@@ -16,7 +16,7 @@
             <h3 class="m-0">
                 <fmt:message key="alert.modal.title" />
             </h3>
-            <button type="button" class="btn-modal-close" onclick="closeInventoryAlertModal()">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="inventoryAlertModal">✖</button>
         </div>
         <div class="modal-body">
             <div id="alertEmptyState" class="empty-cart-container d-none">
@@ -42,7 +42,7 @@
             </div>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn-order-cancel" onclick="closeInventoryAlertModal()">
+            <button type="button" class="btn-order-cancel" data-close-modal="inventoryAlertModal">
                 <fmt:message key="alert.btn.close" />
             </button>
         </div>

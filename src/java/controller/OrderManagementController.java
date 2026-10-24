@@ -127,7 +127,7 @@ public class OrderManagementController extends HttpServlet {
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
         } catch (Exception e) {
-            session.setAttribute(Constants.ERROR_MESSAGE, Constants.SERROR_INVALID_SETTING_TAB);
+            session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
 
         String redirectUrl = "OrderManagementController?filterDate=" + (filterDate != null ? filterDate : "")
@@ -141,7 +141,7 @@ public class OrderManagementController extends HttpServlet {
         if (role == null) {
             return false;
         }
-        return "Staff".equalsIgnoreCase(role) || "Manager".equalsIgnoreCase(role) || "Admin".equalsIgnoreCase(role);
+        return Constants.ROLE_STAFF.equalsIgnoreCase(role) || Constants.ROLE_MANAGER.equalsIgnoreCase(role) || Constants.ROLE_ADMIN.equalsIgnoreCase(role);
     }
 
     @Override

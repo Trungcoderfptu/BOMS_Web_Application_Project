@@ -88,6 +88,8 @@ public class ShipperController extends HttpServlet {
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        } catch (Exception e) {
+            session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
 
         response.sendRedirect(request.getContextPath() + "/ShipperController");
@@ -106,10 +108,10 @@ public class ShipperController extends HttpServlet {
         Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
         String role = loginUser.get("role");
 
-        if ("Manager".equalsIgnoreCase(role) || "Staff".equalsIgnoreCase(role)) {
+        if (Constants.ROLE_MANAGER.equalsIgnoreCase(role) || Constants.ROLE_STAFF.equalsIgnoreCase(role)) {
             response.sendRedirect("DispatchController");
             return false;
-        } else if (!"Shipper".equalsIgnoreCase(role)) {
+        } else if (!Constants.ROLE_SHIPPER.equalsIgnoreCase(role)) {
             request.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_LOGIN_FAIL_ROLE);
             request.getRequestDispatcher("delivery_unauthorized.jsp").forward(request, response);
             return false;
@@ -138,8 +140,7 @@ public class ShipperController extends HttpServlet {
         List<Map<String, String>> myTasks = new ArrayList<>();
 
         for (Map<String, String> task : allTasks) {
-            if (Constants.STATUS_WAITING_DELIVERY.equals(task.get("status"))
-                    || Constants.STATUS_PENDING.equals(task.get("status"))) {
+            if (Constants.STATUS_WAITING_DELIVERY.equals(task.get("status"))) {
                 pendingTasks.add(task);
             } else {
                 myTasks.add(task);

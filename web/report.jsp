@@ -27,8 +27,8 @@
 
     <c:set var="activeTab" value="${ACTIVE_TAB == 'track' ? 'track' : 'submit'}" />
     <div class="tab-nav d-flex">
-        <button type="button" class="tab-btn ${activeTab == 'submit' ? 'active' : ''}" onclick="openTab(event, 'tab-submit')"><fmt:message key="report.tab.submit" /></button>
-        <button type="button" class="tab-btn ${activeTab == 'track' ? 'active' : ''}" onclick="openTab(event, 'tab-track')"><fmt:message key="report.tab.track" /></button>
+        <button type="button" class="tab-btn ${activeTab == 'submit' ? 'active' : ''}" data-tab="tab-submit"><fmt:message key="report.tab.submit" /></button>
+        <button type="button" class="tab-btn ${activeTab == 'track' ? 'active' : ''}" data-tab="tab-track"><fmt:message key="report.tab.track" /></button>
     </div>
 
     <%-- ===== UC-07: Form gửi báo cáo ===== --%>

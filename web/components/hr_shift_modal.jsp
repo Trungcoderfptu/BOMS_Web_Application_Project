@@ -13,7 +13,7 @@
             <h3 id="shiftModalTitle" class="modal-title">
                 <fmt:message key="hr.shift.modal.create_title" />
             </h3>
-            <button type="button" class="btn-close-modal" onclick="closeShiftModal()">&times;</button>
+            <button type="button" class="btn-close-modal" data-close-modal="shiftModal">&times;</button>
         </div>
         <form action="${pageContext.request.contextPath}/HrManagementController" method="POST">
             <input type="hidden" name="action" id="shiftModalAction" value="createShift" />
@@ -44,7 +44,7 @@
             </div>
 
             <div class="modal-footer flex-end gap-10">
-                <button type="button" class="btn-secondary" onclick="closeShiftModal()">
+                <button type="button" class="btn-secondary" data-close-modal="shiftModal">
                     <fmt:message key="hr.btn.cancel" />
                 </button>
                 <button type="submit" class="btn-primary" id="shiftModalSubmitBtn">
@@ -62,7 +62,7 @@
             <h3 class="modal-title">
                 <fmt:message key="hr.assign.modal.title" />
             </h3>
-            <button type="button" class="btn-close-modal" onclick="closeAssignShiftModal()">&times;</button>
+            <button type="button" class="btn-close-modal" data-close-modal="assignShiftModal">&times;</button>
         </div>
         <form id="assignShiftForm" action="${pageContext.request.contextPath}/HrManagementController" method="POST">
             <input type="hidden" name="action" id="assignFormAction" value="assignShift" />
@@ -71,10 +71,10 @@
 
             <%-- Chuyển đổi chế độ: Phân ca đơn lẻ vs Phân ca liên hoàn --%>
             <div class="assign-mode-toggle mb-15">
-                <button type="button" id="btnModeSingle" class="btn-mode-tab active" onclick="setAssignMode('single')">
+                <button type="button" id="btnModeSingle" class="btn-mode-tab active" data-assign-mode="single">
                     📌 <fmt:message key="hr.assign.mode.single" />
                 </button>
-                <button type="button" id="btnModeBulk" class="btn-mode-tab" onclick="setAssignMode('bulk')">
+                <button type="button" id="btnModeBulk" class="btn-mode-tab" data-assign-mode="bulk">
                     🗓️ <fmt:message key="hr.assign.mode.bulk" />
                 </button>
             </div>
@@ -138,10 +138,10 @@
                             <fmt:message key="hr.assign.label.days_of_week" /> <span class="text-danger">*</span>
                         </label>
                         <div class="flex-gap-5">
-                            <button type="button" class="btn-quick-select" onclick="selectWeekdays('all')">
+                            <button type="button" class="btn-quick-select" data-quick-select="all">
                                 <fmt:message key="hr.assign.btn.select_all_weekdays" />
                             </button>
-                            <button type="button" class="btn-quick-select" onclick="selectWeekdays('workdays')">
+                            <button type="button" class="btn-quick-select" data-quick-select="workdays">
                                 <fmt:message key="hr.assign.btn.select_mon_to_fri" />
                             </button>
                         </div>
@@ -180,7 +180,7 @@
             </div>
 
             <div class="modal-footer flex-end gap-10">
-                <button type="button" class="btn-secondary" onclick="closeAssignShiftModal()">
+                <button type="button" class="btn-secondary" data-close-modal="assignShiftModal">
                     <fmt:message key="hr.btn.cancel" />
                 </button>
                 <button type="submit" class="btn-primary" id="btnSubmitAssign">

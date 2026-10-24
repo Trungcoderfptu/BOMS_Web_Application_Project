@@ -22,7 +22,7 @@
             </c:choose>
         </p>
         
-        <button onclick="history.back()" class="btn-back">
+        <button type="button" id="btnDeliveryBack" class="btn-back">
             <fmt:message key="btn.back" />
         </button>
     </div>

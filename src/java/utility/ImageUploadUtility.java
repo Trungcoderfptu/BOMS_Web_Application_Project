@@ -115,14 +115,100 @@ public class ImageUploadUtility {
     // =========================================================================
     /**
      * Lưu file ảnh được tải lên vào thư mục con chỉ định (vùng công khai).
+     * Tuyệt đối KHÔNG sử dụng tên file gốc do client gửi (phòng chống Path Traversal).
+     * Khởi tạo tên file hoàn toàn mới bằng UUID.randomUUID().toString() ghép với đuôi mở rộng chuẩn (.jpg, .png,...).
+     * Xác thực Magic Bytes từ InputStream để đảm bảo file thực sự là hình ảnh.
      *
      * @param filePart đối tượng Part từ multipart request
      * @param subFolder thư mục con (ví dụ: "products", "avatars")
-     * @return đường dẫn tương đối để lưu DB (ví dụ: "uploads/products/prod_123.jpg"), hoặc null nếu không có file
-     * @throws ValidationException nếu file vượt dung lượng, sai định dạng hoặc lỗi ghi file
+     * @return đường dẫn tương đối dạng uploads/avatars/<uuid>.jpg (không có dấu / ở đầu), hoặc null nếu không có file
+     * @throws ValidationException nếu file vượt dung lượng, sai định dạng (magic bytes) hoặc lỗi ghi file
      */
     public static String saveImage(Part filePart, String subFolder) throws ValidationException {
-        return saveFile(filePart, subFolder, IMAGE_RULE);
+        if (filePart == null || filePart.getSize() <= 0) {
+            return null;
+        }
+
+        // 1. Kiểm tra dung lượng tối đa
+        if (filePart.getSize() > MAX_FILE_SIZE) {
+            throw new ValidationException(Constants.ERROR_IMAGE_SIZE_EXCEEDED);
+        }
+
+        // 2. Bổ sung cơ chế đọc byte (Magic Byte) từ luồng InputStream để xác thực file thực sự là hình ảnh
+        String ext;
+        try (InputStream in = filePart.getInputStream()) {
+            ext = validateAndDetectImageExtension(in);
+        } catch (IOException e) {
+            throw new ValidationException(Constants.ERROR_INVALID_IMAGE_TYPE);
+        }
+
+        // 3. Khởi tạo tên file hoàn toàn mới bằng UUID.randomUUID().toString() ghép với đuôi chuẩn (ví dụ .jpg, .png)
+        String uniqueFileName = UUID.randomUUID().toString() + ext;
+        String sanitizedSubFolder = sanitizeSubFolder(subFolder);
+
+        // 4. Lưu vào thư mục đích trên đĩa máy chủ (UPLOAD_ROOT_DIR)
+        File targetDir = new File(UPLOAD_ROOT_DIR, sanitizedSubFolder);
+        if (!targetDir.exists()) {
+            targetDir.mkdirs();
+        }
+
+        File targetFile = new File(targetDir, uniqueFileName);
+        try (InputStream in = filePart.getInputStream();
+                OutputStream out = new FileOutputStream(targetFile)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+        } catch (IOException e) {
+            targetFile.delete();
+            throw new ValidationException(Constants.ERROR_IMAGE_UPLOAD_FAILED);
+        }
+
+        // 5. Chuẩn hóa đường dẫn trả về: uploads/subFolder/<uuid>.ext (không có dấu / ở đầu)
+        return PUBLIC_PREFIX + sanitizedSubFolder + "/" + uniqueFileName;
+    }
+
+    /**
+     * Xác thực tệp tin ảnh dựa trên Magic Bytes từ luồng InputStream.
+     * Ném ValidationException ngay nếu sai định dạng.
+     *
+     * @param in luồng dữ liệu InputStream
+     * @return đuôi mở rộng chuẩn (ví dụ: ".jpg", ".png", ".webp")
+     * @throws IOException khi gặp lỗi I/O
+     * @throws ValidationException khi magic bytes không khớp bất kỳ định dạng ảnh hợp lệ nào
+     */
+    public static String validateAndDetectImageExtension(InputStream in) throws IOException, ValidationException {
+        if (in == null) {
+            throw new ValidationException(Constants.ERROR_INVALID_IMAGE_TYPE);
+        }
+
+        byte[] header = new byte[12];
+        int bytesRead = in.read(header);
+        if (bytesRead < 4) {
+            throw new ValidationException(Constants.ERROR_INVALID_IMAGE_TYPE);
+        }
+
+        // JPEG: byte đầu là FF D8 (SOI marker: 0xFF, 0xD8)
+        if ((header[0] & 0xFF) == 0xFF && (header[1] & 0xFF) == 0xD8) {
+            return ".jpg";
+        }
+
+        // PNG: byte đầu là 89 50 (89 50 4E 47 0D 0A 1A 0A)
+        if ((header[0] & 0xFF) == 0x89 && (header[1] & 0xFF) == 0x50) {
+            if (bytesRead >= 4 && header[2] == 'N' && header[3] == 'G') {
+                return ".png";
+            }
+        }
+
+        // WEBP: RIFF (bytes 0..3) ... WEBP (bytes 8..11)
+        if (bytesRead >= 12
+                && header[0] == 'R' && header[1] == 'I' && header[2] == 'F' && header[3] == 'F'
+                && header[8] == 'W' && header[9] == 'E' && header[10] == 'B' && header[11] == 'P') {
+            return ".webp";
+        }
+
+        throw new ValidationException(Constants.ERROR_INVALID_IMAGE_TYPE);
     }
 
     /**
@@ -187,6 +273,85 @@ public class ImageUploadUtility {
         if (rule.allowedMimeTypes != null && mimeType != null
                 && !rule.allowedMimeTypes.contains(mimeType.toLowerCase())) {
             throw new ValidationException(rule.typeErrorCode);
+        }
+
+        // Kiểm tra chữ ký tệp (Magic Bytes) chống ngụy trang định dạng
+        try (InputStream in = filePart.getInputStream()) {
+            if (!isValidMagicBytes(in, ext)) {
+                throw new ValidationException(rule.typeErrorCode);
+            }
+        } catch (IOException e) {
+            throw new ValidationException(rule.typeErrorCode);
+        }
+    }
+
+    /**
+     * Xác thực tệp tin dựa trên File Signatures (Magic Bytes) từ luồng nhị phân thực tế,
+     * ngăn chặn triệt để lỗ hổng giả mạo MIME type hoặc đổi đuôi file mã độc (.jsp, .exe,...).
+     *
+     * @param in luồng dữ liệu của file
+     * @param ext đuôi mở rộng chữ thường (ví dụ: ".jpg", ".png")
+     * @return true nếu chữ ký nhị phân khớp định dạng, false nếu phát hiện sai lệch
+     * @throws IOException khi lỗi đọc luồng dữ liệu
+     */
+    public static boolean isValidMagicBytes(InputStream in, String ext) throws IOException {
+        if (in == null || ext == null) {
+            return false;
+        }
+        byte[] header = new byte[12];
+        int bytesRead = in.read(header);
+        if (bytesRead < 4) {
+            return false;
+        }
+
+        switch (ext) {
+            case ".jpg":
+            case ".jpeg":
+                // JPEG magic bytes: FF D8
+                return (header[0] & 0xFF) == 0xFF
+                        && (header[1] & 0xFF) == 0xD8;
+
+            case ".png":
+                // PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
+                if (bytesRead < 8) {
+                    return false;
+                }
+                return (header[0] & 0xFF) == 0x89
+                        && header[1] == 'P'
+                        && header[2] == 'N'
+                        && header[3] == 'G'
+                        && header[4] == 0x0D
+                        && header[5] == 0x0A
+                        && header[6] == 0x1A
+                        && header[7] == 0x0A;
+
+            case ".webp":
+                // WEBP: RIFF....WEBP (header[0..3] == 'RIFF' and header[8..11] == 'WEBP')
+                if (bytesRead < 12) {
+                    return false;
+                }
+                return header[0] == 'R' && header[1] == 'I' && header[2] == 'F' && header[3] == 'F'
+                        && header[8] == 'W' && header[9] == 'E' && header[10] == 'B' && header[11] == 'P';
+
+            case ".pdf":
+                // PDF magic bytes: %PDF- (25 50 44 46)
+                return header[0] == 0x25 && header[1] == 0x50 && header[2] == 0x44 && header[3] == 0x46;
+
+            case ".mp4":
+                // MP4: Offset 4 chứa ftyp (bytes 4..7: 66 74 79 70)
+                if (bytesRead < 8) {
+                    return false;
+                }
+                return header[4] == 'f' && header[5] == 't' && header[6] == 'y' && header[7] == 'p';
+
+            case ".docx":
+                // DOCX (ZIP container): PK.. (50 4B 03 04)
+                return header[0] == 0x50 && header[1] == 0x4B
+                        && (header[2] == 0x03 || header[2] == 0x05 || header[2] == 0x07)
+                        && (header[3] == 0x04 || header[3] == 0x06 || header[3] == 0x08);
+
+            default:
+                return true;
         }
     }
 
@@ -317,8 +482,6 @@ public class ImageUploadUtility {
     }
 
     private static String generateUniqueFileName(String prefix, String ext) {
-        String shortPrefix = prefix.length() > 4 ? prefix.substring(0, 4) : prefix;
-        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        return shortPrefix + "_" + System.currentTimeMillis() + "_" + uniqueId + ext.toLowerCase();
+        return UUID.randomUUID().toString() + ext.toLowerCase();
     }
 }

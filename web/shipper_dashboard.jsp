@@ -11,7 +11,7 @@
 
 <main class="main-content">
     <div class="dispatch-container">
-        <h2 class="page-title"><fmt:message key="shipper.title" />: ${sessionScope.USER_SESSION.fullName}</h2>
+        <h2 class="page-title"><fmt:message key="shipper.title" />: <c:out value="${sessionScope.USER_SESSION.fullName}" /></h2>
 
         <c:if test="${not empty ERROR_MESSAGE}">
             <div class="alert alert-danger"><fmt:message key="${ERROR_MESSAGE}" /></div>
@@ -46,15 +46,15 @@
                                 <tr>
                                     <td><strong>${task.orderCode}</strong></td>
                                     <td>
-                                        ${task.customerName}
+                                        <c:out value="${task.customerName}" />
                                         <c:if test="${not empty task.customerPhone}">
-                                            <br><small class="text-muted">${task.customerPhone}</small>
+                                            <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
                                         </c:if>
                                     </td>
                                     <td>
-                                        ${task.customerAddress}
+                                        <c:out value="${task.customerAddress}" />
                                         <c:if test="${not empty task.areaName}">
-                                            <br><small class="badge badge-info">${task.areaName}</small>
+                                            <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
                                         </c:if>
                                     </td>
                                     <td>${task.totalAmount} đ</td>
@@ -100,15 +100,15 @@
                                 <tr>
                                     <td><strong>${task.orderCode}</strong></td>
                                     <td>
-                                        ${task.customerName}
+                                        <c:out value="${task.customerName}" />
                                         <c:if test="${not empty task.customerPhone}">
-                                            <br><small class="text-muted">${task.customerPhone}</small>
+                                            <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
                                         </c:if>
                                     </td>
                                     <td>
-                                        ${task.customerAddress}
+                                        <c:out value="${task.customerAddress}" />
                                         <c:if test="${not empty task.areaName}">
-                                            <br><small class="badge badge-info">${task.areaName}</small>
+                                            <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
                                         </c:if>
                                     </td>
                                     <td>${task.totalAmount} đ</td>
@@ -121,7 +121,7 @@
                                         </form>
 
                                         <!-- Nút Từ Chối (Đã tích hợp hộp thoại xác nhận JS) -->
-                                        <form action="ShipperController" method="POST" class="inline-form" onsubmit="return confirm('<fmt:message key="shipper.confirm.reject" />');">
+                                        <form action="ShipperController" method="POST" class="inline-form form-reject-task" data-confirm-msg="<fmt:message key="shipper.confirm.reject" />">
                                             <input type="hidden" name="action" value="rejectTask">
                                             <input type="hidden" name="txtTaskId" value="${task.taskId}">
                                             <button type="submit" class="btn btn-reject"><fmt:message key="shipper.btn.reject" /></button>
@@ -163,15 +163,15 @@
                                 <tr>
                                     <td><strong>${task.orderCode}</strong></td>
                                     <td>
-                                        ${task.customerName}
+                                        <c:out value="${task.customerName}" />
                                         <c:if test="${not empty task.customerPhone}">
-                                            <br><small class="text-muted">${task.customerPhone}</small>
+                                            <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
                                         </c:if>
                                     </td>
                                     <td>
-                                        ${task.customerAddress}
+                                        <c:out value="${task.customerAddress}" />
                                         <c:if test="${not empty task.areaName}">
-                                            <br><small class="badge badge-info">${task.areaName}</small>
+                                            <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
                                         </c:if>
                                     </td>
                                     <td>${task.totalAmount} đ</td>
@@ -200,10 +200,10 @@
                                     <td class="action-cell">
                                         <c:if test="${task.status != 'Delivered' && task.status != 'Returned'}">
                                             <div class="inline-form">
-                                                <button type="button" class="btn btn-accept" onclick="openShipperCompleteModal('${task.taskId}', '${task.orderCode}')">
+                                                <button type="button" class="btn btn-accept btn-open-complete-modal" data-task-id="${task.taskId}" data-order-code="${task.orderCode}">
                                                     <fmt:message key="shipper.btn.complete" />
                                                 </button>
-                                                <button type="button" class="btn btn-reject" onclick="openShipperFailModal('${task.taskId}', '${task.orderCode}')">
+                                                <button type="button" class="btn btn-reject btn-open-fail-modal" data-task-id="${task.taskId}" data-order-code="${task.orderCode}">
                                                     <fmt:message key="shipper.btn.fail" />
                                                 </button>
                                             </div>

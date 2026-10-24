@@ -28,21 +28,21 @@
                     <c:if test="${not empty sessionScope.USER_SESSION}">
                         <%-- Task 11.4: Nút Phát loa toàn cục (Admin / Manager) --%>
                         <c:if test="${sessionScope.USER_SESSION.role == 'Admin' or sessionScope.USER_SESSION.role == 'Manager'}">
-                            <button id="btnBroadcastMegaphone" type="button" class="btn-icon-alert" title="<fmt:message key='broadcast.btn.title' />" onclick="openBroadcastModal()">
+                            <button id="btnBroadcastMegaphone" type="button" class="btn-icon-alert" title="<fmt:message key='broadcast.btn.title' />" data-action="open-broadcast">
                                 📢
                             </button>
                         </c:if>
 
                         <%-- Cảnh báo kho nguyên liệu (Staff / Manager) --%>
                         <c:if test="${sessionScope.USER_SESSION.role == 'Staff' or sessionScope.USER_SESSION.role == 'Manager'}">
-                            <button id="btnInventoryAlertBell" type="button" class="btn-icon-alert" title="<fmt:message key='alert.bell.title' />" onclick="openInventoryAlertModal()">
+                            <button id="btnInventoryAlertBell" type="button" class="btn-icon-alert" title="<fmt:message key='alert.bell.title' />" data-action="open-inventory-alert">
                                 ⚠️<span id="inventoryAlertBadge" class="alert-badge d-none">0</span>
                             </button>
                         </c:if>
 
                         <%-- Task 11.3: Quả chuông Thông báo hệ thống & Dropdown --%>
                         <div class="notification-wrapper position-relative">
-                            <button id="btnNotificationBell" type="button" class="btn-icon-alert" title="<fmt:message key='notification.bell.title' />" onclick="toggleNotificationDropdown(event)">
+                            <button id="btnNotificationBell" type="button" class="btn-icon-alert" title="<fmt:message key='notification.bell.title' />" data-action="toggle-notification-dropdown">
                                 🔔<span id="unreadNotifBadge" class="alert-badge d-none">0</span>
                             </button>
                             <jsp:include page="components/notification_dropdown.jsp" />
@@ -70,7 +70,7 @@
                                     </c:choose>
                                 </button>
                                 <div id="menuTaiKhoan">
-                                    <strong>${sessionScope.USER_SESSION.fullName}</strong>
+                                    <strong><c:out value="${sessionScope.USER_SESSION.fullName}" /></strong>
                                     <hr>
                                     <a href="${pageContext.request.contextPath}/ProfileController"><fmt:message key="header.menu.profile" /></a><br><br>
                                     <c:if test="${sessionScope.USER_SESSION.role == 'Staff'}">

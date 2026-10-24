@@ -2,7 +2,7 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
-<fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
+<fmt:setLocale value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setBundle basename="resources.messages" />
 
 <!DOCTYPE html>
@@ -18,10 +18,10 @@
                 <jsp:include page="header.jsp" />
                 <c:choose>
                     <c:when test="${not empty CURRENT_TABLE}">
-                        <h2><fmt:message key="menu.heading.customer" />: ${CURRENT_TABLE} (<fmt:message key="menu.cashier" />: ${sessionScope.USER_SESSION.fullName})</h2>
+                        <h2><fmt:message key="menu.heading.customer" />: ${CURRENT_TABLE} (<fmt:message key="menu.cashier" />: <c:out value="${sessionScope.USER_SESSION.fullName}" />)</h2>
                     </c:when>
                     <c:otherwise>
-                        <h2><fmt:message key="menu.heading.counter" /> (<fmt:message key="menu.cashier" />: ${sessionScope.USER_SESSION.fullName})</h2>
+                        <h2><fmt:message key="menu.heading.counter" /> (<fmt:message key="menu.cashier" />: <c:out value="${sessionScope.USER_SESSION.fullName}" />)</h2>
                     </c:otherwise>
                 </c:choose>
             </c:when>
@@ -59,15 +59,15 @@
         <c:set var="activeTab" value="${not empty ACTIVE_TAB ? ACTIVE_TAB : 'menu'}" />
         <c:if test="${not empty CURRENT_TABLE or not empty sessionScope.USER_SESSION}">
             <div class="tab-nav d-flex mt-15 mb-20">
-                <button class="tab-btn ${(activeTab == 'cart' or activeTab == 'orders') ? '' : 'active'}" onclick="openTab(event, 'tab-menu')"><fmt:message key="menu.tab.menu" /></button>
-                <button class="tab-btn ${activeTab == 'cart' ? 'active' : ''}" onclick="openTab(event, 'tab-cart')">
+                <button type="button" class="tab-btn ${(activeTab == 'cart' or activeTab == 'orders') ? '' : 'active'}" data-tab="tab-menu"><fmt:message key="menu.tab.menu" /></button>
+                <button type="button" class="tab-btn ${activeTab == 'cart' ? 'active' : ''}" data-tab="tab-cart">
                     <fmt:message key="menu.tab.cart" /> 
                     <c:if test="${totalCartQuantity > 0}">
                         <span class="msg-error tab-badge">${totalCartQuantity}</span>
                     </c:if>
                 </button>
                 <c:if test="${not empty CURRENT_TABLE}">
-                    <button class="tab-btn ${activeTab == 'orders' ? 'active' : ''}" onclick="openTab(event, 'tab-orders')">
+                    <button type="button" class="tab-btn ${activeTab == 'orders' ? 'active' : ''}" data-tab="tab-orders">
                         <fmt:message key="menu.tab.orders" />
                         <c:if test="${not empty TABLE_ORDERS and fn:length(TABLE_ORDERS) > 0}">
                             <span class="msg-success tab-badge">${fn:length(TABLE_ORDERS)}</span>
@@ -90,10 +90,10 @@
                                         <c:when test="${not empty item.imageUrl}">
                                             <c:choose>
                                                 <c:when test="${fn:startsWith(item.imageUrl, 'http')}">
-                                                    <img src="${item.imageUrl}" alt="${item.productName}" class="product-card-img" />
+                                                    <img src="${item.imageUrl}" alt="${fn:escapeXml(item.productName)}" class="product-card-img" />
                                                 </c:when>
                                                 <c:otherwise>
-                                                    <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="${item.productName}" class="product-card-img" />
+                                                    <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="${fn:escapeXml(item.productName)}" class="product-card-img" />
                                                 </c:otherwise>
                                             </c:choose>
                                         </c:when>
@@ -103,7 +103,7 @@
                                     </c:choose>
                                 </div>
 
-                                <h3>${item.productName}</h3>
+                                <h3><c:out value="${item.productName}" /></h3>
                                 <div class="product-price"><fmt:formatNumber value="${item.price}" pattern="#,###" /> ₫</div>
 
                                 <c:choose>
@@ -130,7 +130,7 @@
                 <c:when test="${empty sessionScope.CURRENT_CART or empty sessionScope.CURRENT_CART.orderDetails}">
                     <div class="empty-cart-container">
                         <h3><fmt:message key="menu.cart.empty" /></h3>
-                        <button class="btn-login mt-15" onclick="openTab(event, 'tab-menu')"><fmt:message key="menu.cart.back_to_menu" /></button>
+                        <button type="button" class="btn-login mt-15" data-tab="tab-menu"><fmt:message key="menu.cart.back_to_menu" /></button>
                     </div>
                 </c:when>
                 <c:otherwise>
@@ -147,7 +147,7 @@
                         <tbody>
                             <c:forEach var="cartItem" items="${sessionScope.CURRENT_CART.orderDetails}">
                                 <tr>
-                                    <td><strong>${cartItem.product.productName}</strong></td>
+                                    <td><strong><c:out value="${cartItem.product.productName}" /></strong></td>
                                     <td><fmt:formatNumber value="${cartItem.unitPrice}" pattern="#,###" /> ₫</td>
                                     <td>
                                         <div class="cart-qty-control">
@@ -198,7 +198,7 @@
                                 </c:if>
                                 <button type="submit" class="btn-cart-clear"><fmt:message key="menu.cart.btn.clear" /></button>
                             </form>
-                            <button type="button" class="btn-register-action m-0 btn-checkout" onclick="openOrderConfirmModal()"><fmt:message key="menu.btn.checkout" /></button>
+                            <button type="button" class="btn-register-action m-0 btn-checkout" id="btnOpenCheckoutModal"><fmt:message key="menu.btn.checkout" /></button>
                         </div>
                     </div>
                 </c:otherwise>
@@ -210,7 +210,7 @@
                     <c:when test="${empty TABLE_ORDERS}">
                         <div class="empty-cart-container">
                             <h3><fmt:message key="menu.orders.empty" /></h3>
-                            <button class="btn-login mt-15" onclick="openTab(event, 'tab-menu')"><fmt:message key="menu.cart.back_to_menu" /></button>
+                            <button type="button" class="btn-login mt-15" data-tab="tab-menu"><fmt:message key="menu.cart.back_to_menu" /></button>
                         </div>
                     </c:when>
                     <c:otherwise>
@@ -246,7 +246,7 @@
                                     <table class="table-items-breakdown mt-10">
                                         <c:forEach var="item" items="${tableOrder.details}">
                                             <tr>
-                                                <td>${item.productName}</td>
+                                                <td><c:out value="${item.productName}" /></td>
                                                 <td class="text-center">x${item.quantity}</td>
                                                 <td class="text-right"><fmt:formatNumber value="${item.unitPrice * item.quantity}" pattern="#,###" /> ₫</td>
                                             </tr>
@@ -256,7 +256,7 @@
                                     <div class="flex-between mt-10 order-footer-row">
                                         <h4 class="m-0"><fmt:message key="menu.cart.total_amount" />: <fmt:formatNumber value="${tableOrder.totalAmount}" pattern="#,###" /> ₫</h4>
                                         <c:if test="${tableOrder.canCancelOrder}">
-                                            <form action="${pageContext.request.contextPath}/CartController" method="POST" class="m-0" onsubmit="return confirm('<fmt:message key="menu.orders.confirm_cancel" />');">
+                                            <form action="${pageContext.request.contextPath}/CartController" method="POST" class="m-0 form-cancel-table-order" data-confirm-msg="<fmt:message key="menu.orders.confirm_cancel" />">
                                                 <input type="hidden" name="action" value="cancelTableOrder" />
                                                 <input type="hidden" name="orderId" value="${tableOrder.orderId}" />
                                                 <input type="hidden" name="tableId" value="${CURRENT_TABLE}" />

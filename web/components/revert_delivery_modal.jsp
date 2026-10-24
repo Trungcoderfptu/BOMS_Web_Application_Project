@@ -8,7 +8,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 class="m-0 msg-error">⚠️ <fmt:message key="order.revert.modal.title" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeRevertDeliveryModal()">&times;</button>
+            <button type="button" class="btn-modal-close" data-close-modal="revertDeliveryModal">&times;</button>
         </div>
         <div class="modal-body">
             <p class="mb-15 font-bold text-danger">
@@ -19,10 +19,10 @@
             </p>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn-modal-back" onclick="closeRevertDeliveryModal()">
+            <button type="button" class="btn-modal-back" data-close-modal="revertDeliveryModal">
                 <fmt:message key="order.revert.modal.btn.cancel" />
             </button>
-            <button type="button" class="btn-order-cancel" onclick="confirmRevertDeliverySubmit()">
+            <button type="button" class="btn-order-cancel" data-action="confirm-revert-delivery">
                 <fmt:message key="order.revert.modal.btn.confirm" />
             </button>
         </div>

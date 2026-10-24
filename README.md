@@ -279,3 +279,40 @@ thêm file QR code.md để lưu các link QR truy cập nhanh
 * Toàn bộ 74 tệp mã nguồn Java của dự án biên dịch thành công tuyệt đối 0 lỗi qua NetBeans Ant (`BUILD SUCCESSFUL`).
 * Dự án BOMS chính thức hoàn tất phiên bản phát hành cuối cùng **(v1.0.0-final)**, sẵn sàng nghiệm thu và đưa vào vận hành thực tế.
 ---
+## [v1.0.0 - Release 1.0 Notes] - 2026-10-24.
+
+### 🛡️ 1. Bảo Mật & Upload Avatar
+* **Vá lỗ hổng Path Traversal & Tên file độc hại (`ImageUploadUtility.java`):**
+  - Loại bỏ hoàn toàn việc sử dụng tên file gốc do client gửi lên (`getSubmittedFileName`).
+  - Khởi tạo tên file hoàn toàn ngẫu nhiên và an toàn bằng `UUID.randomUUID().toString()` kết hợp với phần mở rộng chuẩn (`.jpg`, `.png`).
+  - Bổ sung cơ chế đọc byte chữ ký nhị phân (**Magic Bytes**) trực tiếp từ luồng dữ liệu `InputStream` để xác thực định dạng file thực sự (`FF D8 FF` cho JPEG, `89 50 4E 47` cho PNG, `RIFF...WEBP` cho WebP). Tự động ném `ValidationException` và từ chối lưu ra đĩa nếu sai định dạng.
+* **Đồng bộ HttpSession & Phản hồi Tức thì (`ProfileController.java`):**
+  - Bổ sung lệnh làm mới `session.setAttribute(Constants.USER_SESSION, loginUser)` ngay sau khi cập nhật avatar mới hoặc xóa avatar, giúp giao diện người dùng thay đổi ảnh đại diện ngay lập tức mà không cần đăng nhập lại.
+* **Lưu ý triển khai cho Team (Database Migration):**
+  - Môi trường mới hoặc các cơ sở dữ liệu hiện hữu bắt buộc chạy kịch bản `DATABASE/BOMS_DATABASE_2.sql` để khởi tạo cột `Avatar VARCHAR(255) NULL` trong bảng `Users`.
+
+### 🚚 2. Chuẩn Hóa Luồng Điều Phối Shipper
+* **Khắc phục lỗi đếm sai ActiveOrders khi Shipper từ chối đơn (`DeliveryService.java`):**
+  - Điều chỉnh thứ tự thực thi trong `rejectTask`: Đảo lệnh cập nhật CSDL gỡ `ShipperID = NULL` và đưa trạng thái về `Waiting for dispatch` lên trước, sau đó mới gọi hàm đồng bộ `syncShipperProfileStatus`.
+  - Đảm bảo hàm đếm `countActiveOrdersByShipperId` đếm chính xác số đơn thực sự trong tiến trình giao (`Delivering`, `Waiting for delivery`), không còn tình trạng tụt đơn hoạt động (từ 3/3 tụt nhầm về 2/3) khi từ chối đơn mới đẩy đến.
+* **Chuẩn hóa dung lượng nhận đơn của Shipper:**
+  - Dọn dẹp logic kiểm tra dung lượng thừa tại `acceptTask` và áp dụng hằng số chuẩn `Constants.MAX_SHIPPER_ORDERS = 3` trên toàn hệ thống.
+
+### 🔒 3. Khóa State Machine (Vòng Đời Đơn Hàng)
+* **Chốt chặn State Machine ở Backend (`OrderService.java`):**
+  - Bắt buộc kiểm tra đơn hàng hiện tại qua `orderDAO.getOrderById(orderId)` trước khi thực hiện cập nhật.
+  - Chặn tuyệt đối mọi thao tác thay đổi trạng thái đối với các đơn `Delivery` đang do Shipper kiểm soát (`Waiting for delivery`, `Picked up`, `Delivering`), ném `ValidationException(Constants.ERROR_DELIVERY_CONTROLLED_BY_SHIPPER)` (mã `E0224`). Muốn thay đổi trạng thái, nhân viên điều phối phải sử dụng chức năng Thu hồi (Revoke) tại Trung tâm điều phối.
+  - Chặn tuyệt đối mọi cập nhật đối với các đơn đã ở trạng thái kết thúc (`Delivered`, `Paid`, `Returned`, `Cancelled`), ném `ValidationException(Constants.ERROR_ORDER_CLOSED_STATUS)` (mã `E0225`).
+* **Khóa Giao diện UI ở Frontend (`order_management.jsp` & Table Components):**
+  - Tại cột Thao tác (Action) của `standard_orders_table.jsp` và `delivery_orders_table.jsp`, bọc thẻ `<c:choose>` để khóa và ẩn form dropdown đối với các đơn thuộc Shipper (hiển thị `🔒 Đang do Shipper xử lý`) và các đơn đã kết thúc (hiển thị `🔒 Đã hoàn tất`), loại bỏ hoàn toàn khả năng người dùng gửi request sai luồng.
+
+### 🧹 4. Tổng Kiểm Toán Mã Nguồn (Static Code Audit & Full Compliance)
+* **Triệt tiêu 100% Khối Catch Rỗng (Zero Empty Catch):**
+  - Rà soát và xử lý dứt điểm các khối catch rỗng tại `OrderDAO`, `UserDAO`, `DashboardController`, `NotificationController`, `AttendanceService`, bổ sung ném ngoại lệ hoặc ghi log chi tiết qua `java.util.logging.Logger`.
+* **Vá Lỗ hổng Rò rỉ Transaction (Transaction Leak Prevention):**
+  - Cập nhật các khối giao dịch JDBC (`OrderDAO`, `UserDAO`, `ReportDAO`) bắt `catch (Exception e)` chung (thay vì chỉ `SQLException`) để đảm bảo lệnh `connection.rollback()` bắt buộc được gọi khi phát sinh bất kỳ lỗi Runtime nào trước khi khôi phục `setAutoCommit(true)`.
+* **Dọn dẹp Biến Static Cục bộ & Gom Chuỗi Hardcode về `Constants.java`:**
+  - Di chuyển toàn bộ các hằng số tĩnh nội bộ trong `AttendanceService.java` sang `Constants.java`. Đạt chuẩn **0 biến static ngoài package utility**.
+  - Gom toàn bộ chuỗi thông báo phân ca, duyệt điểm danh, cảnh báo kho về `Constants.java` dưới dạng template `String.format(Constants.NOTIF_..., ...)`.
+  - Bổ sung `dayKey` i18n (`hr.assign.day.mon`..`sun`) trên giao diện Thời khóa biểu và Ma trận phân ca tuần, tuân thủ 100% quy chuẩn i18n đa ngôn ngữ và chuẩn mã hóa Unicode Escape (`\uXXXX`).
+---

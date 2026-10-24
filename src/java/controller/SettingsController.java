@@ -91,7 +91,7 @@ public class SettingsController extends HttpServlet {
                     break;
 
                 default:
-                    throw new ValidationException(Constants.SERROR_INVALID_SETTING_TAB);
+                    throw new ValidationException(Constants.ERROR_INVALID_SETTING_TAB);
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());

@@ -16,7 +16,6 @@ import model.DeliveryArea;
 import model.DeliveryStatusHistory;
 import model.Order;
 import model.OrderDetail;
-import model.Product;
 import model.ProductIngredient;
 import utility.Constants;
 import utility.ValidationException;
@@ -73,11 +72,11 @@ public class OrderService {
                 continue;
             }
             // Ẩn đơn đã hủy khỏi giao diện của bàn khách
-            if ("Cancelled".equalsIgnoreCase(o.getStatus())) {
+            if (Constants.STATUS_CANCELLED.equalsIgnoreCase(o.getStatus())) {
                 continue;
             }
             // Tự động ẩn các đơn đã hoàn thành hoặc đã thanh toán khỏi màn hình khách sau 10 phút
-            if ("Delivered".equalsIgnoreCase(o.getStatus()) || "Completed".equalsIgnoreCase(o.getStatus()) || "Paid".equalsIgnoreCase(o.getStatus())) {
+            if (Constants.STATUS_COMPLETED.equalsIgnoreCase(o.getStatus()) || "Completed".equalsIgnoreCase(o.getStatus()) || Constants.STATUS_PAID.equalsIgnoreCase(o.getStatus())) {
                 if (o.getCreatedAt() != null && (now - o.getCreatedAt().getTime() > tenMinutesMillis)) {
                     continue;
                 }
@@ -94,26 +93,39 @@ public class OrderService {
             throw new ValidationException(Constants.ERROR_ORDER_NOT_FOUND);
         }
 
+        String curStatus = currentOrder.getStatus();
+
+        // 1. Khóa State Machine: Nếu đơn là loại Delivery và đang thuộc luồng kiểm soát của Shipper
+        if (Constants.ORDER_TYPE_DELIVERY.equalsIgnoreCase(currentOrder.getOrderType())) {
+            if (Constants.STATUS_WAITING_DELIVERY.equalsIgnoreCase(curStatus)
+                    || Constants.STATUS_PICKED_UP.equalsIgnoreCase(curStatus)
+                    || Constants.STATUS_DELIVERING.equalsIgnoreCase(curStatus)) {
+                throw new ValidationException(Constants.ERROR_DELIVERY_CONTROLLED_BY_SHIPPER);
+            }
+        }
+
+        // 2. Khóa State Machine: Nếu đơn đang ở trạng thái kết thúc (Delivered, Returned, Cancelled, hoặc Paid)
+        if (Constants.STATUS_COMPLETED.equalsIgnoreCase(curStatus)
+                || "Delivered".equalsIgnoreCase(curStatus)
+                || Constants.STATUS_FAILED.equalsIgnoreCase(curStatus)
+                || "Returned".equalsIgnoreCase(curStatus)
+                || Constants.STATUS_CANCELLED.equalsIgnoreCase(curStatus)
+                || Constants.STATUS_PAID.equalsIgnoreCase(curStatus)) {
+            throw new ValidationException(Constants.ERROR_ORDER_CLOSED_STATUS);
+        }
+
         // Xử lý thu hồi đơn giao hàng về phục vụ tại quầy / tại bàn
-        if ("Delivery".equalsIgnoreCase(currentOrder.getOrderType())
-                && ("Accepted".equalsIgnoreCase(newStatus) || "Prepared".equalsIgnoreCase(newStatus))) {
+        if (Constants.ORDER_TYPE_DELIVERY.equalsIgnoreCase(currentOrder.getOrderType())
+                && (Constants.STATUS_ACCEPTED.equalsIgnoreCase(newStatus) || Constants.STATUS_PREPARED.equalsIgnoreCase(newStatus))) {
             revertDeliveryOrder(currentOrder, newStatus);
             return;
         }
 
-        // Kiểm tra điều kiện khóa 5 phút nếu đơn đang ở trạng thái Cancelled
-        if ("Cancelled".equalsIgnoreCase(currentOrder.getStatus())) {
-            validateCancelModificationWindow(currentOrder);
-            if (!"Cancelled".equalsIgnoreCase(newStatus)) {
-                // Hoàn tác hủy -> kiểm tra tồn kho và trừ lại nguyên liệu
-                validateOrderIngredientsForRestoration(currentOrder);
-                deductOrderIngredients(currentOrder);
-            }
-        } else if ("Cancelled".equalsIgnoreCase(newStatus)) {
-            if ("Delivery".equalsIgnoreCase(currentOrder.getOrderType()) && currentOrder.getShipperId() != null && currentOrder.getShipperId() > 0) {
+        if (Constants.STATUS_CANCELLED.equalsIgnoreCase(newStatus)) {
+            if (Constants.ORDER_TYPE_DELIVERY.equalsIgnoreCase(currentOrder.getOrderType()) && currentOrder.getShipperId() != null && currentOrder.getShipperId() > 0) {
                 int sId = currentOrder.getShipperId();
                 deliveryDAO.insertStatusHistory(new DeliveryStatusHistory(
-                        0, orderId, sId, "Cancelled", Constants.NOTE_STAFF_CANCEL_ORDER, null, new java.sql.Timestamp(System.currentTimeMillis())
+                        0, orderId, sId, Constants.STATUS_CANCELLED, Constants.NOTE_STAFF_CANCEL_ORDER, null, new java.sql.Timestamp(System.currentTimeMillis())
                 ));
                 int activeCount = deliveryDAO.countActiveOrdersByShipperId(sId);
                 deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? Constants.SHIPPER_STATUS_READY : Constants.SHIPPER_STATUS_DELIVERING), activeCount);
@@ -127,7 +139,7 @@ public class OrderService {
             throw new ValidationException(Constants.ERROR_ORDER_NOT_FOUND);
         }
 
-        if ("Cancelled".equalsIgnoreCase(newStatus)) {
+        if (Constants.STATUS_CANCELLED.equalsIgnoreCase(newStatus)) {
             utility.OrderRuntimeCache.recordCancelTime(orderId);
         } else {
             utility.OrderRuntimeCache.clearCancelTime(orderId);
@@ -136,10 +148,10 @@ public class OrderService {
 
     public void cancelOrder(int orderId) throws ValidationException {
         Order order = validateAndGetOrderForModification(orderId);
-        if ("Delivery".equalsIgnoreCase(order.getOrderType()) && order.getShipperId() != null && order.getShipperId() > 0) {
+        if (Constants.ORDER_TYPE_DELIVERY.equalsIgnoreCase(order.getOrderType()) && order.getShipperId() != null && order.getShipperId() > 0) {
             int sId = order.getShipperId();
             deliveryDAO.insertStatusHistory(new DeliveryStatusHistory(
-                    0, orderId, sId, "Cancelled", Constants.NOTE_STAFF_CANCEL_ORDER, null, new java.sql.Timestamp(System.currentTimeMillis())
+                    0, orderId, sId, Constants.STATUS_CANCELLED, Constants.NOTE_STAFF_CANCEL_ORDER, null, new java.sql.Timestamp(System.currentTimeMillis())
             ));
             int activeCount = deliveryDAO.countActiveOrdersByShipperId(sId);
             deliveryDAO.updateShipperStatusAndCount(sId, (activeCount == 0 ? Constants.SHIPPER_STATUS_READY : Constants.SHIPPER_STATUS_DELIVERING), activeCount);
@@ -154,7 +166,7 @@ public class OrderService {
 
     private void revertDeliveryOrder(Order order, String newStatus) throws ValidationException {
         String curStatus = order.getStatus();
-        if ("Delivering".equalsIgnoreCase(curStatus) || "Delivered".equalsIgnoreCase(curStatus) || "Returned".equalsIgnoreCase(curStatus)) {
+        if (Constants.STATUS_DELIVERING.equalsIgnoreCase(curStatus) || Constants.STATUS_COMPLETED.equalsIgnoreCase(curStatus) || Constants.STATUS_FAILED.equalsIgnoreCase(curStatus)) {
             throw new ValidationException(Constants.ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS);
         }
 
@@ -213,7 +225,7 @@ public class OrderService {
         }
 
         String curStatus = order.getStatus();
-        if ("Delivered".equalsIgnoreCase(curStatus) || "Paid".equalsIgnoreCase(curStatus) || "Cancelled".equalsIgnoreCase(curStatus)) {
+        if (Constants.STATUS_COMPLETED.equalsIgnoreCase(curStatus) || Constants.STATUS_PAID.equalsIgnoreCase(curStatus) || Constants.STATUS_CANCELLED.equalsIgnoreCase(curStatus)) {
             throw new ValidationException(Constants.ERROR_ORDER_CANNOT_DISPATCH);
         }
 
@@ -240,7 +252,7 @@ public class OrderService {
                     counter++;
                 } else if ("Table".equalsIgnoreCase(type)) {
                     table++;
-                } else if ("Delivery".equalsIgnoreCase(type)) {
+                } else if (Constants.ORDER_TYPE_DELIVERY.equalsIgnoreCase(type)) {
                     delivery++;
                 }
             }
@@ -303,17 +315,23 @@ public class OrderService {
                 ? shipperMap.get(order.getShipperId()) : "";
         map.put("shipperName", shipperName);
 
-        map.put("status", order.getStatus());
-        map.put("totalAmount", order.getTotalAmount());
-        map.put("createdAt", formatTimestamp(order.getCreatedAt()));
-        boolean canCancel = order.getCookingStartedAt() == null
-                && !"Cancelled".equalsIgnoreCase(order.getStatus())
-                && !"Delivered".equalsIgnoreCase(order.getStatus())
-                && !"Paid".equalsIgnoreCase(order.getStatus());
-        map.put("canCancelOrder", canCancel);
+        String curStatus = order.getStatus();
+        String orderType = order.getOrderType();
 
-        boolean isCancelled = "Cancelled".equalsIgnoreCase(order.getStatus());
-        boolean isCancelLocked = false;
+        boolean isDeliveryUnderShipper = Constants.ORDER_TYPE_DELIVERY.equalsIgnoreCase(orderType)
+                && (Constants.STATUS_WAITING_DELIVERY.equalsIgnoreCase(curStatus)
+                || Constants.STATUS_PICKED_UP.equalsIgnoreCase(curStatus)
+                || Constants.STATUS_DELIVERING.equalsIgnoreCase(curStatus));
+
+        boolean isClosedStatus = Constants.STATUS_COMPLETED.equalsIgnoreCase(curStatus)
+                || "Delivered".equalsIgnoreCase(curStatus)
+                || Constants.STATUS_FAILED.equalsIgnoreCase(curStatus)
+                || "Returned".equalsIgnoreCase(curStatus)
+                || Constants.STATUS_CANCELLED.equalsIgnoreCase(curStatus)
+                || Constants.STATUS_PAID.equalsIgnoreCase(curStatus);
+
+        boolean isCancelled = Constants.STATUS_CANCELLED.equalsIgnoreCase(curStatus);
+        boolean isCancelLocked = isCancelled || isClosedStatus;
         long remainingCancelSeconds = 0;
         if (isCancelled) {
             Long cancelTime = utility.OrderRuntimeCache.getCancelTime(order.getOrderId());
@@ -331,9 +349,23 @@ public class OrderService {
                 remainingCancelSeconds = 0;
             }
         }
+
+        boolean isStatusUpdateLocked = isDeliveryUnderShipper || isClosedStatus || isCancelLocked;
+
+        boolean canCancel = order.getCookingStartedAt() == null
+                && !isClosedStatus
+                && !isDeliveryUnderShipper;
+        map.put("canCancelOrder", canCancel);
+
+        map.put("status", curStatus);
+        map.put("totalAmount", order.getTotalAmount());
+        map.put("createdAt", formatTimestamp(order.getCreatedAt()));
         map.put("isCancelled", isCancelled);
         map.put("isCancelLocked", isCancelLocked);
         map.put("remainingCancelSeconds", remainingCancelSeconds);
+        map.put("isDeliveryUnderShipper", isDeliveryUnderShipper);
+        map.put("isClosedStatus", isClosedStatus);
+        map.put("isStatusUpdateLocked", isStatusUpdateLocked);
 
         map.put("details", convertOrderDetailsToMapList(order.getOrderDetails()));
         return map;
@@ -350,7 +382,7 @@ public class OrderService {
                 if (d.getProduct() != null) {
                     dMap.put("productName", d.getProduct().getProductName());
                 } else {
-                    dMap.put("productName", "Món #" + d.getProductId());
+                    dMap.put("productName", Constants.FALLBACK_PRODUCT_PREFIX + d.getProductId());
                 }
                 list.add(dMap);
             }
@@ -392,7 +424,7 @@ public class OrderService {
             throw new ValidationException(Constants.ERROR_ORDER_ALREADY_COOKING);
         }
         String status = order.getStatus();
-        if ("Cancelled".equalsIgnoreCase(status) || "Delivered".equalsIgnoreCase(status) || "Paid".equalsIgnoreCase(status)) {
+        if (Constants.STATUS_CANCELLED.equalsIgnoreCase(status) || Constants.STATUS_COMPLETED.equalsIgnoreCase(status) || Constants.STATUS_PAID.equalsIgnoreCase(status)) {
             throw new ValidationException(Constants.ERROR_ORDER_CANNOT_BE_CANCELLED);
         }
         return order;

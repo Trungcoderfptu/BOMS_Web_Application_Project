@@ -3,7 +3,6 @@ package service;
 import dao.AccountManagerDAO;
 import dao.UserDAO;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,13 +25,6 @@ public class AdminService {
         this.userService = new UserService();
     }
 
-    public List<User> getAllUsers() throws ValidationException {
-        return userDAO.getAllUsers();
-    }
-
-    public List<AccountManager> getAllKeys() throws ValidationException {
-        return accountDAO.getAllKeys();
-    }
 
     public void generateSecurityKey(String role) throws ValidationException {
         String randomPart = UUID.randomUUID().toString().substring(0, 6).toUpperCase();

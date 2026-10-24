@@ -24,14 +24,16 @@ public class DeliveryDAO extends DBContext {
                 + "FROM Orders o "
                 + "LEFT JOIN DeliveryAreas da ON o.AreaID = da.AreaID "
                 + "LEFT JOIN Users u ON o.ShipperID = u.UserID "
-                + "WHERE o.OrderType = 'Delivery' "
+                + "WHERE o.OrderType = ? "
                 + "ORDER BY o.OrderID DESC";
 
-        try (PreparedStatement st = connection.prepareStatement(sql);
-             ResultSet rs = st.executeQuery()) {
-            while (rs.next()) {
-                Map<String, Object> task = mapResultSetToTask(rs);
-                list.add(task);
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setString(1, Constants.ORDER_TYPE_DELIVERY);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> task = mapResultSetToTask(rs);
+                    list.add(task);
+                }
             }
         } catch (SQLException e) {
             throw new ValidationException(Constants.ERROR_DATABASE_GET_ORDER);
@@ -50,10 +52,11 @@ public class DeliveryDAO extends DBContext {
                 + "FROM Orders o "
                 + "LEFT JOIN DeliveryAreas da ON o.AreaID = da.AreaID "
                 + "JOIN Users u ON o.ShipperID = u.UserID "
-                + "WHERE o.OrderType = 'Delivery' AND u.Username = ? "
+                + "WHERE o.OrderType = ? AND u.Username = ? "
                 + "ORDER BY o.OrderID DESC";
         try (PreparedStatement st = connection.prepareStatement(sql)) {
-            st.setString(1, shipperUsername);
+            st.setString(1, Constants.ORDER_TYPE_DELIVERY);
+            st.setString(2, shipperUsername);
             try (ResultSet rs = st.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> task = mapResultSetToTask(rs);
@@ -77,8 +80,8 @@ public class DeliveryDAO extends DBContext {
                 + "FROM Orders o "
                 + "LEFT JOIN DeliveryAreas da ON o.AreaID = da.AreaID "
                 + "LEFT JOIN Users u ON o.ShipperID = u.UserID "
-                + "WHERE o.OrderType = 'Delivery' "
-                + "  AND o.Status = 'Waiting for dispatch' "
+                + "WHERE o.OrderType = ? "
+                + "  AND o.Status = ? "
                 + "  AND o.ShipperID IS NULL "
                 + "  AND ( "
                 + "      o.AreaID IN ( "
@@ -95,8 +98,10 @@ public class DeliveryDAO extends DBContext {
                 + "ORDER BY o.OrderID DESC";
 
         try (PreparedStatement st = connection.prepareStatement(sql)) {
-            st.setString(1, shipperUsername);
-            st.setString(2, shipperUsername);
+            st.setString(1, Constants.ORDER_TYPE_DELIVERY);
+            st.setString(2, Constants.STATUS_WAITING_DISPATCH);
+            st.setString(3, shipperUsername);
+            st.setString(4, shipperUsername);
             try (ResultSet rs = st.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> task = mapResultSetToTask(rs);
@@ -311,10 +316,61 @@ public class DeliveryDAO extends DBContext {
         return map;
     }
 
+    public List<Map<String, Object>> getAssignedPendingTasks() throws ValidationException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT o.OrderID, o.CustomerName, o.CustomerPhone, o.DeliveryAddress, o.TotalAmount, o.Status, "
+                + "da.AreaName, u.Username AS ShipperUsername, u.FullName AS ShipperFullName "
+                + "FROM Orders o "
+                + "LEFT JOIN DeliveryAreas da ON o.AreaID = da.AreaID "
+                + "LEFT JOIN Users u ON o.ShipperID = u.UserID "
+                + "WHERE o.OrderType = ? "
+                + "AND o.Status = ? "
+                + "ORDER BY o.CreatedAt ASC";
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setString(1, Constants.ORDER_TYPE_DELIVERY);
+            st.setString(2, Constants.STATUS_WAITING_DELIVERY);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("taskId", rs.getInt("OrderID"));
+                    map.put("orderCode", "#" + rs.getInt("OrderID"));
+                    map.put("customerName", rs.getString("CustomerName"));
+                    map.put("customerPhone", rs.getString("CustomerPhone"));
+                    map.put("customerAddress", rs.getString("DeliveryAddress"));
+                    map.put("areaName", rs.getString("AreaName"));
+                    map.put("totalAmount", rs.getDouble("TotalAmount"));
+                    map.put("status", rs.getString("Status"));
+                    map.put("shipperUsername", rs.getString("ShipperUsername"));
+                    map.put("shipperFullName", rs.getString("ShipperFullName"));
+                    list.add(map);
+                }
+            }
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_DELIVERY);
+        }
+        return list;
+    }
+
+    public void revokeTaskFromShipper(int orderId) throws ValidationException {
+        String sql = "UPDATE Orders SET ShipperID = NULL, Status = ? WHERE OrderID = ? AND Status = ?";
+
+        try (PreparedStatement st = connection.prepareStatement(sql)) {
+            st.setString(1, Constants.STATUS_WAITING_DISPATCH);
+            st.setInt(2, orderId);
+            st.setString(3, Constants.STATUS_WAITING_DELIVERY);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_DELIVERY);
+        }
+    }
+
     public int countActiveOrdersByShipperId(int shipperId) throws ValidationException {
-        String sql = "SELECT COUNT(*) AS Total FROM Orders WHERE ShipperID = ? AND Status = 'Delivering'";
+        String sql = "SELECT COUNT(*) AS Total FROM Orders WHERE ShipperID = ? AND Status IN (?, ?)";
+
         try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, shipperId);
+            st.setString(2, Constants.STATUS_WAITING_DELIVERY);
+            st.setString(3, Constants.STATUS_DELIVERING);
             try (ResultSet rs = st.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("Total");

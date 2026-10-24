@@ -1,7 +1,6 @@
 package dao;
 
 import dal.DBContext;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -45,7 +44,7 @@ public class OrderDAO extends DBContext {
                 stOrder.setString(6, order.getCustomerName());
                 stOrder.setString(7, order.getCustomerPhone());
                 stOrder.setString(8, order.getDeliveryAddress());
-                stOrder.setString(9, order.getStatus() != null ? order.getStatus() : "Accepted");
+                stOrder.setString(9, order.getStatus() != null ? order.getStatus() : Constants.STATUS_ACCEPTED);
                 stOrder.setDouble(10, order.getTotalAmount());
                 stOrder.setTimestamp(11, order.getCreatedAt() != null ? order.getCreatedAt() : new Timestamp(System.currentTimeMillis()));
                 stOrder.setTimestamp(12, order.getCookingStartedAt());
@@ -57,6 +56,10 @@ public class OrderDAO extends DBContext {
                         order.setOrderId(newOrderId);
                     }
                 }
+            }
+
+            if (newOrderId <= 0) {
+                throw new SQLException("Failed to obtain generated OrderID");
             }
 
             if (order.getOrderDetails() != null && !order.getOrderDetails().isEmpty()) {
@@ -74,16 +77,20 @@ public class OrderDAO extends DBContext {
 
             connection.commit();
             return newOrderId;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             try {
                 connection.rollback();
             } catch (SQLException rollbackEx) {
+                java.util.logging.Logger.getLogger(OrderDAO.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Failed to rollback order transaction", rollbackEx);
             }
             throw new ValidationException(Constants.ERROR_DATABASE_INSERT_ORDER);
         } finally {
             try {
                 connection.setAutoCommit(originalAutoCommit);
             } catch (SQLException ex) {
+                java.util.logging.Logger.getLogger(OrderDAO.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Failed to restore auto-commit", ex);
             }
         }
     }
@@ -109,7 +116,7 @@ public class OrderDAO extends DBContext {
     public Order getLatestOrderByTableId(int tableId) throws ValidationException {
         String sql = "SELECT TOP 1 OrderID, OrderType, StaffID, TableID, AreaID, ShipperID, CustomerName, CustomerPhone, "
                 + "DeliveryAddress, Status, TotalAmount, CreatedAt, CookingStartedAt FROM Orders "
-                + "WHERE TableID = ? AND Status <> 'Cancelled' ORDER BY CreatedAt DESC";
+                + "WHERE TableID = ? AND Status <> '" + Constants.STATUS_CANCELLED + "' ORDER BY CreatedAt DESC";
         try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, tableId);
             try (ResultSet rs = st.executeQuery()) {
@@ -199,7 +206,7 @@ public class OrderDAO extends DBContext {
 
     public boolean updateOrderStatus(int orderId, String newStatus) throws ValidationException {
         String sql;
-        boolean isCooking = "Prepared".equalsIgnoreCase(newStatus) || "Delivering".equalsIgnoreCase(newStatus);
+        boolean isCooking = Constants.STATUS_PREPARED.equalsIgnoreCase(newStatus) || Constants.STATUS_DELIVERING.equalsIgnoreCase(newStatus);
         if (isCooking) {
             sql = "UPDATE Orders SET Status = ?, CookingStartedAt = COALESCE(CookingStartedAt, GETDATE()) WHERE OrderID = ?";
         } else {
@@ -216,7 +223,7 @@ public class OrderDAO extends DBContext {
     }
 
     public boolean cancelOrder(int orderId) throws ValidationException {
-        String sql = "UPDATE Orders SET Status = 'Cancelled' WHERE OrderID = ?";
+        String sql = "UPDATE Orders SET Status = '" + Constants.STATUS_CANCELLED + "' WHERE OrderID = ?";
         try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, orderId);
             return st.executeUpdate() > 0;
@@ -227,7 +234,7 @@ public class OrderDAO extends DBContext {
 
     public boolean revertOrderFromDelivery(int orderId, String newOrderType, String newStatus) throws ValidationException {
         String sql;
-        boolean isCooking = "Prepared".equalsIgnoreCase(newStatus);
+        boolean isCooking = Constants.STATUS_PREPARED.equalsIgnoreCase(newStatus);
         if (isCooking) {
             sql = "UPDATE Orders SET OrderType = ?, Status = ?, ShipperID = NULL, CookingStartedAt = COALESCE(CookingStartedAt, GETDATE()) WHERE OrderID = ?";
         } else {
@@ -244,7 +251,7 @@ public class OrderDAO extends DBContext {
     }
 
     public boolean updateOrderToDelivery(int orderId, String customerName, String customerPhone, String deliveryAddress, int areaId) throws ValidationException {
-        String sql = "UPDATE Orders SET OrderType = 'Delivery', CustomerName = ?, CustomerPhone = ?, DeliveryAddress = ?, AreaID = ?, Status = 'Waiting for dispatch', ShipperID = NULL WHERE OrderID = ?";
+        String sql = "UPDATE Orders SET OrderType = '" + Constants.ORDER_TYPE_DELIVERY + "', CustomerName = ?, CustomerPhone = ?, DeliveryAddress = ?, AreaID = ?, Status = '" + Constants.STATUS_WAITING_DISPATCH + "', ShipperID = NULL WHERE OrderID = ?";
         try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, customerName);
             st.setString(2, customerPhone);

@@ -151,7 +151,7 @@ public class MenuManagementController extends HttpServlet {
             // Bắt lỗi kích thước file multipart vượt quá trần cấu hình, bảo vệ socket không bị reset
             session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_IMAGE_SIZE_EXCEEDED);
         } catch (Exception e) {
-            session.setAttribute(Constants.ERROR_MESSAGE, Constants.SERROR_INVALID_SETTING_TAB);
+            session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
 
         response.sendRedirect(request.getContextPath() + "/" + redirectUrl);

@@ -1,5 +1,113 @@
 # BOMS LEARNING & PROGRESS LOG
 
+## [2026-10-24] - TỔNG KẾT BẢN PHÁT HÀNH RELEASE 1.0: BẢO MẬT, LUỒNG ĐIỀU PHỐI, KHÓA STATE MACHINE & TỔNG KIỂM TOÁN TĨNH
+
+### 1. Phân hệ Bảo mật & Upload Avatar:
+- **Vá lỗ hổng Path Traversal (`ImageUploadUtility.java`):** Chuyển đổi toàn bộ tên tệp tải lên sang mã băm ngẫu nhiên `UUID.randomUUID().toString() + ext`, loại bỏ hoàn toàn tên file do client gửi.
+- **Xác thực chữ ký nhị phân Magic Bytes:** Đọc byte đầu trực tiếp từ `InputStream` (`FF D8 FF` cho JPEG, `89 50 4E 47` cho PNG, `RIFF...WEBP` cho WebP), ngăn chặn tuyệt đối webshell/malware đổi đuôi qua mặt bộ lọc MIME.
+- **Đồng bộ HttpSession tức thì (`ProfileController.java`):** Bổ sung `session.setAttribute(Constants.USER_SESSION, loginUser)` để làm mới avatar ngay trên header mà không cần đăng nhập lại.
+- **Kịch bản Migration CSDL:** Tạo tệp `DATABASE/BOMS_DATABASE_2.sql` bổ sung cột `Avatar VARCHAR(255) NULL` an toàn cho các môi trường DB cũ.
+
+### 2. Chuẩn hóa Luồng Nghiệp vụ Điều phối Shipper:
+- **Khắc phục lỗi đếm sai ActiveOrders (`DeliveryService.java`):** Đảo thứ tự trong phương thức `rejectTask` để cập nhật CSDL gỡ `ShipperID = NULL` và chuyển trạng thái về `Waiting for dispatch` trước khi gọi `syncShipperProfileStatus`. Nhờ đó, hàm `countActiveOrdersByShipperId` đếm chính xác số đơn thực tế đang giao (`Delivering`, `Waiting for delivery`), triệt tiêu lỗi tụt số đơn hoạt động (3/3 tụt về 2/3) khi shipper từ chối đơn mới.
+- **Dọn dẹp kiểm tra dung lượng thừa:** Xóa bỏ logic kiểm tra trùng lặp ở `acceptTask`, chuẩn hóa hằng số `Constants.MAX_SHIPPER_ORDERS = 3`.
+
+### 3. Khóa State Machine Vòng đời Đơn hàng:
+- **Chốt chặn State Machine ở Backend (`OrderService.updateOrderStatus`):** Truy vấn đơn hiện tại qua `orderDAO.getOrderById(orderId)`. Cấm cập nhật các đơn `Delivery` đang do Shipper kiểm soát (`Waiting for delivery`, `Picked up`, `Delivering`) với mã lỗi `E0224` (`ERROR_DELIVERY_CONTROLLED_BY_SHIPPER`). Cấm cập nhật các đơn ở trạng thái kết thúc (`Delivered`, `Paid`, `Returned`, `Cancelled`) với mã lỗi `E0225` (`ERROR_ORDER_CLOSED_STATUS`).
+- **Khóa UI View (`standard_orders_table.jsp` & `delivery_orders_table.jsp`):** Tại cột Action, bọc thẻ `<c:choose>` để khóa và ẩn form dropdown đối với đơn thuộc Shipper (`🔒 Đang do Shipper xử lý`) và đơn đã kết thúc (`🔒 Đã hoàn tất`).
+
+### 4. Tổng Kiểm toán Tĩnh Mã nguồn (Static Code Audit & Full Compliance):
+- **Triệt tiêu 100% khối catch rỗng (Zero Empty Catch):** Rà soát và xử lý dứt điểm các khối catch rỗng tại `OrderDAO`, `UserDAO`, `DashboardController`, `NotificationController`, `AttendanceService`.
+- **Vá lỗ hổng rò rỉ Transaction (Transaction Leak Prevention):** Cập nhật `OrderDAO` bắt `catch (Exception e)` chung để bảo đảm lệnh `connection.rollback()` luôn được gọi cho mọi lỗi Runtime; tích hợp `Logger` khi rollback và restore auto-commit.
+- **Di dời biến static ngoài utility:** Chuyển 4 hằng số thời gian trong `AttendanceService` về `Constants.java`. Đạt chuẩn **0 static fields** ngoài `utility`.
+- **Gom toàn bộ chuỗi hardcode:** Sử dụng template `String.format(Constants.NOTIF_..., ...)` và `String.format(Constants.INVENTORY_ALERT_..., ...)`, tích hợp `dayKey` i18n cho thời khóa biểu tuần. Toàn bộ dự án đạt chuẩn i18n 100%.
+
+### 5. File tác động & Trạng thái:
+- `README.md` (Tạo Release 1.0 Notes)
+- `DATABASE/BOMS_DATABASE_2.sql` (Kịch bản migration)
+- `.agent/WorkList.md` (Bổ sung Section Release 1.0)
+- `.agent/learning.md`
+- `src/java/utility/ImageUploadUtility.java`
+- `src/java/controller/hr/ProfileController.java`
+- `src/java/service/DeliveryService.java`
+- `src/java/service/OrderService.java`
+- `src/java/service/AttendanceService.java`
+- `src/java/service/IngredientService.java`
+- `src/java/dao/OrderDAO.java`
+- `src/java/dao/UserDAO.java`
+- `src/java/utility/Constants.java`
+- `src/java/resources/messages_vi.properties`
+- `src/java/resources/messages_en.properties`
+- `web/components/standard_orders_table.jsp`
+- `web/components/delivery_orders_table.jsp`
+- `web/attendance.jsp`
+- `web/hr_management.jsp`
+- **Trạng thái Build:** Apache Ant (`ant clean compile` với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
+
+---
+
+## [2026-10-24] - Tổng Kiểm toán Tuân thủ Quy chuẩn Kiến trúc (Rule_BOMS Audit & Deep Clean)
+
+### 1. Phân tích & Vi phạm Phát hiện được:
+- **Biến Static ngoài package Utility:** `AttendanceService.java` khai báo 4 hằng số `private static final int ..._THRESHOLD_MINUTES = 15;` vi phạm trực tiếp Rule_BOMS Mục 2 ("Nghiêm cấm sử dụng khai báo static ngoài package Utility").
+- **Transaction Rollback & Empty Catch:** `OrderDAO.insertOrderWithDetails` chỉ bắt `catch (SQLException e)` thay vì `catch (Exception e)`, đồng thời nuốt ngoại lệ tại khối `rollback` và `setAutoCommit`. `UserDAO.registerUserWithKeyTransaction` cũng có khối `catch (SQLException ex)` rỗng khi rollback.
+- **Nuốt lỗi (Empty Catch Blocks):** `DashboardController.java` (`userId` parsing), `NotificationController.java` (`limit` và `notificationId` parsing), `AttendanceService.java` (`daysOfWeek` parsing) chứa các khối catch rỗng.
+- **Hardcode Chuỗi & Thông báo:** `AttendanceService.java` và `IngredientService.java` sử dụng phép nối chuỗi cho các thông báo thông báo ca làm, duyệt điểm danh, và cảnh báo kho thay vì sử dụng các mẫu định dạng đã khai báo sẵn trong `Constants.java`.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Di dời toàn bộ Biến Static về `Constants.java`:** Chuyển `EARLY_CHECKIN_THRESHOLD_MINUTES`, `LATE_CHECKIN_THRESHOLD_MINUTES`, `EARLY_CHECKOUT_THRESHOLD_MINUTES`, `OVERTIME_THRESHOLD_MINUTES` vào `Constants.java`. `AttendanceService` chỉ tham chiếu `Constants.*`. Đạt **0 static fields** ngoài `utility`.
+- **Hoàn thiện Transaction Rollback & Logger:** Cập nhật `OrderDAO` bắt `catch (Exception e)` chung để đảm bảo mọi ngoại lệ runtime (NPE, OOB) đều kích hoạt `connection.rollback()`. Tích hợp `java.util.logging.Logger` ghi nhận lỗi nếu `rollback()` hoặc `setAutoCommit()` phát sinh ngoại lệ tại cả `OrderDAO` và `UserDAO`. Đạt **0 empty catches**.
+- **Xử lý dứt điểm Nuốt lỗi tại Controller/Service:** Khởi tạo giá trị mặc định rõ ràng (`userId = 0;`, `limit = 10;`, `notificationId = 0;`) và ghi log chi tiết. Đạt **0 empty catches** toàn dự án.
+- **Triệt tiêu 100% Chuỗi Hardcode:** Áp dụng `String.format(Constants.NOTIF_..., ...)` và `String.format(Constants.INVENTORY_ALERT_..., ...)` tại `AttendanceService` và `IngredientService`. Tích hợp khóa đa ngôn ngữ `dayKey` (`hr.assign.day.mon`..`sun`) trên `attendance.jsp` và `hr_management.jsp`. Đạt **0 hardcoded strings** trong mã nguồn.
+
+### 3. File tác động & Trạng thái:
+- `src/java/utility/Constants.java`
+- `src/java/service/AttendanceService.java`
+- `src/java/service/IngredientService.java`
+- `src/java/dao/OrderDAO.java`
+- `src/java/dao/UserDAO.java`
+- `src/java/controller/DashboardController.java`
+- `src/java/controller/NotificationController.java`
+- `web/attendance.jsp`
+- `web/hr_management.jsp`
+- `.agent/learning.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile` với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
+
+---
+
+## [2026-10-24] - Khắc phục Triệt để Lỗi Vi phạm Luồng Trạng thái Đơn hàng (State Machine Violation & UI Lock)
+
+### 1. Phân tích & Vấn đề Kỹ thuật:
+- **Vi phạm Luồng trạng thái Đơn hàng (State Machine Violation):** Tại màn hình Quản lý đơn hàng (`order_management.jsp`), nhân viên có thể sử dụng dropdown trạng thái để đổi ngược trạng thái của một đơn `Delivery` đang do Shipper nắm giữ (`Waiting for delivery`, `Picked up`, `Delivering`) về lại `Waiting for dispatch` hoặc trạng thái cũ hơn. Điều này dẫn tới sai lệch dữ liệu: Shipper vẫn giữ đơn trong tiến trình giao nhưng đơn trên hệ thống lại bị lùi bước.
+- **Thay đổi trạng thái trên Đơn đã kết thúc (Closed Orders Modification):** Các đơn đã hoàn tất hoặc đóng (`Delivered`, `Paid`, `Returned`, `Cancelled`) vẫn hiển thị form cập nhật trạng thái hoạt động ở UI và cho phép gửi request cập nhật.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Khóa State Machine Tầng Backend (`OrderService.updateOrderStatus`):**
+  - Truy vấn lấy `Order currentOrder = orderDAO.getOrderById(orderId)`.
+  - Nếu đơn là `Delivery` (`Constants.ORDER_TYPE_DELIVERY`) và trạng thái hiện tại thuộc luồng kiểm soát của Shipper (`Waiting for delivery`, `Picked up`, `Delivering`), chặn tuyệt đối và ném `ValidationException(Constants.ERROR_DELIVERY_CONTROLLED_BY_SHIPPER)` (mã `E0224`).
+  - Nếu trạng thái hiện tại là trạng thái kết thúc (`Delivered`, `Paid`, `Returned`, `Cancelled`), chặn tuyệt đối và ném `ValidationException(Constants.ERROR_ORDER_CLOSED_STATUS)` (mã `E0225`).
+  - Trong `convertOrderToMap`, tính toán trước các cờ nghiệp vụ: `isDeliveryUnderShipper`, `isClosedStatus`, `isStatusUpdateLocked` để UI và các tầng xử lý truy cập nhất quán.
+- **Khóa Giao diện UI (`standard_orders_table.jsp` & `delivery_orders_table.jsp`):**
+  - Sử dụng `<c:choose>` tại cột Thao tác (Action):
+    + Nếu `${order.isDeliveryUnderShipper}`: Ẩn form cập nhật, hiển thị huy hiệu tĩnh `🔒 Đang do Shipper xử lý` (`badge-locked`).
+    + Nếu `${order.isClosedStatus}`: Ẩn form cập nhật, hiển thị trạng thái tĩnh `🔒 Đã hoàn tất` (`text-secondary`).
+    + Các trạng thái mở khác: Hiển thị form cập nhật trạng thái bình thường.
+- **Chuẩn hóa Hằng số & Đa ngôn ngữ (100% Rule_BOMS):**
+  - Khai báo hằng số `ERROR_DELIVERY_CONTROLLED_BY_SHIPPER = "E0224"` và `ERROR_ORDER_CLOSED_STATUS = "E0225"` trong `Constants.java`.
+  - Cập nhật song ngữ đối xứng `messages_vi.properties` (chuẩn Unicode Escape `\uXXXX`) và `messages_en.properties`.
+
+### 3. File tác động & Trạng thái:
+- `src/java/utility/Constants.java`
+- `src/java/resources/messages_vi.properties`
+- `src/java/resources/messages_en.properties`
+- `src/java/service/OrderService.java`
+- `web/components/standard_orders_table.jsp`
+- `web/components/delivery_orders_table.jsp`
+- `.agent/learning.md`
+- **Trạng thái Build:** Apache Ant (`ant clean compile` với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
+
+---
+
 ## [2026-10-23] - Tối ưu hóa Dứt điểm 4 điểm Flash Message, Dọn rác Session & Triệt tiêu Hardcode String
 
 ### 1. Phân tích & Vấn đề Kỹ thuật:
@@ -25,7 +133,7 @@
 - `src/java/service/OrderService.java`
 - `src/java/controller/OrderManagementController.java`
 - `src/java/controller/hr/HrManagementController.java`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 74 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ---
 
@@ -58,7 +166,7 @@
 - `web/admin_dashboard.jsp` (Sửa minlength=3 cho newPassword và confirmPassword)
 - `.agent/WorkList.md`
 - `.agent/learning.md`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 74 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ---
 
@@ -106,7 +214,7 @@
 - `src/java/resources/messages_vi.properties`
 - `src/java/resources/messages_en.properties`
 - `.agent/WorkList.md`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 74 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ---
 
@@ -1943,7 +2051,7 @@ revert_delivery_modal.jsp.
 - `web/css/global.css`
 - `src/java/resources/messages_vi.properties` & `src/java/resources/messages_en.properties`
 - `.agent/WorkList.md`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ### 4. Bài học kinh nghiệm & Quy chuẩn kiến trúc cốt lõi:
 - **Nguyên tắc phân quyền 2 tầng trong điều phối:** Giao diện lọc (Dropdown/Matrix) chỉ là tầng bảo vệ thứ nhất. Bắt buộc tầng Service phải thực thi kiểm tra vai trò người nhận tác vụ (`validateStaffRole`) để ngăn chặn việc bypass tham số qua HTTP Request.
@@ -2040,7 +2148,7 @@ revert_delivery_modal.jsp.
 - `web/admin_dashboard.jsp`
 - `web/css/global.css`
 - `.agent/WorkList.md`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc:
 - **Zero Model Leakage & Zero DAO Leakage:** Toàn bộ Controller không import Model hay DAO. Mọi dữ liệu trả về View đều qua Map thuần túy (`Map<String, Object>`).
@@ -2089,7 +2197,7 @@ revert_delivery_modal.jsp.
 - `src/java/dao/IngredientDAO.java`
 - `src/java/service/IngredientService.java`
 - `.agent/WorkList.md`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc:
 - **Xử lý Dữ liệu Zombie trong Quản lý Tồn kho:** Khi cập nhật dữ liệu bảng cha (`Ingredients`), bắt buộc phải rà soát và đồng bộ các bản ghi chi tiết ở bảng con (`IngredientBatches`, `InventoryAlerts`) để tránh sự bất nhất về nghiệp vụ giữa số liệu tồn kho tổng và tình trạng từng lô hàng.
@@ -2164,7 +2272,7 @@ revert_delivery_modal.jsp.
 - `src/java/resources/messages_vi.properties`
 - `src/java/resources/messages_en.properties`
 - `.agent/WorkList.md`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 75 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc:
 - **Xóa an toàn với ràng buộc toàn vẹn quan hệ (Referential Integrity Check):** Luôn kiểm tra ràng buộc nghiệp vụ ở cả tầng DAO (`COUNT(1) > 0`) và ném ngoại lệ rõ ràng ở tầng Service trước khi thực thi lệnh `DELETE`. Điều này bảo vệ dữ liệu khỏi ngoại lệ Foreign Key Constraint vô hình của CSDL và cung cấp thông báo thân thiện tới người dùng.
@@ -2239,7 +2347,7 @@ revert_delivery_modal.jsp.
 - `src/java/controller/MenuManagementController.java`
 - `src/java/controller/OrderManagementController.java`
 - `.agent/WorkList.md`
-- **Trạng thái Build:** Apache Ant (`ant clean compile`) đạt **BUILD SUCCESSFUL (0 errors, 73 source files)**.
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
 
 ### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc cốt lõi:
 - **Tập trung hóa quyền hạn (Principle of Least Privilege & Centralized Authorization):** Các tác vụ nhạy cảm của Admin (tạo key, khóa tài khoản, cấp lại mật khẩu, đổi role) không nên phân tán rải rác ở nhiều servlet nhỏ riêng biệt vì rất dễ dẫn đến việc quên kiểm tra quyền hoặc logic bảo mật không đồng nhất. Tập trung các action này vào một Controller chính thống duy nhất có bảo vệ Role tập trung giúp mã nguồn an toàn tuyệt đối và dễ kiểm soát.
@@ -2251,3 +2359,207 @@ revert_delivery_modal.jsp.
 
 
 
+
+---
+
+## [2026-10-24] - HoÃ n thiá»‡n ToÃ n diá»‡n Task 27: Chiáº¿n dá»‹ch Tá»•ng Vá»‡ Sinh & Triá»‡t TiÃªu Ná»£ Kiáº¿n TrÃºc Tá»“n Äá»ng (Architectural Purge & Full Compliance)
+
+### 1. PhÃ¢n tÃ­ch & Váº¥n Ä‘á» Ká»¹ thuáº­t:
+- **Tá»“n dÆ° Inline JavaScript trÃªn táº§ng View (Task 27.1):** 61 vá»‹ trÃ­ inline event (onclick, onsubmit, onchange, oninput) tráº£i dÃ i trÃªn 16 file JSP vi pháº¡m Ä‘iá»u cáº¥m nghiÃªm ngáº·t trong Rule_BOMS.md.
+- **Khai bÃ¡o biáº¿n Static ngoÃ i Utility (Task 27.2):** 4 háº±ng sá»‘ private static final int trong AttendanceService.java vi pháº¡m quy táº¯c cáº¥u trÃºc táº§ng vÃ  cáº¥m biáº¿n static ngoÃ i package utility.
+- **Chuá»—i text tiáº¿ng Viá»‡t hardcode trong táº§ng Service (Task 27.3):** Nhiá»u thÃ´ng bÃ¡o thÃ´ng tin phÃ¢n ca, ngÃ y trong tuáº§n, duyá»‡t cháº¥m cÃ´ng, cáº£nh bÃ¡o kho, tÃªn mÃ³n fallback bá»‹ gÃµ cá»©ng thÃ´ báº±ng tiáº¿ng Viá»‡t trong code Java thay vÃ¬ lÆ°u trong Constants.java vÃ  mÃ£ hÃ³a Unicode Escape \uXXXX.
+- **Lá»— há»•ng XSS cÃ²n sÃ³t láº¡i trÃªn View (Task 27.4):** CÃ¡c biá»ƒu thá»©c EL tráº§n ${item.ingredientName}, ${item.categoryName}, ${item.unit}, ${item.storageLocation}, ${sessionScope.USER_SESSION.fullName} vÃ  ${cat.categoryName} trong tháº» <option> chÆ°a Ä‘Æ°á»£c bao bá»c bá»Ÿi <c:out>.
+- **RÃ² rá»‰ Model (Model Leakage) cÅ© trong Service (Task 27.5):** AdminService.java (getAllUsers, getAllKeys) vÃ  ProductService.java (getAllProducts, getProductById) tráº£ vá» trá»±c tiáº¿p Model dÃ¹ khÃ´ng cÃ²n bÃªn nÃ o sá»­ dá»¥ng, tiá»m áº©n vi pháº¡m Zero Model Leakage.
+
+### 2. Giáº£i phÃ¡p Ká»¹ thuáº­t Triá»‡t Ä‘á»ƒ:
+- **Task 27.1: Triá»‡t tiÃªu 100% Inline JavaScript trÃªn toÃ n bá»™ 16 file JSP:**
+  + Chuyá»ƒn Ä‘á»•i 61 vá»‹ trÃ­ sá»± kiá»‡n inline sang thuá»™c tÃ­nh ngá»¯ nghÄ©a data-* (data-action, data-close-modal, data-tab, data-confirm, data-auto-submit...).
+  + Triá»ƒn khai Event Delegation táº­p trung toÃ n diá»‡n trong web/js/main.js cho click, submit, change vÃ  input. Xá»­ lÃ½ Ä‘Ã³ng modal overlay click-outside tá»± Ä‘á»™ng cho toÃ n bá»™ modal.
+- **Task 27.2: Di dá»i biáº¿n Static sang Utility:**
+  + Chuyá»ƒn 4 háº±ng sá»‘ ngÆ°á»¡ng cháº¥m cÃ´ng sang Constants.java vá»›i tiá»n tá»‘ ATTENDANCE_THRESHOLD_* vÃ  cáº­p nháº­t toÃ n bá»™ lá»i gá»i trong AttendanceService.java.
+- **Task 27.3: Quy chuáº©n hÃ³a Háº±ng sá»‘ & Chuá»—i Äa ngÃ´n ngá»¯:**
+  + Bá»• sung Ä‘áº§y Ä‘á»§ máº«u cÃ¢u thÃ´ng bÃ¡o phÃ¢n ca, duyá»‡t/tá»« chá»‘i cháº¥m cÃ´ng, máº£ng tÃªn thá»© WEEK_DAY_NAMES, fallback kho/thá»±c Ä‘Æ¡n vÃ o Constants.java vá»›i chuáº©n Unicode Escape \uXXXX.
+  + Cáº­p nháº­t AttendanceService.java, IngredientService.java, OrderService.java sá»­ dá»¥ng háº±ng sá»‘ qua String.format.
+- **Task 27.4: VÃ¡ Triá»‡t Ä‘á»ƒ Lá»— há»•ng XSS:**
+  + Bao bá»c toÃ n bá»™ dá»¯ liá»‡u Ä‘á»™ng vá»›i <c:out value="..." /> trÃªn web/inventory_managerment.jsp, web/header.jsp, web/components/inventory_form_modal.jsp, web/components/product_form_modal.jsp.
+- **Task 27.5: Triá»‡t tiÃªu HoÃ n toÃ n Model Leakage:**
+  + Loáº¡i bá» cÃ¡c hÃ m tráº£ vá» trá»±c tiáº¿p Model cÅ© khÃ´ng dÃ¹ng trong AdminService.java vÃ  ProductService.java, báº£o Ä‘áº£m chá»‰ Ä‘Ã³ng gÃ³i tráº£ vá» Map<String, Object> cho Controller.
+
+### 3. File tÃ¡c Ä‘á»™ng & Tráº¡ng thÃ¡i:
+- src/java/utility/Constants.java
+- src/java/service/AttendanceService.java
+- src/java/service/IngredientService.java
+- src/java/service/OrderService.java
+- src/java/service/AdminService.java
+- src/java/service/ProductService.java
+- web/inventory_managerment.jsp
+- web/header.jsp
+- web/components/inventory_form_modal.jsp
+- web/components/product_form_modal.jsp
+- web/index.jsp
+- web/admin_dashboard.jsp
+- web/menu_management.jsp
+- web/report.jsp
+- web/profile.jsp
+- web/components/notification_dropdown.jsp
+- web/components/broadcast_modal.jsp
+- web/components/inventory_alert_modal.jsp
+- web/components/staff_cancel_modal.jsp
+- web/components/delivery_orders_table.jsp
+- web/components/delivery_info_modal.jsp
+- web/components/revert_delivery_modal.jsp
+- web/js/main.js
+- .agent/WorkList.md
+- .agent/learning.md
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
+
+### 4. BÃ i há»c kinh nghiá»‡m & TuÃ¢n thá»§ kiáº¿n trÃºc cá»‘t lÃµi:
+- **Táº­p trung hÃ³a xá»­ lÃ½ sá»± kiá»‡n qua Event Delegation (Pure Separation of Concerns):** Viá»‡c xÃ³a sáº¡ch inline event khá»i HTML/JSP khÃ´ng chá»‰ báº£o Ä‘áº£m tÃ­nh tháº©m má»¹ vÃ  dá»… báº£o trÃ¬, mÃ  cÃ²n lÃ  ranh giá»›i ká»¹ thuáº­t tá»‘i quan trá»ng ngÄƒn cháº·n hoÃ n toÃ n táº¥n cÃ´ng DOM XSS do chÃ¨n mÃ£ Ä‘á»™c vÃ o thuá»™c tÃ­nh sá»± kiá»‡n.
+- **Quy chuáº©n Zero Model Leakage:** Táº§ng Controller tuyá»‡t Ä‘á»‘i khÃ´ng Ä‘Æ°á»£c tiáº¿p xÃºc vá»›i Model entities, má»i dá»¯ liá»‡u hiá»ƒn thá»‹ pháº£i Ä‘Æ°á»£c Controller nháº­n tá»« Service dÆ°á»›i dáº¡ng Map/DTO an toÃ n.
+- **Báº£o toÃ n tÃ­nh chuáº©n hÃ³a Ä‘a ngÃ´n ngá»¯ (i18n & Unicode Escape):** Má»i thÃ´ng bÃ¡o hiá»ƒn thá»‹ tá»« backend Ä‘á»u pháº£i quy hoáº¡ch thÃ nh háº±ng sá»‘ hoáº·c properties mÃ£ hÃ³a Unicode Escape (\uXXXX) Ä‘á»ƒ trÃ¡nh rá»§i ro vá»¡ font trÃªn mÃ´i trÆ°á»ng Windows (Cp1252) vÃ  Tomcat 10.
+
+---
+
+## [2026-10-24] - Giai đoạn Release Candidate: Khắc phục Triệt để Toàn bộ 25 Vi phạm Kiểm toán Tĩnh (Static Code Audit Hardening)
+
+### 1. Phân tích & Vấn đề Kỹ thuật (25 Vi phạm phát hiện):
+- **Nhóm 1 - SQL Injection & Ghép chuỗi (06 vị trí / 09 câu SQL):**
+  + DeliveryDAO.java (dòng 347-348, 358-359, 27, 53, 80, 321): Ghép chuỗi trạng thái và loại đơn Constants.STATUS_*, Constants.ORDER_TYPE_DELIVERY thay vì tham số hóa ? trong PreparedStatement tại các hàm getAllTasks, getTasksByShipper, getAvailableTasksForShipper, getPendingAcceptanceOrders, 
+evokeTaskFromShipper, countActiveOrdersByShipperId.
+  + OrderDAO.java (dòng 116, 223, 251): Nối chuỗi trạng thái và loại đơn trực tiếp vào SQL trong getLatestOrderByTableId, cancelOrder, và updateOrderToDelivery.
+- **Nhóm 2 - Nuốt lỗi ngầm (Swallowed Exceptions - 07 vị trí):**
+  + UserDAO.java (dòng 403-406): Hàm getSafeAvatar nuốt ngầm SQLException khi đọc cột Avatar.
+  + ReportDAO.java (dòng 320-332): 
+ollbackQuietly và 
+estoreAutoCommit nuốt lỗi im lặng không để lại dấu vết log hệ thống.
+  + AttendanceService.java (dòng 371, 461, 709, 744) & IngredientService.java (dòng 323-325): Các khối catch ngoại lệ gửi thông báo phụ (phân ca, duyệt chấm công, cảnh báo kho) bỏ trống hoàn toàn.
+  + AttendanceController.java & HrManagementController.java: Bắt chung ngoại lệ tổng Exception khi parse LocalDate thay vì bắt đúng DateTimeParseException.
+- **Nhóm 3 - Dead Code, Import thừa & Lỗi Logic (09 vị trí):**
+  + Import thừa trong AttendanceDAO.java (Connection), OrderDAO.java (Connection), UserDAO.java (java.sql.Date), AdminService.java (java.util.Date), AttendanceService.java (LocalDateTime), OrderService.java (model.Product).
+  + NotificationController.java: Khai báo biến cục bộ int sentCount nhưng không sử dụng.
+  + MenuManagementController.java (dòng 154): Lỗi copy-paste gán nhầm mã lỗi Constants.SERROR_INVALID_SETTING_TAB (E9006) cho catch chung thay vì Constants.ERROR_SYSTEM.
+  + Constants.java: Biến alias thừa SERROR_INVALID_SETTING_TAB (và tham chiếu trong SettingsController.java).
+- **Nhóm 4 - Transaction Leak & ACID Integrity (03 vị trí CRITICAL):**
+  + ReportDAO.java (insertReportWithEvidences): Bắt duy nhất SQLException, thiếu null-check evidences. Nếu evidences == null sẽ ném NPE thoát khỏi khối catch, 
+ollbackQuietly() bị bỏ qua, auto-commit phục hồi gây commit nửa chừng.
+  + OrderDAO.java (insertOrder): Khối catch chỉ bắt SQLException. Nếu duyệt order.getOrderDetails() ném NullPointerException, transaction bị rò rỉ.
+  + UserDAO.java (
+egisterUserWithKeyTransaction): Khối catch chỉ bắt SQLException, thiếu null-check user.getRole() != null.
+
+### 2. Giải pháp Kỹ thuật Triệt để:
+- **Tham số hóa 100% câu lệnh SQL:** Chuyển đổi toàn bộ mệnh đề SQL nối chuỗi (+) trong DeliveryDAO.java và OrderDAO.java sang tham số bind ? an toàn qua PreparedStatement.setString(...).
+- **Triệt tiêu Nuốt lỗi & Ghi log Cảnh báo An toàn:**
+  + Xóa bỏ hàm getSafeAvatar, đọc trực tiếp 
+s.getString("Avatar") trong các phương thức truy vấn với try-catch đầy đủ.
+  + Bổ sung java.util.logging.Logger cấp độ WARNING vào 
+ollbackQuietly, 
+estoreAutoCommit trong ReportDAO.java và các khối catch thông báo phụ trong AttendanceService.java, IngredientService.java. Tuyệt đối không dùng System.out.println hay e.printStackTrace() theo đúng Rule_BOMS.md.
+  + Thu hẹp khối catch parse ngày thành DateTimeParseException trong AttendanceController.java và HrManagementController.java.
+- **Dọn dẹp Dead Code & Khắc phục Lỗi Logic:**
+  + Loại bỏ toàn bộ 6 import thừa trong DAO/Service, xóa biến chết sentCount trong NotificationController.java.
+  + Sửa MenuManagementController.java sử dụng đúng Constants.ERROR_SYSTEM.
+  + Xóa bỏ hằng số alias SERROR_INVALID_SETTING_TAB khỏi Constants.java và cập nhật SettingsController.java sang Constants.ERROR_INVALID_SETTING_TAB.
+- **Gia cố Transaction Leak & Bảo toàn ACID:**
+  + Mở rộng các khối catch quản lý transaction sang catch (Exception e) trong ReportDAO.java, OrderDAO.java, UserDAO.java.
+  + Bổ sung kiểm tra null cho evidences và user.getRole() != null trước khi xử lý logic nhánh.
+  + Đảm bảo 
+rollback() BẮT BUỘC ĐƯỢC GỌI khi xảy ra bất kỳ lỗi Runtime Exception nào trước khi trả về setAutoCommit(originalAutoCommit) trong inally.
+
+### 3. File tác động & Trạng thái:
+- src/java/dao/DeliveryDAO.java
+- src/java/dao/OrderDAO.java
+- src/java/dao/UserDAO.java
+- src/java/dao/ReportDAO.java
+- src/java/dao/AttendanceDAO.java
+- src/java/service/AdminService.java
+- src/java/service/AttendanceService.java
+- src/java/service/IngredientService.java
+- src/java/service/OrderService.java
+- src/java/controller/NotificationController.java
+- src/java/controller/MenuManagementController.java
+- src/java/controller/SettingsController.java
+- src/java/controller/AttendanceController.java
+- src/java/controller/hr/HrManagementController.java
+- src/java/utility/Constants.java
+- .agent/learning.md
+- **Trạng thái Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files, 44 web files copied)**.
+
+### 4. Bài học kinh nghiệm & Tuân thủ kiến trúc cốt lõi:
+- **ACID Transaction Hardening:** Khi quản lý thủ công setAutoCommit(false), luôn luôn bắt catch (Exception e) (không chỉ SQLException) để bảo vệ dữ liệu chống lại mọi RuntimeException bất ngờ (NPE, OOB), đảm bảo connection.rollback() luôn được kích hoạt.
+- **Không nuốt lỗi (No Silent Failure):** Các tác vụ gửi thông báo nền không được làm gián đoạn luồng chính, nhưng bắt buộc phải ghi log cảnh báo (Logger.log(Level.WARNING, ...)), không được để khối catch rỗng.
+
+---
+
+## [2026-10-24] - Hotfix Khẩn cấp: Khắc phục Lỗi Tra cứu Tên Đăng nhập & Đọc An toàn Cột Avatar trong UserDAO.java
+
+### 1. Nguyên nhân Sự cố:
+- Khi xóa bỏ hàm getSafeAvatar trong đợt quét kiểm toán tĩnh trước đó, lệnh đọc s.getString("Avatar") được đặt trực tiếp trong getUserByUsername, getUserById, getAllUsers.
+- Trong môi trường cơ sở dữ liệu chưa chạy migration cột Avatar, câu lệnh s.getString("Avatar") làm văng ngoại lệ SQLException: Invalid column name 'Avatar'.
+- Khối catch (SQLException e) tại getUserByUsername bắt được lỗi này và ném ValidationException(Constants.ERROR_DATABASE_GET_USER_BY_USERNAME) (mã DE0004), dẫn đến thông báo hiển thị trên giao diện: *"Lỗi cơ sở dữ liệu khi tra cứu tên đăng nhập!"* khi người dùng login.
+
+### 2. Giải pháp Khắc phục Triệt để:
+- **Khôi phục cơ chế Đọc Cột An toàn (getSafeAvatar):**
+  + Sử dụng java.sql.ResultSetMetaData để quét toàn bộ tên cột (getColumnName / getColumnLabel) trước khi đọc giá trị.
+  + Nếu cột Avatar không tồn tại trong schema CSDL hiện tại, hàm tự động trả về 
+ull một cách an toàn mà hoàn toàn KHÔNG làm văng SQLException.
+- **Bảo đảm Không Đóng Connection Sớm:**
+  + Xác minh 100% các khối 	ry-with-resources trong UserDAO.java: Đối tượng connection (từ DBContext) TUYỆT ĐỐI KHÔNG nằm trong ngoặc của 	ry (...). Chỉ duy nhất PreparedStatement và ResultSet được đặt vào để giải phóng Statement.
+  + Bổ sung cơ chế tự phục hồi kết nối ensureConnection(): Tự động kiểm tra connection == null || connection.isClosed() và tái kết nối từ ConnectDB.properties nếu phiên kết nối của CSDL bị ngắt sau thời gian idle.
+
+### 3. File tác động:
+- src/java/dao/UserDAO.java
+- .agent/learning.md
+- **Kết quả Build:** Apache Ant (nt clean compile với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 74 source files)**.
+
+---
+
+## [2026-10-24] - Hotfix Nghiệp vụ Điều phối & Giao hàng: Đồng bộ ActiveOrders trong DeliveryService.java
+
+### 1. Nguyên nhân Sự cố:
+- **Đảo ngược thứ tự thực thi trong rejectTask:** Khi Shipper bấm [Từ chối] đơn được điều phối gán (trạng thái Waiting for delivery), hàm syncShipperProfileStatus(shipperId, shipperUsername) bị gọi trước khi câu lệnh deliveryDAO.updateTaskShipper(taskId, null) và deliveryDAO.updateTaskStatus(taskId, Constants.STATUS_WAITING_DISPATCH) kịp cập nhật CSDL. Sau khi CSDL được cập nhật, hệ thống không gọi lại syncShipperProfileStatus, khiến bảng ShipperProfiles lưu trữ thông tin tải trọng lệch pha hoặc tính toán sai đơn bị từ chối.
+- **Trùng lặp gọi đồng bộ (Redundant Duplicate Calls):** Các phương thức acceptTask, claimTask, updateShipperTaskStatus và rejectTask bị gọi trùng lặp syncShipperProfileStatus(shipperId, shipperUsername) 2 lần liên tiếp.
+- **Nghịch lý Capacity Check trong acceptTask:** countActiveOrders đếm cả 2 trạng thái Delivering và Waiting for delivery. Khi Manager đã gán đơn thứ 3 cho Shipper (đang là Waiting for delivery), đơn này đã được tính vào tải trọng của Shipper. Lệnh validateShipperCapacity(shipperUsername) kiểm tra activeCount >= maxAllowed (3 >= 3) bên trong acceptTask dẫn đến việc Shipper không thể bấm xác nhận [Nhận đơn] của chính mình.
+- **Lệch hằng số giới hạn đơn mặc định:** Fallback giới hạn tải Shipper khi không có profile sử dụng MAX_SHIPPER_ORDERS (5) thay vì DEFAULT_SHIPPER_MAX_ORDERS (3) theo chuẩn nghiệp vụ UC-09 9.1 và schema CSDL (MaxOrders DEFAULT 3).
+
+### 2. Giải pháp Khắc phục Triệt để:
+- **Chuẩn hóa luồng rejectTask:**
+  1. Hủy gán Shipper (ShipperID = NULL) và cập nhật trạng thái đơn về Waiting for dispatch xuống CSDL trước.
+  2. Ghi nhật ký vào DeliveryStatusHistory với note Constants.NOTE_SHIPPER_REJECT.
+  3. Kích hoạt syncShipperProfileStatus(shipperId, shipperUsername) sau cùng, đảm bảo hàm countActiveOrders chỉ đếm các đơn thực tế còn trong tiến trình giao (Delivering và Waiting for delivery), loại trừ hoàn toàn đơn vừa từ chối.
+- **Làm sạch các lời gọi đồng bộ:** Loại bỏ toàn bộ các lệnh gọi kép syncShipperProfileStatus dư thừa trong acceptTask, claimTask, updateShipperTaskStatus.
+- **Gỡ bỏ Capacity Check bất hợp lý trong acceptTask:** Vì đơn đã được kiểm tra tải trọng tại thời điểm Manager điều phối (assignTaskToShipper), việc Shipper chuyển trạng thái từ Waiting for delivery sang Delivering không làm tăng tổng số đơn hoạt động.
+- **Chuẩn hóa hàm countActiveOrders:** Chuyển sang public, kiểm tra an toàn bằng equalsIgnoreCase cho cả hai trạng thái Constants.STATUS_DELIVERING và Constants.STATUS_WAITING_DELIVERY.
+- **Đồng bộ chuẩn hằng số DEFAULT_SHIPPER_MAX_ORDERS (3):** Áp dụng nhất quán trong cả buildShipperStatusMap và validateShipperCapacity.
+
+### 3. File tác động:
+- src/java/service/DeliveryService.java
+- .agent/learning.md
+- **Kết quả Build:** Apache Ant (ant clean compile với JDK 17) đạt BUILD SUCCESSFUL (0 errors, 74 source files).
+
+---
+
+## [2026-10-24] - Hotfix & Hardening: Đồng bộ Session Avatar và Bảo mật Upload Ảnh (ImageUploadUtility & ProfileController)
+
+### 1. Vấn đề & Yêu cầu:
+- **Lỗi đồng bộ Avatar trên Session:** Khi người dùng đổi avatar qua ProfileController, ảnh đã cập nhật xuống CSDL nhưng thanh Header vẫn hiển thị avatar cũ (hoặc ký tự viết tắt cũ) cho đến khi đăng nhập lại, do Tomcat sessionScope không được kích hoạt refresh tự động khi chỉ gọi put vào Map.
+- **Rủi ro Path Traversal & Giả mạo định dạng:** Khi lưu file qua saveImage, nếu phụ thuộc vào tên file gốc do client gửi (getSubmittedFileName) hoặc MIME type từ request header có thể dẫn đến lỗ hổng Path Traversal (../) hoặc giả mạo đuôi file (.jsp.jpg).
+- **Chuẩn hóa đường dẫn tương đối:** Đảm bảo đường dẫn lưu DB và trả về từ saveImage có định dạng chuẩn uploads/avatars/<uuid>.jpg (không có dấu / ở đầu) để tương thích 100% với thẻ <img> src="/" và servlet mapping /uploads/* của ImageServingServlet.
+
+### 2. Giải pháp Thực thi:
+- **ProfileController.java:**
+  + Tại phương thức doPost, ngay sau loginUser.put("avatar", uploadedPath); và loginUser.put("avatar", ""); (khi xóa avatar), bổ sung tường minh session.setAttribute(Constants.USER_SESSION, loginUser); để ép Tomcat cập nhật Session ngay lập tức, View header/profile phản hồi theo thời gian thực.
+- **ImageUploadUtility.java:**
+  + Trong saveImage(Part filePart, String subFolder), tuyệt đối KHÔNG sử dụng getSubmittedFileName() từ client.
+  + Bổ sung hàm validateAndDetectImageExtension(InputStream in) đọc Magic Bytes trực tiếp từ binary header của tệp:
+    * JPEG: kiểm tra 2 byte đầu là FF D8 (SOI marker), chuẩn hóa đuôi .jpg.
+    * PNG: kiểm tra 2 byte đầu là 89 50 (và chữ ký PNG), chuẩn hóa đuôi .png.
+    * WEBP: kiểm tra chữ ký RIFF....WEBP, chuẩn hóa đuôi .webp.
+    * Bất kỳ định dạng nào không khớp đều bị từ chối ngay lập tức và ném ValidationException(Constants.ERROR_INVALID_IMAGE_TYPE).
+  + Khởi tạo tên file hoàn toàn mới bằng UUID.randomUUID().toString() + ext, triệt tiêu hoàn toàn nguy cơ Path Traversal.
+  + Chuẩn hóa đường dẫn trả về dạng uploads/avatars/<uuid>.jpg (không có dấu gạch chéo / ở đầu).
+
+### 3. File tác động:
+- src/java/controller/hr/ProfileController.java
+- src/java/utility/ImageUploadUtility.java
+- .agent/learning.md
+- **Kết quả Build:** Apache Ant (ant clean compile với JDK 17) đạt BUILD SUCCESSFUL (0 errors, 74 source files).

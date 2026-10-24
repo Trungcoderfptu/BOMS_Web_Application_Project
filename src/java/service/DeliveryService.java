@@ -85,6 +85,7 @@ public class DeliveryService {
                     Constants.NOTE_DISPATCH_ASSIGN, null, new Timestamp(System.currentTimeMillis())
             );
             deliveryDAO.insertStatusHistory(history);
+            syncShipperProfileStatus(shipperId, shipperUsername);
         }
     }
 
@@ -145,7 +146,6 @@ public class DeliveryService {
 
         validateShipperAuthorization(shipperUsername, (String) task.get("shipperUsername"));
         validateTaskIsPending(task);
-        validateShipperCapacity(shipperUsername);
 
         deliveryDAO.updateTaskStatus(taskId, Constants.STATUS_DELIVERING);
 
@@ -168,6 +168,10 @@ public class DeliveryService {
         validateTaskIsPending(task); 
 
         int shipperId = deliveryDAO.getUserIdByUsername(shipperUsername);
+
+        deliveryDAO.updateTaskShipper(taskId, null); 
+        deliveryDAO.updateTaskStatus(taskId, Constants.STATUS_WAITING_DISPATCH);
+
         if (shipperId > 0) {
             DeliveryStatusHistory history = new DeliveryStatusHistory(
                     0, taskId, shipperId, Constants.STATUS_WAITING_DISPATCH,
@@ -176,9 +180,41 @@ public class DeliveryService {
             deliveryDAO.insertStatusHistory(history);
             syncShipperProfileStatus(shipperId, shipperUsername);
         }
+    }
 
-        deliveryDAO.updateTaskShipper(taskId, null); 
-        deliveryDAO.updateTaskStatus(taskId, Constants.STATUS_WAITING_DISPATCH);
+    public void revokeTask(String taskIdStr) throws ValidationException {
+        int taskId = parseTaskId(taskIdStr);
+        Map<String, Object> task = getAndValidateTask(taskId);
+        String currentStatus = (String) task.get("status");
+
+        if (!Constants.STATUS_WAITING_DELIVERY.equals(currentStatus)) {
+            throw new ValidationException(Constants.ERROR_INVALID_STATUS_FLOW);
+        }
+
+        String shipperUsername = (String) task.get("shipperUsername");
+        int shipperId = (shipperUsername != null) ? deliveryDAO.getUserIdByUsername(shipperUsername) : 0;
+
+        deliveryDAO.revokeTaskFromShipper(taskId);
+
+        if (shipperId > 0) {
+            DeliveryStatusHistory history = new DeliveryStatusHistory(
+                    0, taskId, shipperId, Constants.STATUS_WAITING_DISPATCH,
+                    Constants.NOTE_DISPATCH_REVOKE, null, new Timestamp(System.currentTimeMillis())
+            );
+            deliveryDAO.insertStatusHistory(history);
+            syncShipperProfileStatus(shipperId, shipperUsername);
+        }
+    }
+
+    public List<Map<String, String>> getAssignedPendingTasks() throws ValidationException {
+        List<Map<String, String>> resultList = new ArrayList<>();
+        List<Map<String, Object>> tasks = deliveryDAO.getAssignedPendingTasks();
+        for (Map<String, Object> t : tasks) {
+            Map<String, String> m = buildTaskMap(t);
+            m.put("shipperFullName", t.get("shipperFullName") != null ? (String) t.get("shipperFullName") : "");
+            resultList.add(m);
+        }
+        return resultList;
     }
 
     private Map<String, String> buildTaskMap(Map<String, Object> task) {
@@ -218,11 +254,12 @@ public class DeliveryService {
         return map;
     }
 
-    private int countActiveOrders(String username) throws ValidationException {
+    public int countActiveOrders(String username) throws ValidationException {
         int count = 0;
         List<Map<String, Object>> tasks = deliveryDAO.getTasksByShipper(username);
         for (Map<String, Object> t : tasks) {
-            if (Constants.STATUS_DELIVERING.equals(t.get("status"))) {
+            String s = (String) t.get("status");
+            if (Constants.STATUS_DELIVERING.equalsIgnoreCase(s) || Constants.STATUS_WAITING_DELIVERY.equalsIgnoreCase(s)) {
                 count++;
             }
         }

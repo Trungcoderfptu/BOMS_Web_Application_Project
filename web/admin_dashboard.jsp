@@ -26,9 +26,9 @@
             <c:remove var="SUCCESS_MESSAGE" scope="session" />
 
             <div class="tab-nav d-flex">
-                <button class="tab-btn ${empty param.tab || param.tab == 'tab-users' ? 'active' : ''}" onclick="openTab(event, 'tab-users')"><fmt:message key="admin.dashboard.tab.users" /></button>
-                <button class="tab-btn ${param.tab == 'tab-keys' ? 'active' : ''}" onclick="openTab(event, 'tab-keys')"><fmt:message key="admin.dashboard.tab.keys" /></button>
-                <button class="tab-btn ${param.tab == 'tab-passwords' ? 'active' : ''}" onclick="openTab(event, 'tab-passwords')"><fmt:message key="admin.dashboard.tab.passwords" /></button>
+                <button class="tab-btn ${empty param.tab || param.tab == 'tab-users' ? 'active' : ''}" data-tab="tab-users"><fmt:message key="admin.dashboard.tab.users" /></button>
+                <button class="tab-btn ${param.tab == 'tab-keys' ? 'active' : ''}" data-tab="tab-keys"><fmt:message key="admin.dashboard.tab.keys" /></button>
+                <button class="tab-btn ${param.tab == 'tab-passwords' ? 'active' : ''}" data-tab="tab-passwords"><fmt:message key="admin.dashboard.tab.passwords" /></button>
             </div>
 
             <div id="tab-users" class="tab-content ${empty param.tab || param.tab == 'tab-users' ? 'active' : 'd-none'}">
@@ -51,8 +51,8 @@
                                 <c:forEach var="user" items="${USER_LIST}">
                                     <tr>
                                         <td>${user.userID}</td>
-                                        <td>${user.username}</td>
-                                        <td>${user.fullName}</td>
+                                        <td><c:out value="${user.username}" /></td>
+                                        <td><c:out value="${user.fullName}" /></td>
                                         <td>
                                             <c:choose>
                                                 <c:when test="${user.username == sessionScope.USER_SESSION.username || user.role == 'Admin'}">
@@ -184,7 +184,7 @@
                                                     <form action="${pageContext.request.contextPath}/AdminDashboardController" method="POST" class="m-0">
                                                         <input type="hidden" name="action" value="revokeKey" />
                                                         <input type="hidden" name="keyId" value="${key.keyId}" />
-                                                        <button type="submit" class="btn-reject btn-sm" onclick="return confirm('<fmt:message key="admin.dashboard.confirm.revoke_key" />')">
+                                                        <button type="submit" class="btn-reject btn-sm" data-confirm="<fmt:message key="admin.dashboard.confirm.revoke_key" />">
                                                             <fmt:message key="admin.dashboard.btn.revoke_key" />
                                                         </button>
                                                     </form>
@@ -223,7 +223,7 @@
                                 <c:forEach var="user" items="${USER_LIST}">
                                     <c:if test="${user.username != sessionScope.USER_SESSION.username}">
                                         <option value="${user.userID}">
-                                            ${user.fullName} (@${user.username}) - [${user.role}]
+                                            <c:out value="${user.fullName}" /> (@<c:out value="${user.username}" />) - [${user.role}]
                                         </option>
                                     </c:if>
                                 </c:forEach>

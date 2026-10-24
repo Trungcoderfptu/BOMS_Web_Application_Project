@@ -9,7 +9,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 class="m-0 text-success"><fmt:message key="shipper.modal.complete.title" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeShipperCompleteModal()">&times;</button>
+            <button type="button" class="btn-modal-close btn-close-complete-modal">&times;</button>
         </div>
         <form action="${pageContext.request.contextPath}/ShipperController" method="POST" enctype="multipart/form-data" class="m-0">
             <input type="hidden" name="action" value="completeDelivery" />
@@ -29,7 +29,7 @@
             </div>
             
             <div class="modal-actions">
-                <button type="button" class="btn-modal-back" onclick="closeShipperCompleteModal()">
+                <button type="button" class="btn-modal-back btn-close-complete-modal">
                     <fmt:message key="btn.back" />
                 </button>
                 <button type="submit" class="btn btn-accept">

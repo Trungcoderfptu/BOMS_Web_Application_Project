@@ -52,6 +52,7 @@ public class DashboardController extends HttpServlet {
         try {
             userId = Integer.parseInt(userSession.get("userId"));
         } catch (NumberFormatException ignored) {
+            userId = 0;
         }
 
         String userRole = userSession.get("role");

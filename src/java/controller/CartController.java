@@ -69,6 +69,9 @@ public class CartController extends HttpServlet {
         } catch (ValidationException e) {
             session.setAttribute(Constants.ACTIVE_TAB, "cart");
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        } catch (Exception e) {
+            session.setAttribute(Constants.ACTIVE_TAB, "cart");
+            session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
 
         response.sendRedirect(request.getContextPath() + "/" + url);

@@ -106,12 +106,14 @@ public class ReportDAO extends DBContext {
         try {
             connection.setAutoCommit(false);
             int reportId = insertReport(report);
-            for (ReportEvidence evidence : evidences) {
-                insertEvidence(reportId, evidence);
+            if (evidences != null) {
+                for (ReportEvidence evidence : evidences) {
+                    insertEvidence(reportId, evidence);
+                }
             }
             connection.commit();
             return reportId;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             rollbackQuietly();
             throw new ValidationException(Constants.ERROR_DATABASE_INSERT_REPORT);
         } finally {
@@ -320,7 +322,7 @@ public class ReportDAO extends DBContext {
         try {
             connection.rollback();
         } catch (SQLException ignored) {
-            // Kết nối đã hỏng, transaction sẽ tự hủy phía SQL Server
+            java.util.logging.Logger.getLogger(ReportDAO.class.getName()).log(java.util.logging.Level.WARNING, "Failed to rollback transaction", ignored);
         }
     }
 
@@ -328,7 +330,7 @@ public class ReportDAO extends DBContext {
         try {
             connection.setAutoCommit(true);
         } catch (SQLException ignored) {
-            // Kết nối đã hỏng, không cần khôi phục
+            java.util.logging.Logger.getLogger(ReportDAO.class.getName()).log(java.util.logging.Level.WARNING, "Failed to restore auto-commit", ignored);
         }
     }
 }

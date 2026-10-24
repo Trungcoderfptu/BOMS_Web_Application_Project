@@ -8,7 +8,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 class="m-0 msg-error"><fmt:message key="order.cancel.modal.title" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeStaffCancelModal()">&times;</button>
+            <button type="button" class="btn-modal-close" data-close-modal="staffCancelModal">&times;</button>
         </div>
         <div class="modal-body">
             <p class="mb-15 font-bold">
@@ -19,7 +19,7 @@
             </p>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn-modal-back" onclick="closeStaffCancelModal()">
+            <button type="button" class="btn-modal-back" data-close-modal="staffCancelModal">
                 <fmt:message key="order.cancel.modal.btn_back" />
             </button>
             <form id="staffCancelConfirmForm" action="${pageContext.request.contextPath}/OrderManagementController" method="POST" class="m-0">

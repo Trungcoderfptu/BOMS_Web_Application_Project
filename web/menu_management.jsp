@@ -11,10 +11,10 @@
     <div class="flex-between mt-15 mb-20">
         <h2 class="m-0"><fmt:message key="menu.mgmt.heading" /></h2>
         <div class="d-flex gap-10">
-            <button type="button" class="btn-login btn-secondary" onclick="openMenuCategoryModal()">
+            <button type="button" class="btn-login btn-secondary" data-action="open-menu-category">
                 📁 <fmt:message key="menu.category.btn.manage" />
             </button>
-            <button type="button" class="btn-login" onclick="openCreateProductModal()">
+            <button type="button" class="btn-login" data-action="open-create-product">
                 + <fmt:message key="menu.mgmt.btn.add" />
             </button>
         </div>
@@ -41,14 +41,14 @@
     <form action="${pageContext.request.contextPath}/MenuManagementController" method="GET" class="order-filter-panel mb-20">
         <div class="filter-item">
             <label for="filterCategory"><fmt:message key="menu.mgmt.filter.category" /></label>
-            <select id="filterCategory" name="filterCategory" class="filter-input" onchange="this.form.submit()">
+            <select id="filterCategory" name="filterCategory" class="filter-input" data-auto-submit="true">
                 <option value="ALL" ${empty CURRENT_FILTER_CATEGORY or CURRENT_FILTER_CATEGORY == 'ALL' ? 'selected' : ''}>
                     <fmt:message key="menu.mgmt.filter.all" />
                 </option>
                 <c:forEach var="cat" items="${CATEGORY_LIST}">
                     <c:set var="catIdStr">${cat.categoryId}</c:set>
                     <option value="${cat.categoryId}" ${CURRENT_FILTER_CATEGORY == catIdStr ? 'selected' : ''}>
-                        ${cat.categoryName}
+                        <c:out value="${cat.categoryName}" />
                     </option>
                 </c:forEach>
             </select>
@@ -86,10 +86,10 @@
                                     <c:when test="${not empty product.imageUrl}">
                                         <c:choose>
                                             <c:when test="${fn:startsWith(product.imageUrl, 'http')}">
-                                                <img src="${product.imageUrl}" alt="${product.productName}" class="menu-thumb" />
+                                                <img src="${product.imageUrl}" alt="${fn:escapeXml(product.productName)}" class="menu-thumb" />
                                             </c:when>
                                             <c:otherwise>
-                                                <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${product.productName}" class="menu-thumb" />
+                                                <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${fn:escapeXml(product.productName)}" class="menu-thumb" />
                                             </c:otherwise>
                                         </c:choose>
                                     </c:when>
@@ -99,10 +99,10 @@
                                 </c:choose>
                             </td>
                             <td>
-                                <strong>${product.productName}</strong>
+                                <strong><c:out value="${product.productName}" /></strong>
                             </td>
                             <td>
-                                <span class="badge-category">${product.categoryName}</span>
+                                <span class="badge-category"><c:out value="${product.categoryName}" /></span>
                             </td>
                             <td class="font-bold text-nowrap">
                                 <fmt:formatNumber value="${product.price}" pattern="#,###" /> ₫
@@ -130,7 +130,14 @@
                             <td>
                                 <div class="menu-action-buttons">
                                     <button type="button" class="btn-action-edit"
-                                            onclick="openEditProductModal('${product.productId}', '${fn:escapeXml(product.productName)}', '${product.categoryId}', '${product.price}', '${fn:escapeXml(product.imageUrl)}', ${product.isAvailable}, '${product.recipeData}')">
+                                            data-action="edit-product"
+                                            data-id="${product.productId}"
+                                            data-name="${fn:escapeXml(product.productName)}"
+                                            data-cat-id="${product.categoryId}"
+                                            data-price="${product.price}"
+                                            data-img="${fn:escapeXml(product.imageUrl)}"
+                                            data-avail="${product.isAvailable}"
+                                            data-recipe="${fn:escapeXml(product.recipeData)}">
                                         <fmt:message key="menu.mgmt.btn.edit" />
                                     </button>
 

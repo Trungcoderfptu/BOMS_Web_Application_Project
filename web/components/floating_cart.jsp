@@ -1,7 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
-<fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
+<fmt:setLocale value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setBundle basename="resources.messages" />
 <c:set var="totalCartQuantity" value="0" />
 <c:if test="${not empty sessionScope.CURRENT_CART}">
@@ -11,7 +11,7 @@
 </c:if>
 
 <c:if test="${totalCartQuantity > 0 or not empty CURRENT_TABLE}">
-    <button onclick="openTab(event, 'tab-cart')" class="floating-cart">
+    <button type="button" id="btnFloatingCart" data-tab="tab-cart" class="floating-cart">
         <div class="cart-icon">
             🛒
             <c:if test="${totalCartQuantity > 0}">

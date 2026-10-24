@@ -43,15 +43,15 @@
                             <tr>
                                 <td><strong>${task.orderCode}</strong></td>
                                 <td>
-                                    ${task.customerName}
+                                    <c:out value="${task.customerName}" />
                                     <c:if test="${not empty task.customerPhone}">
-                                        <br><small class="text-muted">${task.customerPhone}</small>
+                                        <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
                                     </c:if>
                                 </td>
                                 <td>
-                                    ${task.customerAddress}
+                                    <c:out value="${task.customerAddress}" />
                                     <c:if test="${not empty task.areaName}">
-                                        <br><small class="badge badge-info">${task.areaName}</small>
+                                        <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
                                     </c:if>
                                 </td>
                                 <td>${task.totalAmount} đ</td>
@@ -76,12 +76,12 @@
                                                 <c:choose>
                                                     <c:when test="${shipper.activeOrders >= shipper.maxOrders}">
                                                         <option value="${shipper.username}" disabled>
-                                                            ${shipper.fullName} (<fmt:message key="dispatch.shipper.busy" />: ${shipper.activeOrders}/${shipper.maxOrders})
+                                                            <c:out value="${shipper.fullName}" /> (<fmt:message key="dispatch.shipper.busy" />: ${shipper.activeOrders}/${shipper.maxOrders})
                                                         </option>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <option value="${shipper.username}">
-                                                            ${shipper.fullName} (<fmt:message key="dispatch.shipper.free" />: ${shipper.activeOrders}/${shipper.maxOrders})
+                                                            <c:out value="${shipper.fullName}" /> (<fmt:message key="dispatch.shipper.free" />: ${shipper.activeOrders}/${shipper.maxOrders})
                                                         </option>
                                                     </c:otherwise>
                                                 </c:choose>
@@ -89,6 +89,66 @@
                                         </select>
                                         
                                         <button type="submit" class="btn btn-assign"><fmt:message key="dispatch.btn.assign" /></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                    </c:otherwise>
+                </c:choose>
+            </tbody>
+        </table>
+
+        <hr class="section-divider" />
+
+        <!-- BẢNG ĐƠN ĐANG CHỜ SHIPPER TIẾP NHẬN -->
+        <h3 class="section-title"><fmt:message key="dispatch.pending_list_title" /></h3>
+        <table class="table dispatch-table">
+            <thead>
+                <tr>
+                    <th><fmt:message key="dispatch.table.ordercode" /></th>
+                    <th><fmt:message key="dispatch.table.customer" /></th>
+                    <th><fmt:message key="dispatch.table.address" /></th>
+                    <th><fmt:message key="dispatch.table.amount" /></th>
+                    <th><fmt:message key="order.management.table.shipper" /></th>
+                    <th><fmt:message key="dispatch.table.status" /></th>
+                    <th><fmt:message key="dispatch.table.action" /></th>
+                </tr>
+            </thead>
+            <tbody>
+                <c:choose>
+                    <c:when test="${empty ASSIGNED_PENDING_TASKS}">
+                        <tr>
+                            <td colspan="7" class="text-center empty-msg"><fmt:message key="dispatch.msg.no_pending_tasks" /></td>
+                        </tr>
+                    </c:when>
+                    <c:otherwise>
+                        <c:forEach var="task" items="${ASSIGNED_PENDING_TASKS}">
+                            <tr>
+                                <td><strong>${task.orderCode}</strong></td>
+                                <td>
+                                    <c:out value="${task.customerName}" />
+                                    <c:if test="${not empty task.customerPhone}">
+                                        <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
+                                    </c:if>
+                                </td>
+                                <td>
+                                    <c:out value="${task.customerAddress}" />
+                                    <c:if test="${not empty task.areaName}">
+                                        <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
+                                    </c:if>
+                                </td>
+                                <td>${task.totalAmount} đ</td>
+                                <td>
+                                    <span class="badge badge-stock-ok">🚚 <c:out value="${task.shipperFullName}" /> (<c:out value="${task.shipperUsername}" />)</span>
+                                </td>
+                                <td class="status-cell">
+                                    <span class="order-badge order-badge-dispatch"><fmt:message key="status.${task.status}" /></span>
+                                </td>
+                                <td class="action-cell">
+                                    <form action="DispatchController" method="POST" class="m-0 form-revoke-task" data-confirm-msg="<fmt:message key="dispatch.confirm.revoke" />">
+                                        <input type="hidden" name="action" value="revoke" />
+                                        <input type="hidden" name="taskId" value="${task.taskId}" />
+                                        <button type="submit" class="btn btn-warning"><fmt:message key="dispatch.btn.revoke" /></button>
                                     </form>
                                 </td>
                             </tr>
@@ -122,9 +182,9 @@
                     <c:otherwise>
                         <c:forEach var="shipper" items="${SHIPPER_LIST}">
                             <tr>
-                                <td>${shipper.username}</td>
-                                <td>${shipper.fullName}</td>
-                                <td>${shipper.address}</td>
+                                <td><c:out value="${shipper.username}" /></td>
+                                <td><c:out value="${shipper.fullName}" /></td>
+                                <td><c:out value="${shipper.address}" /></td>
                                 <td class="status-cell">
                                     <strong><fmt:message key="shipper.work.${shipper.workingStatus}" /></strong>
                                 </td>

@@ -10,11 +10,11 @@
      data-title-edit="<fmt:message key="menu.modal.title.edit" />"
      data-error-size="<fmt:message key="E1013" />"
      data-error-recipe="<fmt:message key="E0212" />"
-     onclick="if(event.target === this) closeProductModal();">
+>
     <div class="modal-card modal-card-md">
         <div class="modal-header">
             <h3 id="productModalTitle" class="m-0"><fmt:message key="menu.modal.title.add" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeProductModal()">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="productModal">✖</button>
         </div>
 
         <form id="productForm" action="${pageContext.request.contextPath}/MenuManagementController" method="POST" enctype="multipart/form-data" class="m-0">
@@ -39,7 +39,7 @@
                     <select id="productCategorySelect" name="categoryId" required class="filter-input w-100">
                         <option value=""><fmt:message key="menu.mgmt.filter.category" /></option>
                         <c:forEach var="cat" items="${CATEGORY_LIST}">
-                            <option value="${cat.categoryId}">${cat.categoryName}</option>
+                            <option value="${cat.categoryId}"><c:out value="${cat.categoryName}" /></option>
                         </c:forEach>
                     </select>
                 </div>
@@ -56,10 +56,10 @@
                 <div class="form-group mb-15">
                     <label class="form-label font-bold mb-5"><fmt:message key="menu.mgmt.table.image" /></label>
                     <div class="image-tab-bar mb-10">
-                        <button type="button" id="tabBtnUpload" class="btn-image-tab active" onclick="switchImageTab('upload')">
+                        <button type="button" id="tabBtnUpload" class="btn-image-tab active" data-action="switch-image-tab" data-image-tab="upload">
                             📁 <fmt:message key="menu.modal.tab.upload_file" />
                         </button>
-                        <button type="button" id="tabBtnUrl" class="btn-image-tab" onclick="switchImageTab('url')">
+                        <button type="button" id="tabBtnUrl" class="btn-image-tab" data-action="switch-image-tab" data-image-tab="url">
                             🔗 <fmt:message key="menu.modal.tab.url_link" />
                         </button>
                     </div>
@@ -68,7 +68,7 @@
                     <div id="imageUploadPanel" class="image-panel">
                         <input type="file" id="productImageFileInput" name="productImageFile"
                                accept=".jpg,.jpeg,.png,.webp" class="filter-input w-100"
-                               onchange="previewUploadedImage(this)" />
+                               data-action="preview-uploaded-image" />
                         <div class="form-hint-text mt-5"><fmt:message key="menu.modal.upload_hint" /></div>
                     </div>
 
@@ -78,7 +78,7 @@
                                maxlength="255"
                                class="filter-input w-100"
                                placeholder="<fmt:message key="menu.modal.placeholder.image" />"
-                               oninput="previewUrlImage(this.value)" />
+                               data-action="preview-url-image" />
                         <div class="form-hint-text mt-5"><fmt:message key="menu.modal.url_hint" /></div>
                     </div>
 
@@ -95,7 +95,7 @@
                         <label class="form-label font-bold m-0">
                             <fmt:message key="menu.modal.label.recipe" />
                         </label>
-                        <button type="button" class="btn-action-add-recipe" onclick="addRecipeRow()">
+                        <button type="button" class="btn-action-add-recipe" data-action="add-recipe-row">
                             <fmt:message key="menu.modal.btn.add_ingredient" />
                         </button>
                     </div>
@@ -128,7 +128,7 @@
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="btn-order-cancel" onclick="closeProductModal()">
+                <button type="button" class="btn-order-cancel" data-close-modal="productModal">
                     <fmt:message key="menu.modal.btn.cancel" />
                 </button>
                 <button type="submit" id="productModalSubmitBtn" class="btn-login">
@@ -140,11 +140,11 @@
 </div>
 
 <%-- MODAL 2: QUẢN LÝ DANH MỤC THỰC ĐƠN --%>
-<div id="menuCategoryModal" class="modal-overlay d-none" onclick="if(event.target === this) closeMenuCategoryModal();">
+<div id="menuCategoryModal" class="modal-overlay d-none">
     <div class="modal-card modal-card-md">
         <div class="modal-header">
             <h3 class="m-0"><fmt:message key="menu.category.modal.title" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeMenuCategoryModal()">✕</button>
+            <button type="button" class="btn-modal-close" data-close-modal="menuCategoryModal">✕</button>
         </div>
 
         <div class="modal-body">
@@ -181,7 +181,7 @@
                             <c:forEach var="cat" items="${CATEGORY_LIST}">
                                 <tr>
                                     <td>${cat.categoryId}</td>
-                                    <td><strong>${cat.categoryName}</strong></td>
+                                    <td><strong><c:out value="${cat.categoryName}" /></strong></td>
                                     <td class="text-center">
                                         <c:choose>
                                             <c:when test="${cat.inUse}">
@@ -203,7 +203,7 @@
                                                     <input type="hidden" name="action" value="deleteCategory" />
                                                     <input type="hidden" name="categoryId" value="${cat.categoryId}" />
                                                     <button type="submit" class="btn-reject btn-sm"
-                                                            onclick="return confirm('<fmt:message key="menu.category.confirm.delete" />')">
+                                                            data-confirm="<fmt:message key="menu.category.confirm.delete" />">
                                                         <fmt:message key="menu.category.btn.delete" />
                                                     </button>
                                                 </form>
@@ -227,7 +227,7 @@
         </div>
 
         <div class="modal-actions">
-            <button type="button" class="btn-order-cancel" onclick="closeMenuCategoryModal()">
+            <button type="button" class="btn-order-cancel" data-close-modal="menuCategoryModal">
                 <fmt:message key="menu.modal.btn.cancel" />
             </button>
         </div>

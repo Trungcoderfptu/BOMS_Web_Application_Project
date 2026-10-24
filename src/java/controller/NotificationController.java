@@ -68,6 +68,7 @@ public class NotificationController extends HttpServlet {
                     try {
                         limit = Integer.parseInt(limitParam.trim());
                     } catch (NumberFormatException ignored) {
+                        limit = 10;
                     }
                 }
                 int unreadCount = notificationService.getUnreadCount(userId);
@@ -117,7 +118,7 @@ public class NotificationController extends HttpServlet {
 
             String broadcastMessage = request.getParameter("broadcastMessage");
             try {
-                int sentCount = notificationService.broadcastMessage(broadcastMessage, userId);
+                notificationService.broadcastMessage(broadcastMessage, userId);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_BROADCAST_MESSAGE);
             } catch (ValidationException e) {
                 session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
@@ -140,6 +141,7 @@ public class NotificationController extends HttpServlet {
                     try {
                         notificationId = Integer.parseInt(notifIdStr.trim());
                     } catch (NumberFormatException ignored) {
+                        notificationId = 0;
                     }
                 }
                 boolean success = notificationService.markAsRead(notificationId, userId);

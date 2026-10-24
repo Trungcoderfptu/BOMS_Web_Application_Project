@@ -54,6 +54,7 @@ public class ImageServingServlet extends HttpServlet {
         response.setContentType(mimeType);
         response.setContentLengthLong(imageFile.length());
         response.setHeader("Cache-Control", "public, max-age=86400"); // Cache 1 ngày để tăng tốc độ tải
+        response.setHeader("X-Content-Type-Options", "nosniff"); // Chống MIME-Sniffing XSS
 
         OutputStream out = response.getOutputStream();
         try (FileInputStream in = new FileInputStream(imageFile)) {

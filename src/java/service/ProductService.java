@@ -36,20 +36,6 @@ public class ProductService {
         this.menuCategoryDAO = new MenuCategoryDAO();
     }
 
-    public List<Product> getAllProducts() throws ValidationException {
-        return productDAO.getAllProducts();
-    }
-
-    public Product getProductById(int productId) {
-        if (productId <= 0) {
-            return null;
-        }
-        try {
-            return productDAO.getProductById(productId);
-        } catch (ValidationException e) {
-            return null;
-        }
-    }
 
     public List<Map<String, Object>> getAllProductsForView() throws ValidationException {
         List<Product> products = productDAO.getAllProducts();

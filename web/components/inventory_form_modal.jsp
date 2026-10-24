@@ -8,11 +8,11 @@
 <div id="inventoryModal" class="modal-overlay d-none"
      data-title-add="<fmt:message key="inventory.modal.title.add" />"
      data-title-edit="<fmt:message key="inventory.modal.title.edit" />"
-     onclick="if(event.target === this) closeInventoryModal();">
+>
     <div class="modal-card">
         <div class="modal-header">
             <h3 id="inventoryModalTitle" class="m-0"><fmt:message key="inventory.modal.title.add" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeInventoryModal()">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="inventoryModal">✖</button>
         </div>
 
         <form id="inventoryForm" action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="m-0">
@@ -34,7 +34,7 @@
                     </label>
                     <select id="ingredientCategorySelect" name="categoryId" required class="filter-input w-100">
                         <c:forEach var="cat" items="${CATEGORY_LIST}">
-                            <option value="${cat.categoryId}">${cat.categoryName}</option>
+                            <option value="${cat.categoryId}"><c:out value="${cat.categoryName}" /></option>
                         </c:forEach>
                     </select>
                 </div>
@@ -83,7 +83,7 @@
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="btn-order-cancel" onclick="closeInventoryModal()">
+                <button type="button" class="btn-order-cancel" data-close-modal="inventoryModal">
                     <fmt:message key="inventory.modal.btn.close" />
                 </button>
                 <button type="submit" class="btn-login">
@@ -96,11 +96,11 @@
 
 <%-- MODAL 2: CẬP NHẬT NHANH NGƯỠNG CẢNH BÁO TỒN KHO --%>
 <div id="thresholdModal" class="modal-overlay d-none"
-     onclick="if(event.target === this) closeThresholdModal();">
+>
     <div class="modal-card">
         <div class="modal-header">
             <h3 class="m-0"><fmt:message key="inventory.modal.title.threshold" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeThresholdModal()">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="thresholdModal">✖</button>
         </div>
 
         <form id="thresholdForm" action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="m-0">
@@ -122,7 +122,7 @@
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="btn-order-cancel" onclick="closeThresholdModal()">
+                <button type="button" class="btn-order-cancel" data-close-modal="thresholdModal">
                     <fmt:message key="inventory.modal.btn.close" />
                 </button>
                 <button type="submit" class="btn-login">
@@ -134,11 +134,11 @@
 </div>
 
 <%-- MODAL 3: QUẢN LÝ DANH MỤC KHO NGUYÊN LIỆU --%>
-<div id="inventoryCategoryModal" class="modal-overlay d-none" onclick="if(event.target === this) closeInventoryCategoryModal();">
+<div id="inventoryCategoryModal" class="modal-overlay d-none">
     <div class="modal-card modal-card-md">
         <div class="modal-header">
             <h3 class="m-0"><fmt:message key="inventory.category.modal.title" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeInventoryCategoryModal()">✕</button>
+            <button type="button" class="btn-modal-close" data-close-modal="inventoryCategoryModal">✕</button>
         </div>
 
         <div class="modal-body">
@@ -175,7 +175,7 @@
                             <c:forEach var="cat" items="${CATEGORY_LIST}">
                                 <tr>
                                     <td>${cat.categoryId}</td>
-                                    <td><strong>${cat.categoryName}</strong></td>
+                                    <td><strong><c:out value="${cat.categoryName}" /></strong></td>
                                     <td class="text-center">
                                         <c:choose>
                                             <c:when test="${cat.inUse}">
@@ -197,7 +197,7 @@
                                                     <input type="hidden" name="action" value="deleteCategory" />
                                                     <input type="hidden" name="categoryId" value="${cat.categoryId}" />
                                                     <button type="submit" class="btn-reject btn-sm"
-                                                            onclick="return confirm('<fmt:message key="inventory.category.confirm.delete" />')">
+                                                            data-confirm="<fmt:message key="inventory.category.confirm.delete" />">
                                                         <fmt:message key="inventory.category.btn.delete" />
                                                     </button>
                                                 </form>
@@ -221,7 +221,7 @@
         </div>
 
         <div class="modal-actions">
-            <button type="button" class="btn-order-cancel" onclick="closeInventoryCategoryModal()">
+            <button type="button" class="btn-order-cancel" data-close-modal="inventoryCategoryModal">
                 <fmt:message key="inventory.modal.btn.close" />
             </button>
         </div>

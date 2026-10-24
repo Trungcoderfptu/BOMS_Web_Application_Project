@@ -7,7 +7,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
@@ -28,11 +27,6 @@ import utility.Validator;
  * Tuân thủ Rule_BOMS: 100% logic tại Service, đóng gói Map trả về Controller, cấm để lọt Model.
  */
 public class AttendanceService {
-
-    private static final int EARLY_CHECKIN_THRESHOLD_MINUTES = 15;
-    private static final int LATE_CHECKIN_THRESHOLD_MINUTES = 15;
-    private static final int EARLY_CHECKOUT_THRESHOLD_MINUTES = 15;
-    private static final int OVERTIME_THRESHOLD_MINUTES = 15;
 
     private AttendanceDAO attendanceDAO;
     private UserDAO userDAO;
@@ -66,7 +60,7 @@ public class AttendanceService {
         LocalTime startTime = assignment.getShift().getStartTime().toLocalTime();
 
         long diffMinutes = java.time.Duration.between(startTime, currentTime).toMinutes();
-        if (diffMinutes < -EARLY_CHECKIN_THRESHOLD_MINUTES) {
+        if (diffMinutes < -Constants.EARLY_CHECKIN_THRESHOLD_MINUTES) {
             throw new ValidationException(Constants.ERROR_ATTENDANCE_TOO_EARLY);
         }
 
@@ -157,7 +151,7 @@ public class AttendanceService {
         LocalTime shiftEnd = assignment.getShift().getEndTime().toLocalTime();
         long diffMinutes = java.time.Duration.between(shiftStart, currentTime).toMinutes();
 
-        boolean canCheckIn = diffMinutes >= -EARLY_CHECKIN_THRESHOLD_MINUTES;
+        boolean canCheckIn = diffMinutes >= -Constants.EARLY_CHECKIN_THRESHOLD_MINUTES;
         boolean canCheckOut = !currentTime.isBefore(shiftEnd);
         viewData.put("canCheckIn", canCheckIn);
         viewData.put("canCheckOut", canCheckOut);
@@ -355,9 +349,11 @@ public class AttendanceService {
                     userId,
                     "ShiftAssignment",
                     newAssignmentId,
-                    "Bạn vừa được phân công ca: " + shift.getShiftName() + " (" + workDateStr + ")"
+                    String.format(Constants.NOTIF_SHIFT_ASSIGN_SINGLE, shift.getShiftName(), workDateStr)
             );
         } catch (Exception ignored) {
+            java.util.logging.Logger.getLogger(AttendanceService.class.getName())
+                    .log(java.util.logging.Level.WARNING, "Failed to send notification in AttendanceService", ignored);
         }
         return newAssignmentId;
     }
@@ -401,6 +397,8 @@ public class AttendanceService {
                 try {
                     selectedDays.add(Integer.parseInt(dow.trim()));
                 } catch (NumberFormatException ignored) {
+                    java.util.logging.Logger.getLogger(AttendanceService.class.getName())
+                            .log(java.util.logging.Level.FINE, "Invalid day of week format: {0}", dow);
                 }
             }
         }
@@ -445,9 +443,11 @@ public class AttendanceService {
                     userId,
                     "ShiftAssignment",
                     lastAssignmentId,
-                    "Bạn vừa được phân công " + assignedCount + " ca làm việc (" + shift.getShiftName() + ") từ " + startDateStr + " đến " + endDateStr + "."
+                    String.format(Constants.NOTIF_SHIFT_ASSIGN_BULK, assignedCount, shift.getShiftName(), startDateStr, endDateStr)
             );
         } catch (Exception ignored) {
+            java.util.logging.Logger.getLogger(AttendanceService.class.getName())
+                    .log(java.util.logging.Level.WARNING, "Failed to send notification in AttendanceService", ignored);
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -466,13 +466,14 @@ public class AttendanceService {
         LocalTime nowTime = LocalTime.now();
 
         List<Map<String, Object>> daysList = new ArrayList<>();
-        String[] dayNames = {"Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"};
+        String[] dayKeys = {"hr.assign.day.mon", "hr.assign.day.tue", "hr.assign.day.wed", "hr.assign.day.thu", "hr.assign.day.fri", "hr.assign.day.sat", "hr.assign.day.sun"};
         for (int i = 0; i < 7; i++) {
             LocalDate d = monday.plusDays(i);
             Map<String, Object> dayInfo = new HashMap<>();
             dayInfo.put("date", d.toString());
             dayInfo.put("dayOfWeek", i + 1);
-            dayInfo.put("dayName", dayNames[i]);
+            dayInfo.put("dayKey", dayKeys[i]);
+            dayInfo.put("dayName", Constants.WEEK_DAY_NAMES[i]);
             dayInfo.put("shortDate", d.getDayOfMonth() + "/" + d.getMonthValue());
             dayInfo.put("isToday", d.equals(today));
             daysList.add(dayInfo);
@@ -537,7 +538,7 @@ public class AttendanceService {
                             LocalTime sStart = s.getStartTime().toLocalTime();
                             LocalTime sEnd = s.getEndTime().toLocalTime();
                             long diffMin = java.time.Duration.between(sStart, nowTime).toMinutes();
-                            cell.put("canCheckIn", diffMin >= -EARLY_CHECKIN_THRESHOLD_MINUTES && !hasIn);
+                            cell.put("canCheckIn", diffMin >= -Constants.EARLY_CHECKIN_THRESHOLD_MINUTES && !hasIn);
                             cell.put("canCheckOut", hasIn && !hasOut && !nowTime.isBefore(sEnd));
                         } else {
                             cell.put("canCheckIn", false);
@@ -574,13 +575,14 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
 
         List<Map<String, Object>> daysList = new ArrayList<>();
-        String[] dayNames = {"Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"};
+        String[] dayKeys = {"hr.assign.day.mon", "hr.assign.day.tue", "hr.assign.day.wed", "hr.assign.day.thu", "hr.assign.day.fri", "hr.assign.day.sat", "hr.assign.day.sun"};
         for (int i = 0; i < 7; i++) {
             LocalDate d = monday.plusDays(i);
             Map<String, Object> dayInfo = new HashMap<>();
             dayInfo.put("date", d.toString());
             dayInfo.put("dayOfWeek", i + 1);
-            dayInfo.put("dayName", dayNames[i]);
+            dayInfo.put("dayKey", dayKeys[i]);
+            dayInfo.put("dayName", Constants.WEEK_DAY_NAMES[i]);
             dayInfo.put("shortDate", d.getDayOfMonth() + "/" + d.getMonthValue());
             dayInfo.put("isToday", d.equals(today));
             daysList.add(dayInfo);
@@ -687,14 +689,16 @@ public class AttendanceService {
         boolean updated = attendanceDAO.updateAttendanceApproval(attendanceId, checkInStatus, checkOutStatus, managerUserId);
         if (updated && att.getShiftAssignment() != null) {
             try {
-                String typeLabel = "ot".equalsIgnoreCase(type) ? "tăng ca (OT)" : "vào ca sớm";
+                String typeLabel = "ot".equalsIgnoreCase(type) ? Constants.LABEL_OT : Constants.LABEL_EARLY_CHECKIN;
                 notificationService.createNotification(
                         att.getShiftAssignment().getUserId(),
                         "AttendanceApproval",
                         attendanceId,
-                        "Quản lý đã phê duyệt yêu cầu " + typeLabel + " của bạn."
+                        String.format(Constants.NOTIF_ATTENDANCE_APPROVED, typeLabel)
                 );
             } catch (Exception ignored) {
+                java.util.logging.Logger.getLogger(AttendanceService.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Failed to send notification in AttendanceService", ignored);
             }
         }
         return updated;
@@ -721,14 +725,16 @@ public class AttendanceService {
         boolean updated = attendanceDAO.updateAttendanceApproval(attendanceId, checkInStatus, checkOutStatus, managerUserId);
         if (updated && att.getShiftAssignment() != null) {
             try {
-                String typeLabel = "ot".equalsIgnoreCase(type) ? "tăng ca (OT)" : "vào ca sớm";
+                String typeLabel = "ot".equalsIgnoreCase(type) ? Constants.LABEL_OT : Constants.LABEL_EARLY_CHECKIN;
                 notificationService.createNotification(
                         att.getShiftAssignment().getUserId(),
                         "AttendanceApproval",
                         attendanceId,
-                        "Quản lý đã từ chối yêu cầu " + typeLabel + " của bạn."
+                        String.format(Constants.NOTIF_ATTENDANCE_REJECTED, typeLabel)
                 );
             } catch (Exception ignored) {
+                java.util.logging.Logger.getLogger(AttendanceService.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Failed to send notification in AttendanceService", ignored);
             }
         }
         return updated;
@@ -829,9 +835,9 @@ public class AttendanceService {
 
         long diffMinutes = java.time.Duration.between(startTime, currentTime).toMinutes();
 
-        if (diffMinutes < -EARLY_CHECKIN_THRESHOLD_MINUTES) {
+        if (diffMinutes < -Constants.EARLY_CHECKIN_THRESHOLD_MINUTES) {
             return "Pending Early Approval";
-        } else if (diffMinutes > LATE_CHECKIN_THRESHOLD_MINUTES) {
+        } else if (diffMinutes > Constants.LATE_CHECKIN_THRESHOLD_MINUTES) {
             return "Late";
         } else {
             return "On Time";
@@ -842,7 +848,7 @@ public class AttendanceService {
         LocalTime currentTime = now.toLocalDateTime().toLocalTime();
         LocalTime endTime = shiftEndTime.toLocalTime();
         long diffMinutes = java.time.Duration.between(endTime, currentTime).toMinutes();
-        return diffMinutes > OVERTIME_THRESHOLD_MINUTES;
+        return diffMinutes > Constants.OVERTIME_THRESHOLD_MINUTES;
     }
 
     private String determineCheckOutStatus(Timestamp now, Time shiftEndTime, boolean isOvertime) {
@@ -854,7 +860,7 @@ public class AttendanceService {
         LocalTime endTime = shiftEndTime.toLocalTime();
         long diffMinutes = java.time.Duration.between(endTime, currentTime).toMinutes();
 
-        if (diffMinutes < -EARLY_CHECKOUT_THRESHOLD_MINUTES) {
+        if (diffMinutes < -Constants.EARLY_CHECKOUT_THRESHOLD_MINUTES) {
             return "Left Early";
         }
         return "On Time";

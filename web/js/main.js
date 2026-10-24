@@ -281,10 +281,11 @@ function openTab(evt, tabId) {
     document.getElementById(tabId).classList.remove("d-none");
     document.getElementById(tabId).classList.add("active");
 
-    if (evt && evt.currentTarget && evt.currentTarget.classList.contains("tab-btn")) {
-        evt.currentTarget.classList.add("active");
+    let clickedTabBtn = (evt && evt.target) ? evt.target.closest('.tab-btn') : null;
+    if (clickedTabBtn) {
+        clickedTabBtn.classList.add("active");
     } else {
-        let targetBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+        let targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`) || document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
         if (targetBtn)
             targetBtn.classList.add("active");
     }
@@ -1262,6 +1263,25 @@ function selectWeekdays(type) {
     });
 }
 
+function openOtReasonModal() {
+    const modal = document.getElementById('otReasonModal');
+    if (modal) {
+        modal.classList.remove('d-none');
+        const input = document.getElementById('otReasonInput');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+    }
+}
+
+function closeOtReasonModal() {
+    const modal = document.getElementById('otReasonModal');
+    if (modal) {
+        modal.classList.add('d-none');
+    }
+}
+
 // ================= NOTIFICATION & BROADCAST (TASK 11) =================
 let __latestNotifications = [];
 
@@ -1497,3 +1517,360 @@ function closeBannedPopup() {
         popup.style.display = 'none';
     }
 }
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const btnCloseBanned = document.getElementById('btnCloseBannedPopup');
+    if (btnCloseBanned) {
+        btnCloseBanned.addEventListener('click', closeBannedPopup);
+    }
+});
+
+
+// ================= SHIPPER & DELIVERY DELEGATED EVENT LISTENERS =================
+document.addEventListener('click', function (e) {
+    const btnComplete = e.target.closest('.btn-open-complete-modal');
+    if (btnComplete) {
+        openShipperCompleteModal(btnComplete.dataset.taskId, btnComplete.dataset.orderCode);
+        return;
+    }
+    const btnFail = e.target.closest('.btn-open-fail-modal');
+    if (btnFail) {
+        openShipperFailModal(btnFail.dataset.taskId, btnFail.dataset.orderCode);
+        return;
+    }
+    const btnCloseComplete = e.target.closest('.btn-close-complete-modal');
+    if (btnCloseComplete) {
+        closeShipperCompleteModal();
+        return;
+    }
+    const btnCloseFail = e.target.closest('.btn-close-fail-modal');
+    if (btnCloseFail) {
+        closeShipperFailModal();
+        return;
+    }
+    const btnDeliveryBack = e.target.closest('#btnDeliveryBack');
+    if (btnDeliveryBack) {
+        window.history.back();
+        return;
+    }
+    const tabBtn = e.target.closest('[data-tab]');
+    if (tabBtn) {
+        const tabId = tabBtn.getAttribute('data-tab');
+        if (tabId && typeof openTab === 'function') {
+            openTab(e, tabId);
+            return;
+        }
+    }
+    const btnOpenCheckoutModal = e.target.closest('#btnOpenCheckoutModal');
+    if (btnOpenCheckoutModal) {
+        if (typeof openOrderConfirmModal === 'function') {
+            openOrderConfirmModal();
+        }
+        return;
+    }
+    const btnCloseOrderConfirm = e.target.closest('.btn-close-order-confirm');
+    if (btnCloseOrderConfirm) {
+        if (typeof closeOrderConfirmModal === 'function') {
+            closeOrderConfirmModal();
+        }
+        return;
+    }
+    const btnOpenStaffCancel = e.target.closest('.btn-open-staff-cancel');
+    if (btnOpenStaffCancel) {
+        const orderId = btnOpenStaffCancel.getAttribute('data-order-id');
+        const tabKey = btnOpenStaffCancel.getAttribute('data-tab-key');
+        if (typeof openStaffCancelModal === 'function') {
+            openStaffCancelModal(orderId, tabKey);
+        }
+        return;
+    }
+
+    // ================= HR & SHIFT MANAGEMENT EVENT DELEGATION =================
+    const btnDismissAlert = e.target.closest('[data-dismiss="alert"]');
+    if (btnDismissAlert) {
+        const alertBox = btnDismissAlert.closest('.alert-box');
+        if (alertBox) alertBox.remove();
+        return;
+    }
+    const hrTabBtn = e.target.closest('[data-hr-tab]');
+    if (hrTabBtn) {
+        const targetId = hrTabBtn.getAttribute('data-hr-tab');
+        const parent = hrTabBtn.closest('.page-container') || document;
+        parent.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        parent.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+            content.classList.add('d-none');
+        });
+        hrTabBtn.classList.add('active');
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) {
+            targetContent.classList.remove('d-none');
+            targetContent.classList.add('active');
+        }
+        return;
+    }
+    const btnCreateShift = e.target.closest('#btnOpenCreateShift');
+    if (btnCreateShift) {
+        if (typeof openCreateShiftModal === 'function') {
+            openCreateShiftModal();
+        }
+        return;
+    }
+    const btnEditShift = e.target.closest('[data-action="edit-shift"]');
+    if (btnEditShift) {
+        const shiftId = btnEditShift.getAttribute('data-shift-id');
+        const shiftName = btnEditShift.getAttribute('data-shift-name');
+        const startTime = btnEditShift.getAttribute('data-start-time');
+        const endTime = btnEditShift.getAttribute('data-end-time');
+        if (typeof openEditShiftModal === 'function') {
+            openEditShiftModal(shiftId, shiftName, startTime, endTime);
+        }
+        return;
+    }
+    const btnOpenAssign = e.target.closest('.btn-open-assign-shift');
+    if (btnOpenAssign) {
+        if (typeof openAssignShiftModal === 'function') {
+            openAssignShiftModal();
+        }
+        return;
+    }
+    const btnQuickAssign = e.target.closest('[data-action="quick-assign"]');
+    if (btnQuickAssign) {
+        const userId = btnQuickAssign.getAttribute('data-user-id');
+        const fullName = btnQuickAssign.getAttribute('data-full-name');
+        const workDate = btnQuickAssign.getAttribute('data-work-date');
+        if (typeof openQuickAssignModal === 'function') {
+            openQuickAssignModal(userId, fullName, workDate);
+        }
+        return;
+    }
+    const btnCloseModal = e.target.closest('[data-close-modal]');
+    if (btnCloseModal) {
+        const modalId = btnCloseModal.getAttribute('data-close-modal');
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('d-none');
+        }
+        return;
+    }
+    const elWithConfirm = e.target.closest('[data-confirm]');
+    if (elWithConfirm && elWithConfirm.tagName !== 'FORM') {
+        const confirmMsg = elWithConfirm.getAttribute('data-confirm') || 'Are you sure?';
+        if (!confirm(confirmMsg)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+    }
+
+    if (e.target.classList && e.target.classList.contains('modal-overlay')) {
+        e.target.classList.add('d-none');
+        return;
+    }
+
+    // ================= ARCHITECTURAL PURGE & EVENT DELEGATION (TASK 27.1) =================
+    const btnAction = e.target.closest('[data-action]');
+    if (btnAction) {
+        const action = btnAction.getAttribute('data-action');
+        if (action === 'open-inventory-category') {
+            if (typeof openInventoryCategoryModal === 'function') openInventoryCategoryModal();
+            return;
+        }
+        if (action === 'open-create-ingredient') {
+            if (typeof openCreateIngredientModal === 'function') openCreateIngredientModal();
+            return;
+        }
+        if (action === 'edit-ingredient') {
+            const id = btnAction.getAttribute('data-id');
+            const catId = btnAction.getAttribute('data-cat-id');
+            const name = btnAction.getAttribute('data-name');
+            const unit = btnAction.getAttribute('data-unit');
+            const qty = btnAction.getAttribute('data-qty');
+            const price = btnAction.getAttribute('data-price');
+            const loc = btnAction.getAttribute('data-loc');
+            const threshold = btnAction.getAttribute('data-threshold');
+            if (typeof openEditIngredientModal === 'function') {
+                openEditIngredientModal(id, catId, name, unit, qty, price, loc, threshold);
+            }
+            return;
+        }
+        if (action === 'open-threshold') {
+            const id = btnAction.getAttribute('data-id');
+            const name = btnAction.getAttribute('data-name');
+            const threshold = btnAction.getAttribute('data-threshold');
+            if (typeof openThresholdModal === 'function') {
+                openThresholdModal(id, name, threshold);
+            }
+            return;
+        }
+        if (action === 'open-broadcast') {
+            if (typeof openBroadcastModal === 'function') openBroadcastModal();
+            return;
+        }
+        if (action === 'open-inventory-alert') {
+            if (typeof openInventoryAlertModal === 'function') openInventoryAlertModal();
+            return;
+        }
+        if (action === 'toggle-notification-dropdown') {
+            if (typeof toggleNotificationDropdown === 'function') toggleNotificationDropdown(e);
+            return;
+        }
+        if (action === 'open-menu-category') {
+            if (typeof openMenuCategoryModal === 'function') openMenuCategoryModal();
+            return;
+        }
+        if (action === 'open-create-product') {
+            if (typeof openCreateProductModal === 'function') openCreateProductModal();
+            return;
+        }
+        if (action === 'edit-product') {
+            const id = btnAction.getAttribute('data-id');
+            const name = btnAction.getAttribute('data-name');
+            const catId = btnAction.getAttribute('data-cat-id');
+            const price = btnAction.getAttribute('data-price');
+            const img = btnAction.getAttribute('data-img');
+            const avail = btnAction.getAttribute('data-avail') === 'true';
+            const recipe = btnAction.getAttribute('data-recipe');
+            if (typeof openEditProductModal === 'function') {
+                openEditProductModal(id, name, catId, price, img, avail, recipe);
+            }
+            return;
+        }
+        if (action === 'switch-image-tab') {
+            const tab = btnAction.getAttribute('data-image-tab');
+            if (typeof switchImageTab === 'function') {
+                switchImageTab(tab);
+            }
+            return;
+        }
+        if (action === 'add-recipe-row') {
+            if (typeof addRecipeRow === 'function') {
+                addRecipeRow();
+            }
+            return;
+        }
+        if (action === 'confirm-revert-delivery') {
+            if (typeof confirmRevertDeliverySubmit === 'function') {
+                confirmRevertDeliverySubmit();
+            }
+            return;
+        }
+        if (action === 'mark-all-notifications') {
+            if (typeof markAllNotificationsAsRead === 'function') {
+                markAllNotificationsAsRead();
+            }
+            return;
+        }
+        if (action === 'mark-notification') {
+            const notifId = btnAction.getAttribute('data-notif-id');
+            if (typeof markNotificationAsRead === 'function') {
+                markNotificationAsRead(notifId);
+            }
+            return;
+        }
+    }
+    const btnAssignMode = e.target.closest('[data-assign-mode]');
+    if (btnAssignMode) {
+        const mode = btnAssignMode.getAttribute('data-assign-mode');
+        if (typeof setAssignMode === 'function') {
+            setAssignMode(mode);
+        }
+        return;
+    }
+    const btnQuickSelect = e.target.closest('[data-quick-select]');
+    if (btnQuickSelect) {
+        const type = btnQuickSelect.getAttribute('data-quick-select');
+        if (typeof selectWeekdays === 'function') {
+            selectWeekdays(type);
+        }
+        return;
+    }
+    const btnOpenOt = e.target.closest('#btnOpenOtModal');
+    if (btnOpenOt) {
+        if (typeof openOtReasonModal === 'function') {
+            openOtReasonModal();
+        }
+        return;
+    }
+
+});
+
+document.addEventListener('submit', function (e) {
+    const formWithConfirm = e.target.closest('form[data-confirm]');
+    if (formWithConfirm) {
+        const confirmMsg = formWithConfirm.getAttribute('data-confirm') || 'Are you sure?';
+        if (!confirm(confirmMsg)) {
+            e.preventDefault();
+            return;
+        }
+    }
+    const formReject = e.target.closest('.form-reject-task');
+    if (formReject) {
+        const confirmMsg = formReject.dataset.confirmMsg || 'Are you sure?';
+        if (!confirm(confirmMsg)) {
+            e.preventDefault();
+            return;
+        }
+    }
+    const orderStatusForm = e.target.closest('.order-status-form');
+    if (orderStatusForm) {
+        const orderId = orderStatusForm.getAttribute('data-order-id');
+        if (typeof handleStaffStatusSubmit === 'function') {
+            const res = handleStaffStatusSubmit(e, orderStatusForm, orderId);
+            if (res === false) {
+                e.preventDefault();
+                return;
+            }
+        }
+    }
+    const formCancelTable = e.target.closest('.form-cancel-table-order');
+    if (formCancelTable) {
+        const confirmMsg = formCancelTable.getAttribute('data-confirm-msg') || 'Are you sure?';
+        if (!confirm(confirmMsg)) {
+            e.preventDefault();
+            return;
+        }
+    }
+    const formRevoke = e.target.closest('.form-revoke-task');
+    if (formRevoke) {
+        const confirmMsg = formRevoke.getAttribute('data-confirm-msg') || 'Are you sure you want to revoke this order?';
+        if (!confirm(confirmMsg)) {
+            e.preventDefault();
+            return;
+        }
+    }
+});
+
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.getAttribute('data-auto-submit') === 'true') {
+        if (e.target.form) {
+            e.target.form.submit();
+        }
+        return;
+    }
+    if (e.target && e.target.getAttribute('data-action') === 'preview-uploaded-image') {
+        if (typeof previewUploadedImage === 'function') {
+            previewUploadedImage(e.target);
+        }
+        return;
+    }
+    if (e.target && e.target.id === 'presetFailReason') {
+        const val = e.target.value;
+        if (val) {
+            const reasonText = document.getElementById('failReason');
+            if (reasonText) {
+                reasonText.value = val;
+            }
+        }
+    }
+});
+
+document.addEventListener('input', function (e) {
+    if (e.target && e.target.getAttribute('data-action') === 'preview-url-image') {
+        if (typeof previewUrlImage === 'function') {
+            previewUrlImage(e.target.value);
+        }
+        return;
+    }
+});

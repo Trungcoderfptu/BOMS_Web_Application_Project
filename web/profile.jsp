@@ -28,7 +28,7 @@
                     <div class="profile-avatar-wrapper">
                         <img src="${pageContext.request.contextPath}/${USER_PROFILE.avatar}" alt="Avatar" class="profile-avatar-img" />
                     </div>
-                    <form action="${pageContext.request.contextPath}/ProfileController" method="POST" class="mt-10" onsubmit="return confirm('<fmt:message key="profile.avatar.confirm_delete" />');">
+                    <form action="${pageContext.request.contextPath}/ProfileController" method="POST" class="mt-10" data-confirm="<fmt:message key="profile.avatar.confirm_delete" />">
                         <input type="hidden" name="action" value="deleteAvatar" />
                         <button type="submit" class="btn btn-secondary btn-delete-avatar"><fmt:message key="profile.avatar.delete" /></button>
                     </form>
@@ -52,31 +52,31 @@
             <table class="profile-table">
                 <tr>
                     <td><strong><fmt:message key="profile.label.username" /></strong></td>
-                    <td>${USER_PROFILE.username}</td>
+                    <td><c:out value="${USER_PROFILE.username}" /></td>
                 </tr>
                 <tr>
                     <td><strong><fmt:message key="profile.label.fullname" /></strong></td>
-                    <td>${USER_PROFILE.fullName}</td>
+                    <td><c:out value="${USER_PROFILE.fullName}" /></td>
                 </tr>
                 <tr>
                     <td><strong><fmt:message key="profile.label.role" /></strong></td>
-                    <td>${USER_PROFILE.role}</td>
+                    <td><c:out value="${USER_PROFILE.role}" /></td>
                 </tr>
                 <tr>
                     <td><strong><fmt:message key="profile.label.email" /></strong></td>
-                    <td>${USER_PROFILE.email}</td>
+                    <td><c:out value="${USER_PROFILE.email}" /></td>
                 </tr>
                 <tr>
                     <td><strong><fmt:message key="profile.label.phone" /></strong></td>
-                    <td>${USER_PROFILE.phone}</td>
+                    <td><c:out value="${USER_PROFILE.phone}" /></td>
                 </tr>
                 <tr>
                     <td><strong><fmt:message key="profile.label.hiredate" /></strong></td>
-                    <td>${USER_PROFILE.hireDate}</td>
+                    <td><c:out value="${USER_PROFILE.hireDate}" /></td>
                 </tr>
                 <tr>
                     <td><strong><fmt:message key="profile.label.address" /></strong></td>
-                    <td>${USER_PROFILE.address}</td>
+                    <td><c:out value="${USER_PROFILE.address}" /></td>
                 </tr>
             </table>
         </div>

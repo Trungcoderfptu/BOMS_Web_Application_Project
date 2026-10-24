@@ -2,7 +2,8 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
-<fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
+<c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
+<fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
 
 <jsp:include page="header.jsp" />
@@ -97,7 +98,7 @@
                                     </p>
                                 </c:when>
                                 <c:when test="${TODAY_ATTENDANCE.isOvertimeEligible}">
-                                    <button type="button" class="btn-clock-out w-100" onclick="openOtReasonModal()">
+                                    <button type="button" id="btnOpenOtModal" class="btn-clock-out w-100">
                                         🔴 <fmt:message key="attendance.btn.checkout" /> (OT)
                                     </button>
                                 </c:when>
@@ -183,7 +184,10 @@
                         <th class="w-180"><fmt:message key="attendance.timetable.shift_col" /></th>
                         <c:forEach var="day" items="${WEEKLY_TIMETABLE.days}">
                             <th class="text-center ${day.isToday ? 'th-today' : ''}">
-                                ${day.dayName}<br>
+                                <c:choose>
+                                    <c:when test="${not empty day.dayKey}"><fmt:message key="${day.dayKey}" /></c:when>
+                                    <c:otherwise>${day.dayName}</c:otherwise>
+                                </c:choose><br>
                                 <span class="font-xs text-muted">${day.shortDate}</span>
                             </th>
                         </c:forEach>
@@ -293,7 +297,7 @@
             <form action="${pageContext.request.contextPath}/AttendanceController" method="GET" class="order-filter-panel m-0">
                 <div class="filter-item">
                     <label for="filterMonth"><fmt:message key="attendance.history.filter_month" /></label>
-                    <select id="filterMonth" name="month" class="filter-input" onchange="this.form.submit()">
+                    <select id="filterMonth" name="month" class="filter-input" data-auto-submit="true">
                         <c:forEach var="m" begin="1" end="12">
                             <option value="${m}" ${CURRENT_MONTH == m ? 'selected' : ''}>
                                 ${m}
@@ -303,7 +307,7 @@
                 </div>
                 <div class="filter-item">
                     <label for="filterYear"><fmt:message key="attendance.history.filter_year" /></label>
-                    <select id="filterYear" name="year" class="filter-input" onchange="this.form.submit()">
+                    <select id="filterYear" name="year" class="filter-input" data-auto-submit="true">
                         <c:forEach var="y" begin="2024" end="2027">
                             <option value="${y}" ${CURRENT_YEAR == y ? 'selected' : ''}>
                                 ${y}
@@ -370,7 +374,7 @@
                                 <td>
                                     <c:choose>
                                         <c:when test="${not empty row.otReason}">
-                                            <span class="ot-reason-bubble" title="${row.otReason}">${row.otReason}</span>
+                                            <span class="ot-reason-bubble" title="<c:out value='${row.otReason}' />"><c:out value="${row.otReason}" /></span>
                                         </c:when>
                                         <c:otherwise>
                                             <span class="text-muted">---</span>

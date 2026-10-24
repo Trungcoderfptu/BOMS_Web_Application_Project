@@ -2,6 +2,7 @@ package controller.hr;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import jakarta.servlet.ServletException;
@@ -43,7 +44,7 @@ public class HrManagementController extends HttpServlet {
         }
 
         String role = userSession.get("role");
-        if (!"Manager".equalsIgnoreCase(role) && !"Admin".equalsIgnoreCase(role)) {
+        if (!Constants.ROLE_MANAGER.equalsIgnoreCase(role) && !Constants.ROLE_ADMIN.equalsIgnoreCase(role)) {
             session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_UNAUTHORIZED);
             response.sendRedirect(request.getContextPath() + "/index.jsp");
             return;
@@ -57,7 +58,7 @@ public class HrManagementController extends HttpServlet {
         if (dateParam != null && !dateParam.trim().isEmpty()) {
             try {
                 filterDate = LocalDate.parse(dateParam.trim());
-            } catch (Exception ignored) {
+            } catch (DateTimeParseException ignored) {
                 filterDate = today;
             }
         }
@@ -67,7 +68,7 @@ public class HrManagementController extends HttpServlet {
         if (weekParam != null && !weekParam.trim().isEmpty()) {
             try {
                 matrixWeekDate = LocalDate.parse(weekParam.trim());
-            } catch (Exception ignored) {
+            } catch (DateTimeParseException ignored) {
                 matrixWeekDate = today;
             }
         }
@@ -123,7 +124,7 @@ public class HrManagementController extends HttpServlet {
         }
 
         String role = userSession.get("role");
-        if (!"Manager".equalsIgnoreCase(role) && !"Admin".equalsIgnoreCase(role)) {
+        if (!Constants.ROLE_MANAGER.equalsIgnoreCase(role) && !Constants.ROLE_ADMIN.equalsIgnoreCase(role)) {
             session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_UNAUTHORIZED);
             response.sendRedirect(request.getContextPath() + "/index.jsp");
             return;

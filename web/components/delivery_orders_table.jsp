@@ -2,7 +2,8 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
-<fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
+<c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
+<fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
 
 <c:choose>
@@ -32,21 +33,21 @@
                         <tr>
                             <td><strong>#${order.orderId}</strong></td>
                             <td>
-                                <strong>${order.customerName}</strong>
+                                <strong><c:out value="${order.customerName}" /></strong>
                                 <c:if test="${not empty order.customerPhone}">
-                                    <br><span class="text-secondary">${order.customerPhone}</span>
+                                    <br><span class="text-secondary"><c:out value="${order.customerPhone}" /></span>
                                 </c:if>
                             </td>
                             <td>
-                                <div>${order.deliveryAddress}</div>
+                                <div><c:out value="${order.deliveryAddress}" /></div>
                                 <c:if test="${not empty order.areaName}">
-                                    <div class="mt-5"><span class="badge-table">📍 ${order.areaName}</span></div>
+                                    <div class="mt-5"><span class="badge-table">📍 <c:out value="${order.areaName}" /></span></div>
                                 </c:if>
                             </td>
                             <td>
                                 <c:choose>
                                     <c:when test="${not empty order.shipperName}">
-                                        <span class="badge-stock-ok">🚚 ${order.shipperName}</span>
+                                        <span class="badge-stock-ok">🚚 <c:out value="${order.shipperName}" /></span>
                                     </c:when>
                                     <c:otherwise>
                                         <span class="text-secondary"><em><fmt:message key="order.management.shipper.unassigned" /></em></span>
@@ -59,7 +60,7 @@
                                     <c:forEach var="detail" items="${order.details}">
                                         <li class="order-item-row">
                                             <div class="order-item-info">
-                                                <strong>${detail.productName}</strong> x${detail.quantity} 
+                                                <strong><c:out value="${detail.productName}" /></strong> x${detail.quantity} 
                                                 (<fmt:formatNumber value="${detail.unitPrice}" pattern="#,###" /> ₫)
                                             </div>
                                         </li>
@@ -114,36 +115,46 @@
                             </td>
                             <td>
                                 <div class="order-action-group">
-                                    <form action="${pageContext.request.contextPath}/OrderManagementController" method="POST" class="m-0 flex-align-center order-status-form"
-                                          data-customer-name="${fn:escapeXml(order.customerName)}"
-                                          data-customer-phone="${fn:escapeXml(order.customerPhone)}"
-                                          data-delivery-address="${fn:escapeXml(order.deliveryAddress)}"
-                                          data-area-id="${order.areaId}"
-                                          data-order-type="${order.orderType}"
-                                          data-current-status="${order.status}"
-                                          onsubmit="return handleStaffStatusSubmit(event, this, '${order.orderId}');">
-                                        <input type="hidden" name="action" value="updateStatus" />
-                                        <input type="hidden" name="orderId" value="${order.orderId}" />
-                                        <input type="hidden" name="filterDate" value="${CURRENT_FILTER_DATE}" />
-                                        <input type="hidden" name="filterStatus" value="${CURRENT_FILTER_STATUS}" />
-                                        <input type="hidden" name="activeTab" value="tab-delivery-orders" />
-                                        <select name="newStatus" class="status-select status-select-${order.orderId}" ${order.isCancelLocked ? 'disabled' : ''}>
-                                            <option value="Accepted" ${order.status == 'Accepted' ? 'selected' : ''}>Accepted (<fmt:message key="order.revert.option.label" />)</option>
-                                            <option value="Prepared" ${order.status == 'Prepared' ? 'selected' : ''}>Prepared</option>
-                                            <option value="Waiting for dispatch" ${order.status == 'Waiting for dispatch' ? 'selected' : ''}><fmt:message key="order.status.waiting_dispatch" /></option>
-                                            <option value="Waiting for delivery" ${order.status == 'Waiting for delivery' ? 'selected' : ''}>Waiting for delivery</option>
-                                            <option value="Delivering" ${order.status == 'Delivering' ? 'selected' : ''}>Delivering</option>
-                                            <option value="Delivered" ${order.status == 'Delivered' ? 'selected' : ''}>Delivered</option>
-                                            <option value="Returned" ${order.status == 'Returned' ? 'selected' : ''}>Returned</option>
-                                            <option value="Paid" ${order.status == 'Paid' ? 'selected' : ''}>Paid</option>
-                                            <option value="Cancelled" ${order.status == 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                                        </select>
-                                        <button type="submit" class="btn-status-save btn-status-save-${order.orderId}" ${order.isCancelLocked ? 'disabled' : ''}><fmt:message key="order.management.btn.update" /></button>
-                                    </form>
+                                    <c:choose>
+                                        <c:when test="${order.isDeliveryUnderShipper}">
+                                            <span class="badge-locked text-sm">🔒 <fmt:message key="order.management.action.under_shipper" /></span>
+                                        </c:when>
+                                        <c:when test="${order.isClosedStatus}">
+                                            <span class="text-secondary text-sm">🔒 <fmt:message key="order.management.action.closed" /></span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <form action="${pageContext.request.contextPath}/OrderManagementController" method="POST" class="m-0 flex-align-center order-status-form"
+                                                  data-customer-name="${fn:escapeXml(order.customerName)}"
+                                                  data-customer-phone="${fn:escapeXml(order.customerPhone)}"
+                                                  data-delivery-address="${fn:escapeXml(order.deliveryAddress)}"
+                                                  data-area-id="${order.areaId}"
+                                                  data-order-type="${order.orderType}"
+                                                  data-current-status="${order.status}"
+                                                  data-order-id="${order.orderId}">
+                                                <input type="hidden" name="action" value="updateStatus" />
+                                                <input type="hidden" name="orderId" value="${order.orderId}" />
+                                                <input type="hidden" name="filterDate" value="${CURRENT_FILTER_DATE}" />
+                                                <input type="hidden" name="filterStatus" value="${CURRENT_FILTER_STATUS}" />
+                                                <input type="hidden" name="activeTab" value="tab-delivery-orders" />
+                                                <select name="newStatus" class="status-select status-select-${order.orderId}" ${order.isStatusUpdateLocked ? 'disabled' : ''}>
+                                                    <option value="Accepted" ${order.status == 'Accepted' ? 'selected' : ''}>Accepted (<fmt:message key="order.revert.option.label" />)</option>
+                                                    <option value="Prepared" ${order.status == 'Prepared' ? 'selected' : ''}>Prepared</option>
+                                                    <option value="Waiting for dispatch" ${order.status == 'Waiting for dispatch' ? 'selected' : ''}><fmt:message key="order.status.waiting_dispatch" /></option>
+                                                    <option value="Waiting for delivery" ${order.status == 'Waiting for delivery' ? 'selected' : ''}>Waiting for delivery</option>
+                                                    <option value="Delivering" ${order.status == 'Delivering' ? 'selected' : ''}>Delivering</option>
+                                                    <option value="Delivered" ${order.status == 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                                    <option value="Returned" ${order.status == 'Returned' ? 'selected' : ''}>Returned</option>
+                                                    <option value="Paid" ${order.status == 'Paid' ? 'selected' : ''}>Paid</option>
+                                                    <option value="Cancelled" ${order.status == 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                                </select>
+                                                <button type="submit" class="btn-status-save btn-status-save-${order.orderId}" ${order.isStatusUpdateLocked ? 'disabled' : ''}><fmt:message key="order.management.btn.update" /></button>
+                                            </form>
 
-                                    <c:if test="${order.canCancelOrder}">
-                                        <button type="button" class="btn-order-cancel mt-5" onclick="openStaffCancelModal('${order.orderId}', 'tab-delivery-orders')"><fmt:message key="order.management.btn.cancel" /></button>
-                                    </c:if>
+                                            <c:if test="${order.canCancelOrder}">
+                                                <button type="button" class="btn-order-cancel btn-open-staff-cancel mt-5" data-order-id="${order.orderId}" data-tab-key="tab-delivery-orders"><fmt:message key="order.management.btn.cancel" /></button>
+                                            </c:if>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </div>
                             </td>
                         </tr>

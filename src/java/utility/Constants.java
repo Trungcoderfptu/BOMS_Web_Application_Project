@@ -17,7 +17,7 @@ public class Constants {
     // 1. CẤU HÌNH HỆ THỐNG & GIỚI HẠN DỮ LIỆU (VALIDATION LIMITS)
     // =========================================================================
     public static final int MIN_PASSWORD_LENG = 3;
-    public static final int MIN_USER_LENG = 5;
+    public static final int MIN_USER_LENG = 3;
 
     // =========================================================================
     // 2. KHÓA PHIÊN & THUỘC TÍNH DÙNG CHUNG (SESSION & ATTRIBUTES)
@@ -108,6 +108,7 @@ public class Constants {
     public static final String SUCCESS_COMPLETE_DELIVERY = "S0605";
     public static final String SUCCESS_FAIL_DELIVERY = "S0606";
     public static final String SUCCESS_UPDATE_DELIVERY_STATUS = "S0607";
+    public static final String SUCCESS_REVOKE_SHIPPER_TASK = "S0608";
 
     // =========================================================================
     // 4. DẢI MÃ LỖI NGHIỆP VỤ & XÁC THỰC (EXCEPTION CODES - EXXX)
@@ -173,6 +174,8 @@ public class Constants {
     public static final String ERROR_CANNOT_REVERT_DELIVERY_IN_PROGRESS = "E0218";
     public static final String ERROR_MENU_CATEGORY_EXISTS = "E0219";
     public static final String ERROR_MENU_CATEGORY_IN_USE = "E0220";
+    public static final String ERROR_DELIVERY_CONTROLLED_BY_SHIPPER = "E0224";
+    public static final String ERROR_ORDER_CLOSED_STATUS = "E0225";
 
     // Dải E070X: Quản lý Nhân sự & Chấm công (HR & Shift Management - Task 10)
     public static final String ERROR_SHIFT_NAME_EMPTY = "E0701";
@@ -237,7 +240,6 @@ public class Constants {
 
     // Dải E9XXX: Cấu hình & Nghiệp vụ Quản trị (Admin / System)
     public static final String ERROR_INVALID_SETTING_TAB = "E9006";
-    public static final String SERROR_INVALID_SETTING_TAB = ERROR_INVALID_SETTING_TAB;
     public static final String ERROR_INVALID_ACTION = "E9000";
     public static final String ERROR_ADMIN_CANNOT_RESET_SELF_PSW = "E9001";
     public static final String ERROR_ADMIN_CANNOT_CHANGE_SELF_ROLE = "E9002";
@@ -318,7 +320,11 @@ public class Constants {
     public static final int REPORT_MAX_EVIDENCE_FILES = 5;
     public static final long REPORT_MAX_EVIDENCE_SIZE = 20L * 1024 * 1024; // 20 MB (7.0.E1)
     
-    // ================= DELIVERY STATUSES (CK_Order_Status) =================
+    // ================= ORDER & DELIVERY STATUSES (CK_Order_Status) =================
+    public static final String STATUS_ACCEPTED = "Accepted";
+    public static final String STATUS_PAID = "Paid";
+    public static final String STATUS_PREPARED = "Prepared";
+    public static final String STATUS_CANCELLED = "Cancelled";
     public static final String STATUS_WAITING_DISPATCH = "Waiting for dispatch";
     public static final String STATUS_WAITING_DELIVERY = "Waiting for delivery";
     public static final String STATUS_PICKED_UP = "Picked up";
@@ -329,7 +335,16 @@ public class Constants {
 
     // ================= DELIVERY CONFIG & ROLES =================
     public static final int DEFAULT_SHIPPER_MAX_ORDERS = 3;
+    public static final int MAX_SHIPPER_ORDERS = 5;
+    public static final String ROLE_ADMIN = "Admin";
+    public static final String ROLE_MANAGER = "Manager";
+    public static final String ROLE_STAFF = "Staff";
     public static final String ROLE_SHIPPER = "Shipper";
+
+    // ================= ORDER TYPES =================
+    public static final String ORDER_TYPE_DELIVERY = "Delivery";
+    public static final String ORDER_TYPE_COUNTER = "Counter";
+    public static final String ORDER_TYPE_TABLE = "Table";
     public static final String SHIPPER_STATUS_OFFLINE = "Offline";
     public static final String SHIPPER_STATUS_READY = "Ready";
     public static final String SHIPPER_STATUS_DELIVERING = "Delivering";
@@ -343,6 +358,7 @@ public class Constants {
     public static final String NOTE_SHIPPER_REJECT = "Shipper tu choi nhan don";
     public static final String NOTE_STAFF_CANCEL_ORDER = "Don hang bi huy boi nhan vien";
     public static final String NOTE_REVERT_DELIVERY_ORDER = "Thu hoi don giao hang ve phuc vu tai cho";
+    public static final String NOTE_DISPATCH_REVOKE = "Dieu phoi thu hoi don do shipper khong tiep nhan";
 
     // ================= DELIVERY DATABASE ERROR CODES =================
     public static final String ERROR_DATABASE_DELIVERY = "DE0040";
@@ -365,4 +381,35 @@ public class Constants {
     public static final String ATTENDANCE_STATUS_PENDING_OT = "Pending OT Approval";
     public static final String ATTENDANCE_STATUS_APPROVED = "Approved";
     public static final String ATTENDANCE_STATUS_REJECTED = "Rejected";
+
+    // ================= ATTENDANCE THRESHOLDS =================
+    public static final int ATTENDANCE_THRESHOLD_EARLY_CHECKIN_MINUTES = 15;
+    public static final int ATTENDANCE_THRESHOLD_LATE_CHECKIN_MINUTES = 15;
+    public static final int ATTENDANCE_THRESHOLD_EARLY_CHECKOUT_MINUTES = 15;
+    public static final int ATTENDANCE_THRESHOLD_OVERTIME_MINUTES = 15;
+    public static final int EARLY_CHECKIN_THRESHOLD_MINUTES = ATTENDANCE_THRESHOLD_EARLY_CHECKIN_MINUTES;
+    public static final int LATE_CHECKIN_THRESHOLD_MINUTES = ATTENDANCE_THRESHOLD_LATE_CHECKIN_MINUTES;
+    public static final int EARLY_CHECKOUT_THRESHOLD_MINUTES = ATTENDANCE_THRESHOLD_EARLY_CHECKOUT_MINUTES;
+    public static final int OVERTIME_THRESHOLD_MINUTES = ATTENDANCE_THRESHOLD_OVERTIME_MINUTES;
+
+    // ================= SHIFT & ATTENDANCE NOTIFICATION TEMPLATES =================
+    public static final String NOTIF_SHIFT_ASSIGN_SINGLE = "B\u1ea1n v\u1eeba \u0111\u01b0\u1ee3c ph\u00e2n c\u00f4ng ca: %s (%s)";
+    public static final String NOTIF_SHIFT_ASSIGN_BULK = "B\u1ea1n v\u1eeba \u0111\u01b0\u1ee3c ph\u00e2n c\u00f4ng %d ca l\u00e0m vi\u1ec7c (%s) t\u1eeb %s \u0111\u1ebfn %s.";
+    public static final String NOTIF_ATTENDANCE_APPROVED = "Qu\u1ea3n l\u00fd \u0111\u00e3 ph\u00ea duy\u1ec7t y\u00eau c\u1ea7u %s c\u1ee7a b\u1ea1n.";
+    public static final String NOTIF_ATTENDANCE_REJECTED = "Qu\u1ea3n l\u00fd \u0111\u00e3 t\u1eeb ch\u1ed1i y\u00eau c\u1ea7u %s c\u1ee7a b\u1ea1n.";
+    public static final String LABEL_OT = "t\u0103ng ca (OT)";
+    public static final String LABEL_EARLY_CHECKIN = "v\u00e0o ca s\u1edbm";
+    public static final String[] WEEK_DAY_NAMES = {
+        "Th\u1ee9 2", "Th\u1ee9 3", "Th\u1ee9 4", "Th\u1ee9 5", "Th\u1ee9 6", "Th\u1ee9 7", "Ch\u1ee7 Nh\u1eadt"
+    };
+
+    // ================= INVENTORY & ORDER FALLBACKS & ALERTS =================
+    public static final String FALLBACK_CATEGORY_OTHER = "Kh\u00e1c";
+    public static final String FALLBACK_INGREDIENT_PREFIX = "Nguy\u00ean li\u1ec7u #";
+    public static final String FALLBACK_PRODUCT_PREFIX = "M\u00f3n #";
+    public static final String INVENTORY_ALERT_OUT_OF_STOCK = "[\u0110\u00e3 h\u1ebft h\u00e0ng] Nguy\u00ean li\u1ec7u %s \u0111\u00e3 h\u1ebft h\u00e0ng trong kho (S\u1ed1 l\u01b0\u1ee3ng: 0 %s)!";
+    public static final String INVENTORY_ALERT_LOW_STOCK = "[S\u1eafp h\u1ebft h\u00e0ng] Nguy\u00ean li\u1ec7u %s s\u1eafp h\u1ebft (C\u00f2n %s %s, d\u01b0\u1edbi ng\u01b0\u1ee1ng %s %s)!";
+    public static final String INVENTORY_ALERT_EXPIRED = "[\u0110\u00e3 h\u1ebft h\u1ea1n] Nguy\u00ean li\u1ec7u %s c\u00f3 l\u00f4 h\u00e0ng \u0111\u00e3 qu\u00e1 h\u1ea1n s\u1eed d\u1ee5ng!";
+    public static final String INVENTORY_ALERT_EXPIRING_SOON = "[S\u1eafp h\u1ebft h\u1ea1n] Nguy\u00ean li\u1ec7u %s c\u00f3 l\u00f4 h\u00e0ng s\u1eafp h\u1ebft h\u1ea1n trong v\u00f2ng 3 ng\u00e0y t\u1edbi!";
+    public static final String INVENTORY_ALERT_GENERAL = "[C\u1ea3nh b\u00e1o kho] Nguy\u00ean li\u1ec7u %s c\u1ea7n ki\u1ec3m tra (%s)!";
 }

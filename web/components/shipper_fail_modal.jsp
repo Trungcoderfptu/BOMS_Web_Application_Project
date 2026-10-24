@@ -9,7 +9,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 class="m-0 text-danger"><fmt:message key="shipper.modal.fail.title" /></h3>
-            <button type="button" class="btn-modal-close" onclick="closeShipperFailModal()">&times;</button>
+            <button type="button" class="btn-modal-close btn-close-fail-modal">&times;</button>
         </div>
         <form action="${pageContext.request.contextPath}/ShipperController" method="POST" class="m-0">
             <input type="hidden" name="action" value="failDelivery" />
@@ -23,7 +23,7 @@
                     <label for="failReason" class="font-bold d-block mb-5">
                         <fmt:message key="shipper.modal.fail.reason_label" /> <span class="text-danger">*</span>
                     </label>
-                    <select id="presetFailReason" class="form-control mb-10" onchange="if(this.value){document.getElementById('failReason').value = this.value;}">
+                    <select id="presetFailReason" class="form-control mb-10">
                         <option value=""><fmt:message key="shipper.modal.fail.select_preset" /></option>
                         <option value="<fmt:message key="shipper.modal.fail.reason_1" />"><fmt:message key="shipper.modal.fail.reason_1" /></option>
                         <option value="<fmt:message key="shipper.modal.fail.reason_2" />"><fmt:message key="shipper.modal.fail.reason_2" /></option>
@@ -34,7 +34,7 @@
             </div>
             
             <div class="modal-actions">
-                <button type="button" class="btn-modal-back" onclick="closeShipperFailModal()">
+                <button type="button" class="btn-modal-back btn-close-fail-modal">
                     <fmt:message key="btn.back" />
                 </button>
                 <button type="submit" class="btn btn-reject">

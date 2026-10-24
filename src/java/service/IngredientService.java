@@ -212,7 +212,7 @@ public class IngredientService {
         map.put("ingredientId", ing.getIngredientId());
         map.put("categoryId", ing.getCategoryId());
         String catName = (categoryMap != null && categoryMap.containsKey(ing.getCategoryId()))
-                ? categoryMap.get(ing.getCategoryId()) : "Khác";
+                ? categoryMap.get(ing.getCategoryId()) : Constants.FALLBACK_CATEGORY_OTHER;
         map.put("categoryName", catName);
         map.put("ingredientName", ing.getIngredientName());
         map.put("unit", ing.getUnit());
@@ -297,20 +297,20 @@ public class IngredientService {
             return;
         }
 
-        String ingName = ing.getIngredientName() != null ? ing.getIngredientName() : "Nguyên liệu #" + ing.getIngredientId();
+        String ingName = ing.getIngredientName() != null ? ing.getIngredientName() : Constants.FALLBACK_INGREDIENT_PREFIX + ing.getIngredientId();
         String unit = ing.getUnit() != null ? ing.getUnit() : "";
         String message;
 
         if ("OutOfStock".equalsIgnoreCase(alertType)) {
-            message = "[Hết hàng] Nguyên liệu " + ingName + " đã hết hàng trong kho (Số lượng: 0 " + unit + ")!";
+            message = String.format(Constants.INVENTORY_ALERT_OUT_OF_STOCK, ingName, unit);
         } else if ("LowStock".equalsIgnoreCase(alertType)) {
-            message = "[Sắp hết hàng] Nguyên liệu " + ingName + " sắp hết (Còn " + ing.getQuantity() + " " + unit + ", dưới ngưỡng " + ing.getWarningThreshold() + " " + unit + ")!";
+            message = String.format(Constants.INVENTORY_ALERT_LOW_STOCK, ingName, ing.getQuantity(), unit, ing.getWarningThreshold(), unit);
         } else if ("Expired".equalsIgnoreCase(alertType)) {
-            message = "[Đã hết hạn] Nguyên liệu " + ingName + " có lô hàng đã quá hạn sử dụng!";
+            message = String.format(Constants.INVENTORY_ALERT_EXPIRED, ingName);
         } else if ("Expiring Soon".equalsIgnoreCase(alertType)) {
-            message = "[Sắp hết hạn] Nguyên liệu " + ingName + " có lô hàng sắp hết hạn trong vòng 3 ngày tới!";
+            message = String.format(Constants.INVENTORY_ALERT_EXPIRING_SOON, ingName);
         } else {
-            message = "[Cảnh báo kho] Nguyên liệu " + ingName + " cần kiểm tra (" + alertType + ")!";
+            message = String.format(Constants.INVENTORY_ALERT_GENERAL, ingName, alertType);
         }
 
         try {
@@ -321,7 +321,7 @@ public class IngredientService {
                 }
             }
         } catch (Exception ignored) {
-            // Không làm gián đoạn luồng kiểm tra kho nếu phát sinh ngoại lệ gửi thông báo phụ
+            java.util.logging.Logger.getLogger(IngredientService.class.getName()).log(java.util.logging.Level.WARNING, "Failed to broadcast inventory alert notification", ignored);
         }
     }
 

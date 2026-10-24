@@ -1,7 +1,6 @@
 package dao;
 
 import dal.DBContext;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,6 +18,7 @@ import utility.ValidationException;
 public class UserDAO extends DBContext {
 
     public List<User> getAllUsers() throws ValidationException {
+        ensureConnection();
         List<User> list = new ArrayList<>();
         String sql = "SELECT * FROM Users ORDER BY UserID DESC";
 
@@ -54,6 +54,7 @@ public class UserDAO extends DBContext {
     }
 
     public User getUserByUsername(String username) throws ValidationException {
+        ensureConnection();
         String sql = "SELECT * FROM Users WHERE Username = ?";
         try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setString(1, username);
@@ -88,6 +89,7 @@ public class UserDAO extends DBContext {
     }
 
     public User getUserById(int userId) throws ValidationException {
+        ensureConnection();
         String sql = "SELECT * FROM Users WHERE UserID = ?";
         try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, userId);
@@ -273,7 +275,7 @@ public class UserDAO extends DBContext {
                 throw new ValidationException(Constants.ERROR_DATABASE_UPDATE_UID_FOR_KEY);
             }
 
-            if ("Shipper".equalsIgnoreCase(user.getRole())) {
+            if (user.getRole() != null && "Shipper".equalsIgnoreCase(user.getRole())) {
                 String insertShipperSql = "IF NOT EXISTS (SELECT 1 FROM ShipperProfiles WHERE UserID = ?) "
                         + "INSERT INTO ShipperProfiles (UserID, ShipperStatus, ActiveOrders, MaxOrders) VALUES (?, 'Offline', 0, 3)";
                 try (PreparedStatement stShipper = connection.prepareStatement(insertShipperSql)) {
@@ -284,16 +286,20 @@ public class UserDAO extends DBContext {
             }
 
             connection.commit();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             try {
                 connection.rollback();
             } catch (SQLException ex) {
+                java.util.logging.Logger.getLogger(UserDAO.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Failed to rollback user registration transaction", ex);
             }
             throw new ValidationException(Constants.ERROR_DATABASE_INSERT_USER);
         } finally {
             try {
                 connection.setAutoCommit(originalAutoCommit);
             } catch (SQLException ex) {
+                java.util.logging.Logger.getLogger(UserDAO.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Failed to restore auto-commit", ex);
             }
         }
     }
@@ -398,10 +404,30 @@ public class UserDAO extends DBContext {
         }
     }
 
+    private void ensureConnection() {
+        try {
+            if (connection == null || connection.isClosed()) {
+                java.util.Properties properties = new java.util.Properties();
+                java.io.InputStream inputStream = getClass().getClassLoader().getResourceAsStream("../ConnectDB.properties");
+                if (inputStream != null) {
+                    properties.load(inputStream);
+                    String user = properties.getProperty("userID");
+                    String pass = properties.getProperty("password");
+                    String url = properties.getProperty("url");
+                    Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+                    connection = java.sql.DriverManager.getConnection(url, user, pass);
+                }
+            }
+        } catch (Exception ex) {
+            java.util.logging.Logger.getLogger(UserDAO.class.getName())
+                    .log(java.util.logging.Level.WARNING, "Failed to recover database connection", ex);
+        }
+    }
+
     private String getSafeAvatar(ResultSet rs) {
         try {
             return rs.getString("Avatar");
-        } catch (SQLException ignored) {
+        } catch (Exception ignored) {
             return null;
         }
     }

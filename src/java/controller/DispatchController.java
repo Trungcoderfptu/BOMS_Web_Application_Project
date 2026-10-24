@@ -48,7 +48,12 @@ public class DispatchController extends HttpServlet {
             return;
         }
 
-        processAssignShipper(request);
+        String action = request.getParameter("action");
+        if ("revoke".equals(action)) {
+            processRevokeTask(request);
+        } else {
+            processAssignShipper(request);
+        }
         response.sendRedirect(request.getContextPath() + "/DispatchController");
     }
 
@@ -64,11 +69,11 @@ public class DispatchController extends HttpServlet {
         Map<String, String> loginUser = (Map<String, String>) session.getAttribute(Constants.USER_SESSION);
         String currentRole = loginUser.get("role");
 
-        if ("Shipper".equalsIgnoreCase(currentRole)) {
+        if (Constants.ROLE_SHIPPER.equalsIgnoreCase(currentRole)) {
             response.sendRedirect("ShipperController");
             return false;
         } 
-        else if (!"Manager".equalsIgnoreCase(currentRole) && !"Staff".equalsIgnoreCase(currentRole)) {
+        else if (!Constants.ROLE_MANAGER.equalsIgnoreCase(currentRole) && !Constants.ROLE_STAFF.equalsIgnoreCase(currentRole) && !Constants.ROLE_ADMIN.equalsIgnoreCase(currentRole)) {
             request.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_LOGIN_FAIL_ROLE);
             request.getRequestDispatcher("delivery_unauthorized.jsp").forward(request, response);
             return false;
@@ -81,8 +86,23 @@ public class DispatchController extends HttpServlet {
         try {
             request.setAttribute("SHIPPER_LIST", deliveryService.getAvailableShippers());
             request.setAttribute("UNASSIGNED_TASKS", deliveryService.getUnassignedTasks());
+            request.setAttribute("ASSIGNED_PENDING_TASKS", deliveryService.getAssignedPendingTasks());
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        }
+    }
+
+    private void processRevokeTask(HttpServletRequest request) {
+        String taskIdStr = request.getParameter("taskId");
+        HttpSession session = request.getSession();
+
+        try {
+            deliveryService.revokeTask(taskIdStr);
+            session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_REVOKE_SHIPPER_TASK);
+        } catch (ValidationException e) {
+            session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        } catch (Exception e) {
+            session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
     }
 
@@ -96,6 +116,8 @@ public class DispatchController extends HttpServlet {
             session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ASSIGN_SHIPPER);
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        } catch (Exception e) {
+            session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
     }
 }

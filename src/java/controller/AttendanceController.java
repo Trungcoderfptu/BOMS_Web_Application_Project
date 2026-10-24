@@ -2,6 +2,7 @@ package controller;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import jakarta.servlet.ServletException;
@@ -50,7 +51,7 @@ public class AttendanceController extends HttpServlet {
         if (weekParam != null && !weekParam.trim().isEmpty()) {
             try {
                 timetableWeekDate = LocalDate.parse(weekParam.trim());
-            } catch (Exception ignored) {
+            } catch (DateTimeParseException ignored) {
                 timetableWeekDate = today;
             }
         }
@@ -73,6 +74,8 @@ public class AttendanceController extends HttpServlet {
             request.setAttribute("CURRENT_YEAR", year);
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        } catch (Exception e) {
+            request.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
 
         request.getRequestDispatcher("attendance.jsp").forward(request, response);
@@ -108,6 +111,8 @@ public class AttendanceController extends HttpServlet {
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
+        } catch (Exception e) {
+            session.setAttribute(Constants.ERROR_MESSAGE, Constants.ERROR_SYSTEM);
         }
 
         response.sendRedirect(request.getContextPath() + "/AttendanceController");

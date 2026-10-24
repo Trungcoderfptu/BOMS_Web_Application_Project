@@ -1,7 +1,6 @@
 package dao;
 
 import dal.DBContext;
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -273,6 +272,35 @@ public class AttendanceDAO extends DBContext {
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, userId);
             ps.setDate(2, workDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw new ValidationException(Constants.ERROR_DATABASE_GET_ATTENDANCE);
+        }
+    }
+
+    /**
+     * Kiểm tra xem việc gán ca mới (shiftId) cho nhân viên (userId) vào ngày (workDate)
+     * có bị trùng/giao thoa thời gian (Time Overlap) với bất kỳ ca nào đã phân công hay không.
+     * Thuật toán: s_existing.StartTime < s_new.EndTime AND s_existing.EndTime > s_new.StartTime
+     */
+    public boolean hasOverlappingShiftAssignment(int userId, int shiftId, Date workDate) throws ValidationException {
+        String sql = "SELECT COUNT(1) "
+                + "FROM ShiftAssignments sa "
+                + "JOIN Shifts s_existing ON sa.ShiftID = s_existing.ShiftID "
+                + "JOIN Shifts s_new ON s_new.ShiftID = ? "
+                + "WHERE sa.UserID = ? "
+                + "  AND sa.WorkDate = ? "
+                + "  AND s_existing.StartTime < s_new.EndTime "
+                + "  AND s_existing.EndTime > s_new.StartTime";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, shiftId);
+            ps.setInt(2, userId);
+            ps.setDate(3, workDate);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1) > 0;

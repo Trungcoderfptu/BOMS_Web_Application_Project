@@ -2,7 +2,7 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
-<fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
+<fmt:setLocale value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setBundle basename="resources.messages" />
 
 <jsp:include page="header.jsp" />
@@ -33,13 +33,13 @@
                 <label for="filterStatus"><fmt:message key="order.management.filter.status" /></label>
                 <select id="filterStatus" name="filterStatus" class="filter-input">
                     <option value="ALL" ${CURRENT_FILTER_STATUS == 'ALL' ? 'selected' : ''}><fmt:message key="order.management.filter.status.all" /></option>
-                    <option value="Accepted" ${CURRENT_FILTER_STATUS == 'Accepted' ? 'selected' : ''}>Accepted</option>
-                    <option value="Prepared" ${CURRENT_FILTER_STATUS == 'Prepared' ? 'selected' : ''}>Prepared</option>
+                    <option value="Accepted" ${CURRENT_FILTER_STATUS == 'Accepted' ? 'selected' : ''}><fmt:message key="order.status.accepted" /></option>
+                    <option value="Prepared" ${CURRENT_FILTER_STATUS == 'Prepared' ? 'selected' : ''}><fmt:message key="order.status.prepared" /></option>
                     <option value="Waiting for dispatch" ${CURRENT_FILTER_STATUS == 'Waiting for dispatch' ? 'selected' : ''}><fmt:message key="order.status.waiting_dispatch" /></option>
-                    <option value="Delivering" ${CURRENT_FILTER_STATUS == 'Delivering' ? 'selected' : ''}>Delivering</option>
-                    <option value="Delivered" ${CURRENT_FILTER_STATUS == 'Delivered' ? 'selected' : ''}>Delivered</option>
-                    <option value="Paid" ${CURRENT_FILTER_STATUS == 'Paid' ? 'selected' : ''}>Paid</option>
-                    <option value="Cancelled" ${CURRENT_FILTER_STATUS == 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                    <option value="Delivering" ${CURRENT_FILTER_STATUS == 'Delivering' ? 'selected' : ''}><fmt:message key="order.status.delivering" /></option>
+                    <option value="Delivered" ${CURRENT_FILTER_STATUS == 'Delivered' ? 'selected' : ''}><fmt:message key="order.status.delivered" /></option>
+                    <option value="Paid" ${CURRENT_FILTER_STATUS == 'Paid' ? 'selected' : ''}><fmt:message key="order.status.paid" /></option>
+                    <option value="Cancelled" ${CURRENT_FILTER_STATUS == 'Cancelled' ? 'selected' : ''}><fmt:message key="order.status.cancelled" /></option>
                 </select>
             </div>
 
@@ -47,16 +47,16 @@
         </form>
 
         <div class="tab-nav d-flex mt-20 mb-20">
-            <button type="button" class="tab-btn ${curActiveTab == 'tab-all-orders' ? 'active' : ''}" onclick="openTab(event, 'tab-all-orders')">
+            <button type="button" class="tab-btn ${curActiveTab == 'tab-all-orders' ? 'active' : ''}" data-tab="tab-all-orders">
                 <fmt:message key="order.management.tab.all" /> (${not empty ORDER_COUNTS.all ? ORDER_COUNTS.all : 0})
             </button>
-            <button type="button" class="tab-btn ${curActiveTab == 'tab-counter-orders' ? 'active' : ''}" onclick="openTab(event, 'tab-counter-orders')">
+            <button type="button" class="tab-btn ${curActiveTab == 'tab-counter-orders' ? 'active' : ''}" data-tab="tab-counter-orders">
                 <fmt:message key="order.management.tab.counter" /> (${not empty ORDER_COUNTS.counter ? ORDER_COUNTS.counter : 0})
             </button>
-            <button type="button" class="tab-btn ${curActiveTab == 'tab-table-orders' ? 'active' : ''}" onclick="openTab(event, 'tab-table-orders')">
+            <button type="button" class="tab-btn ${curActiveTab == 'tab-table-orders' ? 'active' : ''}" data-tab="tab-table-orders">
                 <fmt:message key="order.management.tab.table" /> (${not empty ORDER_COUNTS.table ? ORDER_COUNTS.table : 0})
             </button>
-            <button type="button" class="tab-btn ${curActiveTab == 'tab-delivery-orders' ? 'active' : ''}" onclick="openTab(event, 'tab-delivery-orders')">
+            <button type="button" class="tab-btn ${curActiveTab == 'tab-delivery-orders' ? 'active' : ''}" data-tab="tab-delivery-orders">
                 <fmt:message key="order.management.tab.delivery" /> (${not empty ORDER_COUNTS.delivery ? ORDER_COUNTS.delivery : 0})
             </button>
         </div>

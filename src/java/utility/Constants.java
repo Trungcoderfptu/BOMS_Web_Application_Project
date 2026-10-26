@@ -18,6 +18,7 @@ public class Constants {
     // =========================================================================
     public static final int MIN_PASSWORD_LENG = 3;
     public static final int MIN_USER_LENG = 3;
+    public static final int MAX_USER_LENG = 20;
 
     // =========================================================================
     // 2. KHÓA PHIÊN & THUỘC TÍNH DÙNG CHUNG (SESSION & ATTRIBUTES)
@@ -138,6 +139,8 @@ public class Constants {
     // Dải E100X: Validation định dạng dữ liệu thô (Tầng 1 - Utility)
     public static final String ERROR_USER_LENG = "E1000";
     public static final String ERROR_INVALID_PSW = "E1001";
+    public static final String ERROR_PSW_WHITESPACE = "E0111";
+    public static final String ERROR_INVALID_USERNAME_CHARS = "E0112";
     public static final String ERROR_EMPTY_EMAIL = "E1002";
     public static final String ERROR_INVALID_EMAIL_FORMAT = "E1003";
     public static final String ERROR_EMPTY_PHONE = "E1004";

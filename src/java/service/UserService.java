@@ -185,14 +185,15 @@ public class UserService {
     //==========validation service==========
     private void validateUserName(String userName) throws ValidationException {
         Validator.checkEmpty(userName, Constants.ERROR_USERNAME);
-        Validator.checkValidUsername(userName, Constants.ERROR_USERNAME);
+        Validator.checkValidUsername(userName, Constants.ERROR_INVALID_USERNAME_CHARS);
         Validator.checkMinLength(userName, Constants.MIN_USER_LENG, Constants.ERROR_USER_LENG);
+        Validator.checkMaxLength(userName, Constants.MAX_USER_LENG, Constants.ERROR_USER_LENG);
     }
 
     public void validatePassword(String password) throws ValidationException {
         Validator.checkEmpty(password, Constants.ERROR_PASSWORD);
-        Validator.checkMinLength(password, Constants.MIN_PASSWORD_LENG, Constants.ERROR_PASSWORD);
-        Validator.checkValidPassword(password, Constants.ERROR_INVALID_PSW);
+        Validator.checkMinLength(password, Constants.MIN_PASSWORD_LENG, Constants.ERROR_INVALID_PSW);
+        Validator.checkValidPassword(password, Constants.ERROR_PSW_WHITESPACE);
     }
 
     private void validateRole(String role) throws ValidationException {

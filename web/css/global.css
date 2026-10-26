@@ -4,20 +4,30 @@
     --bg-primary: #ffffff;
     --bg-secondary: #f4f4f4;
     --bg-tertiary: #dddddd;
+    --bg-card: #ffffff;
+    --bg-hover: #f1f5f9;
     --text-primary: #000000;
+    --text-muted: #64748b;
     --border-main: #000000;
     --border-light: #cccccc;
+    --border-color: #e2e8f0;
+    --color-primary: #2563eb;
     --color-danger: red;
     --color-success: green;
 }
 
 body.dark-theme {
     --bg-primary: #0f172a;
-    --bg-secondary: #1e1e1e;
-    --bg-tertiary: #333333;
-    --text-primary: #ffffff;
-    --border-main: #555555;
-    --border-light: #444444;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-card: #1e293b;
+    --bg-hover: #334155;
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-main: #64748b;
+    --border-light: #334155;
+    --border-color: #334155;
+    --color-primary: #60a5fa;
     --color-danger: #ff5252;
     --color-success: #4caf50;
 }
@@ -1822,7 +1832,8 @@ text-link-success {
 
 /* ================= HR & SHIFT MANAGEMENT ================= */
 .panel-card {
-    background: #fff;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     border: 1px solid var(--border-light);
     border-radius: 8px;
     padding: 20px;
@@ -1832,7 +1843,7 @@ text-link-success {
     border-left: 4px solid #f59e0b;
 }
 .highlight-row-warning {
-    background-color: #fffbeb !important;
+    background-color: rgba(245, 158, 11, 0.12) !important;
 }
 .badge-pending-count {
     background-color: #ef4444;
@@ -2575,8 +2586,9 @@ text-link-success {
    ========================================================================== */
 .admin-password-box {
     max-width: 520px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
     border-radius: 8px;
     padding: 24px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -2589,10 +2601,11 @@ text-link-success {
 
 .select-role-inline {
     padding: 4px 8px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-light);
     border-radius: 4px;
     font-size: 13px;
-    background-color: #fff;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     outline: none;
     cursor: pointer;
 }

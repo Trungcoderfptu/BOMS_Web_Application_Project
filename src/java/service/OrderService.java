@@ -379,6 +379,12 @@ public class OrderService {
                 dMap.put("productId", d.getProductId());
                 dMap.put("quantity", d.getQuantity());
                 dMap.put("unitPrice", d.getUnitPrice());
+                // Tuỳ chọn món: mức đá/đường là mã, View tự đổi sang chữ theo ngôn ngữ (option.ice.*, option.sugar.*)
+                dMap.put("sizeName", d.getSizeName());
+                dMap.put("iceLevel", d.getIceLevel());
+                dMap.put("sugarLevel", d.getSugarLevel());
+                dMap.put("toppings", d.getToppings());
+                dMap.put("note", d.getNote());
                 if (d.getProduct() != null) {
                     dMap.put("productName", d.getProduct().getProductName());
                 } else {

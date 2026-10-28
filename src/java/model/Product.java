@@ -16,6 +16,10 @@ public class Product {
     private double price;
     private String imageUrl;
     private boolean isAvailable;
+    private String description;
+    private String videoUrl;
+    private boolean isFeatured;
+    private boolean hasOptions = true;
 
     public Product() {
     }
@@ -75,6 +79,38 @@ public class Product {
 
     public void setAvailable(boolean available) {
         isAvailable = available;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
+
+    public boolean isFeatured() {
+        return isFeatured;
+    }
+
+    public void setFeatured(boolean featured) {
+        isFeatured = featured;
+    }
+
+    public boolean isHasOptions() {
+        return hasOptions;
+    }
+
+    public void setHasOptions(boolean hasOptions) {
+        this.hasOptions = hasOptions;
     }
 
 }

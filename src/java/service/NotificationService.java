@@ -101,17 +101,17 @@ public class NotificationService {
                 String createdStr = n.getCreatedAt() != null ? dateTimeFormat.format(n.getCreatedAt()) : "";
                 map.put("createdAt", createdStr);
 
-                String icon = "🔔";
+                String icon = "bell";
                 if ("Broadcast".equalsIgnoreCase(n.getType())) {
-                    icon = "📢";
+                    icon = "megaphone";
                 } else if ("ShiftAssignment".equalsIgnoreCase(n.getType())) {
-                    icon = "🗓️";
+                    icon = "calendar";
                 } else if ("AttendanceApproval".equalsIgnoreCase(n.getType())) {
-                    icon = "⏱️";
+                    icon = "clock";
                 } else if ("InventoryAlert".equalsIgnoreCase(n.getType())) {
-                    icon = "⚠️";
+                    icon = "triangle-warning";
                 } else if ("Delivery".equalsIgnoreCase(n.getType())) {
-                    icon = "🛵";
+                    icon = "moped";
                 }
                 map.put("icon", icon);
 

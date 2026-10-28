@@ -148,8 +148,31 @@ CREATE TABLE Products (
     Price         DECIMAL(12,2)  NOT NULL,
     ImageUrl      VARCHAR(255)   NULL,
     IsAvailable   BIT            NOT NULL DEFAULT 1,     -- het hang -> 0 (1.0.E1, 2.0.E1)
+    Description   NVARCHAR(500)  NULL,                   -- mo ta mon (popup chi tiet)
+    VideoUrl      VARCHAR(255)   NULL,                   -- link video gioi thieu mon
+    IsFeatured    BIT            NOT NULL CONSTRAINT DF_Products_IsFeatured DEFAULT 0,  -- nhan "Noi bat"
+    HasOptions    BIT            NOT NULL CONSTRAINT DF_Products_HasOptions DEFAULT 1,  -- co chon size/da/duong/topping
     FOREIGN KEY (CategoryID) REFERENCES MenuCategories(CategoryID),
     CONSTRAINT CK_Product_Price CHECK (Price >= 0)
+);
+
+-- Size ly dung chung cho cac mon co HasOptions = 1 (Manager quan ly)
+CREATE TABLE MenuSizes (
+    SizeID      INT IDENTITY(1,1) PRIMARY KEY,
+    SizeName    NVARCHAR(20)   NOT NULL UNIQUE,
+    ExtraPrice  DECIMAL(12,2)  NOT NULL DEFAULT 0,
+    SortOrder   INT            NOT NULL DEFAULT 0,
+    IsActive    BIT            NOT NULL DEFAULT 1,
+    CONSTRAINT CK_MenuSize_Price CHECK (ExtraPrice >= 0)
+);
+
+-- Topping dung chung (Manager quan ly)
+CREATE TABLE MenuToppings (
+    ToppingID    INT IDENTITY(1,1) PRIMARY KEY,
+    ToppingName  NVARCHAR(50)   NOT NULL UNIQUE,
+    Price        DECIMAL(12,2)  NOT NULL DEFAULT 0,
+    IsActive     BIT            NOT NULL DEFAULT 1,
+    CONSTRAINT CK_MenuTopping_Price CHECK (Price >= 0)
 );
 
 -- n-n: cong thuc - 1 mon dung nhieu nguyen lieu, 1 nguyen lieu dung cho nhieu mon
@@ -198,16 +221,24 @@ CREATE TABLE Orders (
 );
 
 -- n-n: Orders <-> Products
+-- 1 mon co the nam nhieu dong trong cung 1 don neu khac tuy chon (size/da/duong/topping/ghi chu)
 CREATE TABLE OrderDetails (
+    OrderDetailID INT IDENTITY(1,1) NOT NULL,
     OrderID     INT            NOT NULL,
     ProductID   INT            NOT NULL,
     Quantity    INT            NOT NULL,
-    UnitPrice   DECIMAL(12,2)  NOT NULL,                 -- gia tai thoi diem ban
-    PRIMARY KEY (OrderID, ProductID),
+    UnitPrice   DECIMAL(12,2)  NOT NULL,                 -- gia tai thoi diem ban (da cong size + topping)
+    SizeName    NVARCHAR(20)   NULL,                     -- ban sao tuy chon tai thoi diem dat
+    IceLevel    VARCHAR(20)    NULL,                     -- ICE_100 / ICE_50 / ICE_0
+    SugarLevel  VARCHAR(20)    NULL,                     -- SUGAR_100 / SUGAR_70 / SUGAR_0
+    Toppings    NVARCHAR(255)  NULL,                     -- ten topping, cach nhau dau phay
+    Note        NVARCHAR(200)  NULL,                     -- ghi chu rieng cho mon
+    CONSTRAINT PK_OrderDetails PRIMARY KEY (OrderDetailID),
     FOREIGN KEY (OrderID)   REFERENCES Orders(OrderID) ON DELETE CASCADE,
     FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
     CONSTRAINT CK_Detail_Qty CHECK (Quantity > 0)
 );
+CREATE INDEX IX_OrderDetails_OrderID ON OrderDetails(OrderID);
 
 -- 1-1 voi Orders: OrderID UNIQUE
 CREATE TABLE Payments (
@@ -412,7 +443,7 @@ INSERT INTO Orders (OrderType, StaffID, Status, TotalAmount) VALUES ('Counter', 
 INSERT INTO Orders (OrderType, TableID, Status, TotalAmount) VALUES ('Table', 1, 'Paid', 30000);
 INSERT INTO Orders (OrderType, AreaID, ShipperID, CustomerName, CustomerPhone, DeliveryAddress, Status, TotalAmount)
  VALUES ('Delivery', 1, 4, N'Nguyễn Khách', '0988888888', N'12 Xuân Thủy', 'Delivering', 50000);
-INSERT INTO OrderDetails VALUES (1, 1, 1, 25000), (1, 2, 1, 30000), (2, 2, 1, 30000), (3, 1, 2, 25000);
+INSERT INTO OrderDetails (OrderID, ProductID, Quantity, UnitPrice) VALUES (1, 1, 1, 25000), (1, 2, 1, 30000), (2, 2, 1, 30000), (3, 1, 2, 25000);
 INSERT INTO Payments (OrderID, Method, Amount) VALUES (1, 'Cash', 55000);
 INSERT INTO Payments (OrderID, Method, Amount, TransactionCode) VALUES (2, 'Online', 30000, 'VNP123456');
 INSERT INTO DeliveryStatusHistory (OrderID, ShipperID, Status) VALUES (3, 4, 'Picked up'), (3, 4, 'Delivering');

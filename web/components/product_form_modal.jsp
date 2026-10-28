@@ -14,7 +14,7 @@
     <div class="modal-card modal-card-md">
         <div class="modal-header">
             <h3 id="productModalTitle" class="m-0"><fmt:message key="menu.modal.title.add" /></h3>
-            <button type="button" class="btn-modal-close" data-close-modal="productModal">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="productModal"><i class="fi fi-rr-cross-small" aria-hidden="true"></i></button>
         </div>
 
         <form id="productForm" action="${pageContext.request.contextPath}/MenuManagementController" method="POST" enctype="multipart/form-data" class="m-0">
@@ -53,14 +53,34 @@
                            placeholder="<fmt:message key="menu.modal.placeholder.price" />" />
                 </div>
 
+                <%-- Thông tin hiển thị ở popup chi tiết món (màn đặt món) --%>
+                <div class="form-group mb-15">
+                    <label for="productDescInput" class="form-label font-bold"><fmt:message key="menu.mgmt.label.description" /></label>
+                    <textarea id="productDescInput" name="description" rows="2" maxlength="500" class="filter-input w-100"
+                              placeholder="<fmt:message key='menu.mgmt.placeholder.description' />"></textarea>
+                </div>
+                <div class="form-group mb-15">
+                    <label for="productVideoInput" class="form-label font-bold"><fmt:message key="menu.mgmt.label.video" /></label>
+                    <input type="url" id="productVideoInput" name="videoUrl" maxlength="255" class="filter-input w-100" placeholder="https://" />
+                </div>
+                <div class="form-group mb-15 product-flag-group">
+                    <%-- Input hidden "false" đứng trước checkbox: không tick vẫn gửi "false" để Controller phân biệt --%>
+                    <input type="hidden" name="isFeatured" value="false" />
+                    <label class="product-flag"><input type="checkbox" id="productFeaturedCheckbox" name="isFeatured" value="true" />
+                        <fmt:message key="menu.mgmt.label.featured" /></label>
+                    <input type="hidden" name="hasOptions" value="false" />
+                    <label class="product-flag"><input type="checkbox" id="productHasOptionsCheckbox" name="hasOptions" value="true" checked />
+                        <fmt:message key="menu.mgmt.label.has_options" /></label>
+                </div>
+
                 <div class="form-group mb-15">
                     <label class="form-label font-bold mb-5"><fmt:message key="menu.mgmt.table.image" /></label>
                     <div class="image-tab-bar mb-10">
                         <button type="button" id="tabBtnUpload" class="btn-image-tab active" data-action="switch-image-tab" data-image-tab="upload">
-                            📁 <fmt:message key="menu.modal.tab.upload_file" />
+                            <fmt:message key="menu.modal.tab.upload_file" />
                         </button>
                         <button type="button" id="tabBtnUrl" class="btn-image-tab" data-action="switch-image-tab" data-image-tab="url">
-                            🔗 <fmt:message key="menu.modal.tab.url_link" />
+                            <fmt:message key="menu.modal.tab.url_link" />
                         </button>
                     </div>
 
@@ -144,7 +164,7 @@
     <div class="modal-card modal-card-md">
         <div class="modal-header">
             <h3 class="m-0"><fmt:message key="menu.category.modal.title" /></h3>
-            <button type="button" class="btn-modal-close" data-close-modal="menuCategoryModal">✕</button>
+            <button type="button" class="btn-modal-close" data-close-modal="menuCategoryModal"><i class="fi fi-rr-cross-small" aria-hidden="true"></i></button>
         </div>
 
         <div class="modal-body">

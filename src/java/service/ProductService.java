@@ -37,9 +37,24 @@ public class ProductService {
     }
 
 
+    /**
+     * Danh sách món cho màn đặt món: món "Nổi bật" lên đầu, còn lại giữ thứ tự cũ.
+     */
     public List<Map<String, Object>> getAllProductsForView() throws ValidationException {
-        List<Product> products = productDAO.getAllProducts();
+        List<Product> products = new ArrayList<>(productDAO.getAllProducts());
+        products.sort((a, b) -> Boolean.compare(b.isFeatured(), a.isFeatured()));
         return buildProductListMap(products);
+    }
+
+    /**
+     * Mã các món bán chạy nhất (tính từ đơn thật, bỏ đơn đã hủy) - nhóm "Best Seller" ở màn đặt món.
+     */
+    public List<String> getBestSellerIdsForView() throws ValidationException {
+        List<String> ids = new ArrayList<>();
+        for (Integer id : productDAO.getBestSellerProductIds(Constants.BEST_SELLER_LIMIT)) {
+            ids.add(String.valueOf(id));
+        }
+        return ids;
     }
 
     /**
@@ -128,6 +143,7 @@ public class ProductService {
                 map.put("isAvailable", p.isAvailable());
                 map.put("availableInStock", checkProductAvailability(p));
                 map.put("recipeData", buildRecipeString(p.getProductId()));
+                putExtraProductFields(map, p);
                 result.add(map);
             }
         }
@@ -154,7 +170,18 @@ public class ProductService {
         map.put("imageUrl", p.getImageUrl());
         map.put("isAvailable", p.isAvailable());
         map.put("availableInStock", checkProductAvailability(p));
+        putExtraProductFields(map, p);
         return map;
+    }
+
+    /**
+     * Các trường phục vụ popup chi tiết món / form quản lý: mô tả, video, nổi bật, có tuỳ chọn.
+     */
+    private void putExtraProductFields(Map<String, Object> map, Product p) {
+        map.put("description", p.getDescription());
+        map.put("videoUrl", p.getVideoUrl());
+        map.put("featured", p.isFeatured());
+        map.put("hasOptions", p.isHasOptions());
     }
 
     /**
@@ -170,6 +197,16 @@ public class ProductService {
      */
     public void createProduct(String categoryIdStr, String productName, String priceStr, String imageUrl,
             String[] recipeIngredientIds, String[] recipeQuantities) throws ValidationException {
+        createProduct(categoryIdStr, productName, priceStr, imageUrl, recipeIngredientIds, recipeQuantities,
+                null, null, null, null);
+    }
+
+    /**
+     * Tạo món mới kèm thông tin hiển thị ở popup chi tiết (mô tả, video, nổi bật, có tuỳ chọn size/đá/đường/topping).
+     */
+    public void createProduct(String categoryIdStr, String productName, String priceStr, String imageUrl,
+            String[] recipeIngredientIds, String[] recipeQuantities, String description, String videoUrl,
+            String featuredStr, String hasOptionsStr) throws ValidationException {
         // Validation Tầng 1: Kiểm tra dữ liệu thô đầu vào
         Validator.checkEmpty(productName, Constants.ERROR_EMPTY_PRODUCT_NAME);
         int categoryId = Validator.checkInteger(categoryIdStr, Constants.ERROR_EMPTY_PRODUCT_CATEGORY);
@@ -197,6 +234,7 @@ public class ProductService {
         newProduct.setPrice(price);
         newProduct.setImageUrl(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl.trim() : null);
         newProduct.setAvailable(true); // Mặc định món mới được phép kinh doanh
+        applyDisplayFields(newProduct, description, videoUrl, featuredStr, hasOptionsStr);
 
         productDAO.insertProduct(newProduct);
 
@@ -218,6 +256,28 @@ public class ProductService {
     public void updateProduct(String productIdStr, String categoryIdStr, String productName,
             String priceStr, String imageUrl, String isAvailableStr,
             String[] recipeIngredientIds, String[] recipeQuantities) throws ValidationException {
+        updateProduct(productIdStr, categoryIdStr, productName, priceStr, imageUrl, isAvailableStr,
+                recipeIngredientIds, recipeQuantities, false, null, null, null, null);
+    }
+
+    /**
+     * Cập nhật món kèm thông tin hiển thị ở popup chi tiết (mô tả, video, nổi bật, có tuỳ chọn).
+     */
+    public void updateProduct(String productIdStr, String categoryIdStr, String productName,
+            String priceStr, String imageUrl, String isAvailableStr,
+            String[] recipeIngredientIds, String[] recipeQuantities, String description, String videoUrl,
+            String featuredStr, String hasOptionsStr) throws ValidationException {
+        updateProduct(productIdStr, categoryIdStr, productName, priceStr, imageUrl, isAvailableStr,
+                recipeIngredientIds, recipeQuantities, true, description, videoUrl, featuredStr, hasOptionsStr);
+    }
+
+    /**
+     * @param applyDisplay false = giữ nguyên mô tả/video/nổi bật/tuỳ chọn cũ (lời gọi kiểu cũ)
+     */
+    private void updateProduct(String productIdStr, String categoryIdStr, String productName,
+            String priceStr, String imageUrl, String isAvailableStr,
+            String[] recipeIngredientIds, String[] recipeQuantities, boolean applyDisplay, String description,
+            String videoUrl, String featuredStr, String hasOptionsStr) throws ValidationException {
         // Validation Tầng 1: Kiểm tra dữ liệu thô đầu vào
         int productId = Validator.checkInteger(productIdStr, Constants.ERROR_PRODUCT_NOT_FOUND);
         Validator.checkEmpty(productName, Constants.ERROR_EMPTY_PRODUCT_NAME);
@@ -252,12 +312,42 @@ public class ProductService {
         existing.setPrice(price);
         existing.setImageUrl(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl.trim() : null);
         existing.setAvailable(isAvailable);
+        if (applyDisplay) {
+            applyDisplayFields(existing, description, videoUrl, featuredStr, hasOptionsStr);
+        }
 
         productDAO.updateProduct(existing);
 
         // Đồng bộ lại công thức: Xóa cũ và nạp mới
         ingredientDAO.deleteProductIngredientsByProductId(productId);
         saveProductRecipes(productId, recipeMap);
+    }
+
+    /**
+     * Kiểm tra và gán mô tả, link video, nổi bật, có tuỳ chọn.
+     * Checkbox không tick thì trình duyệt không gửi -> null = false (riêng HasOptions: null = true để món mới mặc định có tuỳ chọn).
+     */
+    private void applyDisplayFields(Product product, String description, String videoUrl, String featuredStr,
+            String hasOptionsStr) throws ValidationException {
+        String desc = (description == null || description.trim().isEmpty()) ? null : description.trim();
+        if (desc != null) {
+            Validator.checkMaxLength(desc, Constants.MAX_PRODUCT_DESCRIPTION_LENG, Constants.ERROR_PRODUCT_DESCRIPTION_TOO_LONG);
+        }
+        String video = (videoUrl == null || videoUrl.trim().isEmpty()) ? null : videoUrl.trim();
+        if (video != null) {
+            Validator.checkMaxLength(video, 255, Constants.ERROR_PRODUCT_VIDEO_URL);
+            if (!video.startsWith("http://") && !video.startsWith("https://")) {
+                throw new ValidationException(Constants.ERROR_PRODUCT_VIDEO_URL);
+            }
+        }
+        product.setDescription(desc);
+        product.setVideoUrl(video);
+        product.setFeatured(isChecked(featuredStr));
+        product.setHasOptions(hasOptionsStr == null || isChecked(hasOptionsStr));
+    }
+
+    private boolean isChecked(String value) {
+        return value != null && ("on".equalsIgnoreCase(value) || "true".equalsIgnoreCase(value));
     }
 
     private void cleanOldInternalImage(String oldImageUrl, String newImageUrl) {
@@ -321,10 +411,12 @@ public class ProductService {
     private Map<String, Object> buildSingleProductMap(Product p) {
         Map<String, Object> map = new HashMap<>();
         map.put("productId", p.getProductId());
+        map.put("categoryId", String.valueOf(p.getCategoryId()));
         map.put("productName", p.getProductName());
         map.put("price", p.getPrice());
         map.put("imageUrl", p.getImageUrl());
         map.put("available", checkProductAvailability(p));
+        putExtraProductFields(map, p);
         return map;
     }
 

@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
+<%@taglib prefix="bx" tagdir="/WEB-INF/tags"%>
 <fmt:setLocale value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setBundle basename="resources.messages" />
 
@@ -33,7 +34,11 @@
                     <tbody>
                         <c:forEach var="item" items="${sessionScope.CURRENT_CART.orderDetails}">
                             <tr>
-                                <td><c:out value="${item.product.productName}" /></td>
+                                <td>
+                                    <c:out value="${item.product.productName}" />
+                                    <bx:itemOptions sizeName="${item.sizeName}" iceLevel="${item.iceLevel}" sugarLevel="${item.sugarLevel}"
+                                                    toppings="${item.toppings}" note="${item.note}" />
+                                </td>
                                 <td class="text-center">x${item.quantity}</td>
                                 <td class="text-right"><fmt:formatNumber value="${item.unitPrice * item.quantity}" pattern="#,###" /> ₫</td>
                             </tr>

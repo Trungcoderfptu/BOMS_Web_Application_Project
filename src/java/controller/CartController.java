@@ -95,25 +95,36 @@ public class CartController extends HttpServlet {
     private void handleAddAction(HttpServletRequest request, HttpSession session) throws ValidationException {
         int productId = Integer.parseInt(request.getParameter("productId"));
         Object currentCart = session.getAttribute(Constants.CURRENT_CART);
-        currentCart = cartService.addProductToCart(currentCart, productId);
+        currentCart = cartService.addProductToCart(currentCart, productId,
+                request.getParameter("quantity"),
+                request.getParameter("sizeId"),
+                request.getParameter("iceLevel"),
+                request.getParameter("sugarLevel"),
+                request.getParameterValues("toppingId"),
+                request.getParameter("itemNote"));
         session.setAttribute(Constants.CURRENT_CART, currentCart);
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_ADD_TO_CART);
+        // Nút "Thanh toán ngay" trong popup món: thêm vào giỏ rồi mở luôn hộp xác nhận đặt món
+        if ("true".equals(request.getParameter("buyNow"))) {
+            session.setAttribute(Constants.ACTIVE_TAB, "cart");
+            session.setAttribute(Constants.OPEN_CHECKOUT, Boolean.TRUE);
+        }
     }
 
     private void handleUpdateAction(HttpServletRequest request, HttpSession session) throws ValidationException {
-        int productId = Integer.parseInt(request.getParameter("productId"));
+        String lineKey = request.getParameter("lineKey");
         int quantity = Integer.parseInt(request.getParameter("quantity"));
         Object currentCart = session.getAttribute(Constants.CURRENT_CART);
-        currentCart = cartService.updateItemQuantity(currentCart, productId, quantity);
+        currentCart = cartService.updateItemQuantity(currentCart, lineKey, quantity);
         session.setAttribute(Constants.CURRENT_CART, currentCart);
         session.setAttribute(Constants.ACTIVE_TAB, "cart");
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_CART);
     }
 
     private void handleRemoveAction(HttpServletRequest request, HttpSession session) throws ValidationException {
-        int productId = Integer.parseInt(request.getParameter("productId"));
+        String lineKey = request.getParameter("lineKey");
         Object currentCart = session.getAttribute(Constants.CURRENT_CART);
-        currentCart = cartService.removeItemFromCart(currentCart, productId);
+        currentCart = cartService.removeItemFromCart(currentCart, lineKey);
         session.setAttribute(Constants.CURRENT_CART, currentCart);
         session.setAttribute(Constants.ACTIVE_TAB, "cart");
         session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_REMOVE_FROM_CART);

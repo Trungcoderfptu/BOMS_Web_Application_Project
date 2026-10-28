@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
+import service.MenuOptionService;
 import service.ProductService;
 import utility.Constants;
 import utility.FlashMessageUtil;
@@ -35,10 +36,12 @@ import utility.ValidationException;
 public class MenuManagementController extends HttpServlet {
 
     private ProductService productService;
+    private MenuOptionService menuOptionService;
 
     @Override
     public void init() throws ServletException {
         productService = new ProductService();
+        menuOptionService = new MenuOptionService();
     }
 
     @Override
@@ -70,6 +73,9 @@ public class MenuManagementController extends HttpServlet {
             request.setAttribute("PRODUCT_LIST", filteredProducts);
             request.setAttribute("CATEGORY_LIST", categoryList);
             request.setAttribute("INGREDIENT_LIST", ingredientList);
+            request.setAttribute("SIZE_LIST", menuOptionService.getSizesForView(false));
+            request.setAttribute("TOPPING_LIST", menuOptionService.getToppingsForView(false));
+            request.setAttribute("CAN_MANAGE_OPTIONS", menuOptionService.canManageOptions(userSession.get("role")));
             request.setAttribute("CURRENT_FILTER_CATEGORY", filterCategory);
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
@@ -110,7 +116,9 @@ public class MenuManagementController extends HttpServlet {
                 String[] recipeIngredientIds = request.getParameterValues("recipeIngredientId");
                 String[] recipeQuantities = request.getParameterValues("recipeQuantity");
 
-                productService.createProduct(categoryId, productName, price, imageUrl, recipeIngredientIds, recipeQuantities);
+                productService.createProduct(categoryId, productName, price, imageUrl, recipeIngredientIds, recipeQuantities,
+                        request.getParameter("description"), request.getParameter("videoUrl"),
+                        lastValue(request, "isFeatured"), lastValue(request, "hasOptions"));
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CREATE_PRODUCT);
                 redirectUrl = "MenuManagementController?filterCategory=ALL";
             } else if ("updateProduct".equals(action)) {
@@ -124,7 +132,9 @@ public class MenuManagementController extends HttpServlet {
                 String[] recipeIngredientIds = request.getParameterValues("recipeIngredientId");
                 String[] recipeQuantities = request.getParameterValues("recipeQuantity");
 
-                productService.updateProduct(productId, categoryId, productName, price, imageUrl, isAvailable, recipeIngredientIds, recipeQuantities);
+                productService.updateProduct(productId, categoryId, productName, price, imageUrl, isAvailable, recipeIngredientIds, recipeQuantities,
+                        request.getParameter("description"), request.getParameter("videoUrl"),
+                        lastValue(request, "isFeatured"), lastValue(request, "hasOptions"));
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_PRODUCT);
             } else if ("toggleStatus".equals(action)) {
                 String productId = request.getParameter("productId");
@@ -140,12 +150,17 @@ public class MenuManagementController extends HttpServlet {
                 productService.deleteCategory(categoryId);
                 session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_DELETE_MENU_CATEGORY);
                 redirectUrl = "MenuManagementController?manageCategory=true";
+            } else if (isMenuOptionAction(action)) {
+                handleMenuOptionAction(request, session, action, userSession.get("role"));
+                redirectUrl = "MenuManagementController?manageOptions=true";
             }
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
             String action = request.getParameter("action");
             if ("createCategory".equals(action) || "deleteCategory".equals(action)) {
                 redirectUrl = "MenuManagementController?manageCategory=true";
+            } else if (isMenuOptionAction(action)) {
+                redirectUrl = "MenuManagementController?manageOptions=true";
             }
         } catch (IllegalStateException e) {
             // Bắt lỗi kích thước file multipart vượt quá trần cấu hình, bảo vệ socket không bị reset
@@ -155,6 +170,53 @@ public class MenuManagementController extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/" + redirectUrl);
+    }
+
+    // ===== Size / Topping dùng chung (quyền Manager/Admin được kiểm tra trong MenuOptionService) =====
+    private boolean isMenuOptionAction(String action) {
+        return "createSize".equals(action) || "updateSize".equals(action) || "toggleSize".equals(action)
+                || "createTopping".equals(action) || "updateTopping".equals(action) || "toggleTopping".equals(action);
+    }
+
+    private void handleMenuOptionAction(HttpServletRequest request, HttpSession session, String action, String role)
+            throws ValidationException {
+        switch (action) {
+            case "createSize":
+                menuOptionService.createSize(request.getParameter("sizeName"), request.getParameter("extraPrice"),
+                        request.getParameter("sortOrder"), role);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CREATE_MENU_SIZE);
+                break;
+            case "updateSize":
+                menuOptionService.updateSize(request.getParameter("sizeId"), request.getParameter("sizeName"),
+                        request.getParameter("extraPrice"), request.getParameter("sortOrder"), role);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_MENU_SIZE);
+                break;
+            case "toggleSize":
+                menuOptionService.toggleSize(request.getParameter("sizeId"), role);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_TOGGLE_MENU_SIZE);
+                break;
+            case "createTopping":
+                menuOptionService.createTopping(request.getParameter("toppingName"), request.getParameter("toppingPrice"), role);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_CREATE_MENU_TOPPING);
+                break;
+            case "updateTopping":
+                menuOptionService.updateTopping(request.getParameter("toppingId"), request.getParameter("toppingName"),
+                        request.getParameter("toppingPrice"), role);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_UPDATE_MENU_TOPPING);
+                break;
+            default:
+                menuOptionService.toggleTopping(request.getParameter("toppingId"), role);
+                session.setAttribute(Constants.SUCCESS_MESSAGE, Constants.SUCCESS_TOGGLE_MENU_TOPPING);
+                break;
+        }
+    }
+
+    /**
+     * Checkbox gửi kèm 1 input hidden "false" đứng trước: không tick -> chỉ có "false", tick -> lấy giá trị cuối "true".
+     */
+    private String lastValue(HttpServletRequest request, String name) {
+        String[] values = request.getParameterValues(name);
+        return (values == null || values.length == 0) ? null : values[values.length - 1];
     }
 
     private String resolveImageUrl(HttpServletRequest request) throws ValidationException {

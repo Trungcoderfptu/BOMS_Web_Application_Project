@@ -316,3 +316,15 @@ thêm file QR code.md để lưu các link QR truy cập nhanh
   - Gom toàn bộ chuỗi thông báo phân ca, duyệt điểm danh, cảnh báo kho về `Constants.java` dưới dạng template `String.format(Constants.NOTIF_..., ...)`.
   - Bổ sung `dayKey` i18n (`hr.assign.day.mon`..`sun`) trên giao diện Thời khóa biểu và Ma trận phân ca tuần, tuân thủ 100% quy chuẩn i18n đa ngôn ngữ và chuẩn mã hóa Unicode Escape (`\uXXXX`).
 ---
+
+## [v1.1.0] - 2026-10-27. (Nhánh `DuongCoderSuperPromtAI`)
+### Added
+* Chức năng thực đơn kiểu menuonline: thanh lọc nhóm món, nhóm "Bán chạy", nhãn "Nổi bật", popup chi tiết món (Size bắt buộc, Đá, Đường, Topping, ghi chú, số lượng, Thêm giỏ / Thanh toán ngay).
+* Quản lý Size & Topping trong trang Quản lý thực đơn (Manager/Admin sửa, Staff xem).
+* Món có thêm Mô tả, Link video, "Nổi bật", "Có tùy chọn".
+### Changed
+* `OrderDetails` đổi khóa chính sang `OrderDetailID` và lưu thêm Size/Đá/Đường/Topping/Ghi chú; Quản lý đơn hiển thị các tùy chọn này.
+### Notes
+* **BẮT BUỘC:** DB đang có sẵn phải chạy `DATABASE/migration_menu_options.sql` một lần trong SSMS (chạy lại nhiều lần vẫn an toàn, không mất dữ liệu). Cài mới thì dùng `BOMS_DATABASE.sql` như cũ.
+* Size/Topping ban đầu trống — Manager vào Quản lý thực đơn → "Size & Topping" để thêm.
+* Chi tiết file và hàm: xem `.agent/learning.md` mục ngày 2026-10-27 (Giai đoạn 2).

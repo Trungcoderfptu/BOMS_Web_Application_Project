@@ -72,10 +72,10 @@
             <%-- Chuyển đổi chế độ: Phân ca đơn lẻ vs Phân ca liên hoàn --%>
             <div class="assign-mode-toggle mb-15">
                 <button type="button" id="btnModeSingle" class="btn-mode-tab active" data-assign-mode="single">
-                    📌 <fmt:message key="hr.assign.mode.single" />
+                    <fmt:message key="hr.assign.mode.single" />
                 </button>
                 <button type="button" id="btnModeBulk" class="btn-mode-tab" data-assign-mode="bulk">
-                    🗓️ <fmt:message key="hr.assign.mode.bulk" />
+                    <fmt:message key="hr.assign.mode.bulk" />
                 </button>
             </div>
 

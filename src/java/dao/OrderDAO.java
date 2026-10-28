@@ -27,7 +27,8 @@ public class OrderDAO extends DBContext {
 
         String sqlOrder = "INSERT INTO Orders (OrderType, StaffID, TableID, AreaID, ShipperID, CustomerName, CustomerPhone, DeliveryAddress, Status, TotalAmount, CreatedAt, CookingStartedAt) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        String sqlDetail = "INSERT INTO OrderDetails (OrderID, ProductID, Quantity, UnitPrice) VALUES (?, ?, ?, ?)";
+        String sqlDetail = "INSERT INTO OrderDetails (OrderID, ProductID, Quantity, UnitPrice, SizeName, IceLevel, SugarLevel, Toppings, Note) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         boolean originalAutoCommit = true;
         try {
@@ -69,6 +70,11 @@ public class OrderDAO extends DBContext {
                         stDetail.setInt(2, detail.getProductId());
                         stDetail.setInt(3, detail.getQuantity());
                         stDetail.setDouble(4, detail.getUnitPrice());
+                        stDetail.setNString(5, detail.getSizeName());
+                        stDetail.setString(6, detail.getIceLevel());
+                        stDetail.setString(7, detail.getSugarLevel());
+                        stDetail.setNString(8, detail.getToppings());
+                        stDetail.setNString(9, detail.getNote());
                         stDetail.addBatch();
                     }
                     stDetail.executeBatch();
@@ -267,9 +273,10 @@ public class OrderDAO extends DBContext {
     private List<OrderDetail> loadOrderDetails(int orderId) throws SQLException {
         List<OrderDetail> details = new ArrayList<>();
         String sql = "SELECT od.OrderID, od.ProductID, od.Quantity, od.UnitPrice, "
+                + "od.SizeName, od.IceLevel, od.SugarLevel, od.Toppings, od.Note, "
                 + "p.CategoryID, p.ProductName, p.Price, p.ImageUrl, p.IsAvailable "
                 + "FROM OrderDetails od LEFT JOIN Products p ON od.ProductID = p.ProductID "
-                + "WHERE od.OrderID = ?";
+                + "WHERE od.OrderID = ? ORDER BY od.OrderDetailID ASC";
         try (PreparedStatement st = connection.prepareStatement(sql)) {
             st.setInt(1, orderId);
             try (ResultSet rs = st.executeQuery()) {
@@ -280,6 +287,11 @@ public class OrderDAO extends DBContext {
                             rs.getInt("Quantity"),
                             rs.getDouble("UnitPrice")
                     );
+                    detail.setSizeName(rs.getNString("SizeName"));
+                    detail.setIceLevel(rs.getString("IceLevel"));
+                    detail.setSugarLevel(rs.getString("SugarLevel"));
+                    detail.setToppings(rs.getNString("Toppings"));
+                    detail.setNote(rs.getNString("Note"));
 
                     Product product = new Product(
                             rs.getInt("ProductID"),

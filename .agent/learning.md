@@ -2563,3 +2563,269 @@ ull một cách an toàn mà hoàn toàn KHÔNG làm văng SQLException.
 - src/java/utility/ImageUploadUtility.java
 - .agent/learning.md
 - **Kết quả Build:** Apache Ant (ant clean compile với JDK 17) đạt BUILD SUCCESSFUL (0 errors, 74 source files).
+## [2026-10-27] - Giao diện mới Bingxue - Giai đoạn 1: Khung Aprycot + Màn đặt món (Quầy & QR)
+### 1. File bị tác động / tạo mới:
+- `web/css/theme.css` (Tạo mới): Khung giao diện chung kiểu Aprycot. Biến màu thương hiệu Bingxue (`--brand: #F46A38`, `--ink: #33200F`), 1 font duy nhất Nunito, bo góc 8px, KHÔNG đổ bóng màu/gradient. Header trắng dính đầu trang, sidebar trái cố định trên màn hình >= 1024px (mục đang mở tô cam phẳng), dark mode qua `body.dark-theme`.
+- `web/css/order.css` (Tạo mới): Màn đặt món.
+  + Khách quét QR (`.is-customer`): bố cục kiểu app giao đồ ăn - header cam, tab gạch chân, thanh nhóm món dính đầu trang ("Tất cả" tô cam), món dạng hàng (ảnh VUÔNG trái - tên/nhóm/giá giữa - nút + vuông phải), thanh "Xem giỏ hàng" ở đáy.
+  + Quầy (`.is-counter`): ô món vuông dày đặc; màn >= 1024px hiện 2 cột - thực đơn trái, HÓA ĐƠN LUÔN HIỆN bên phải (ghi đè `.d-none` của tab), nút Chốt đơn to phủ cả cột.
+  + Mọi selector nằm dưới `.order-page`.
+- `web/components/icons.jsp` (Tạo mới): Bộ icon SVG `<symbol>` dùng chung (sidebar, chuông, cảnh báo, loa, giỏ hàng, dấu +). Thay emoji ở header và nút giỏ hàng để cùng 1 kiểu icon.
+- `web/components/floating_cart.jsp`: Đổi emoji 🛒 thành icon SVG.
+- `web/components/customer_head.jsp` (Tạo mới): Khung mở `<html>/<head>/<body>` cho khách quét QR (không đăng nhập), tương đương `header.jsp`.
+- `web/header.jsp`: Thêm thẻ viewport, font, `theme.css`; nạp CSS riêng của trang qua `requestScope.PAGE_STYLE`; Locale 3 tầng; sidebar có icon + tô sáng mục hiện tại (`navPath` lấy từ `jakarta.servlet.forward.servlet_path`). Giữ nguyên toàn bộ điều kiện phân quyền và ID dùng trong JS.
+- `web/menu.jsp`: Dựng lại bố cục; dùng `header.jsp` (nhân viên) hoặc `customer_head.jsp` (khách) và đóng bằng `footer.jsp` -> hết lỗi lồng 2 thẻ `<html>` và nạp `main.js` 2 lần. Escape `CURRENT_TABLE` (trước in thô -> XSS). Giữ nguyên mọi form `CartController`, `data-tab`, `#btnOpenCheckoutModal`.
+- `src/java/service/ProductService.java`: `buildSingleProductMap` thêm `categoryId`.
+- `src/java/controller/MenuController.java`: Đẩy thêm `MENU_CATEGORIES` (gọi `productService.getAllCategoriesForView()`).
+- `web/js/main.js`: Hàm `filterMenuByCategory` + Event Delegation `[data-menu-filter]` lọc món theo nhóm.
+- `messages_vi.properties` & `messages_en.properties`: Khóa `sidebar.brand`, `sidebar.brand_sub`, `menu.filter.all`, `menu.hero.*`, `menu.counter.subtitle`, `menu.table_label`, `menu.empty_list` (tiếng Việt dạng `\uXXXX`).
+- Dữ liệu (chỉ DB máy cục bộ, nhập qua trang Quản lý thực đơn bằng quyền Manager): thêm danh mục "Trà trái cây" và 14 món thật lấy từ bingxuevietnam.com (tên, giá, link ảnh ShopeeFood).
+
+### 2. Bài học kinh nghiệm:
+- **Không dùng `printf` của Git Bash để ghi chuỗi `\uXXXX` vào file properties:** `printf` tự dịch `\u` thành ký tự và ghi sai byte. Phải dùng công cụ sửa file ghi nguyên văn.
+- **Ant `dist` không biên dịch JSP:** Lỗi JSP chỉ lộ ra khi gọi trang trên Tomcat. Sau khi build phải mở thử trang (curl hoặc trình duyệt).
+- **Sửa CSS/JSP xong phải build lại:** Tomcat chạy từ `build/web`, sửa trong `web/` mà chưa build thì giao diện không đổi.
+- **Chụp màn hình bằng Edge headless:** chiều rộng tối thiểu ~500px; muốn xem đúng khổ điện thoại 375px phải dùng chế độ giả lập thiết bị của trình duyệt.
+- **Tránh giao diện "mùi AI" (bị người dùng phản hồi ở bản đầu):** Bản đầu bám mẫu concept Dribbble (ảnh tròn, banner trang trí, đổ bóng màu cam, nổi lên khi rê chuột, 2 font) và để giỏ hàng quầy nằm ở tab riêng -> bị chê "nhìn biết AI làm". Cách sửa: tham khảo app thật (app giao đồ ăn, POS), thiết kế từ thao tác của người dùng (nhân viên quầy phải thấy hóa đơn liên tục), phẳng, 1 màu nhấn, 1 bộ icon, ảnh vuông đúng tỉ lệ ảnh thật, không bịa dữ liệu (không làm mục "Bán chạy"/sao đánh giá khi hệ thống chưa có số liệu).
+
+
+## [2026-10-27] - Giai đoạn 2: Chức năng thực đơn kiểu menuonline (Nhóm món, Bán chạy, Nổi bật, Popup tùy chọn món)
+### 1. Chức năng mới
+- Thanh danh mục bên trái (QR trên máy tính) / thanh nhóm món dính đầu trang (điện thoại, quầy). Có nhóm "Bán chạy" (TOP 6 món theo tổng số lượng đã bán, bỏ đơn `Cancelled`) - chỉ hiện khi đã có dữ liệu bán.
+- Nhãn "Nổi bật" trên món (`Products.IsFeatured`), món nổi bật xếp lên đầu.
+- Popup chi tiết món: ảnh phóng to, mô tả, video, Size (bắt buộc), Đá, Đường, Topping, ghi chú riêng từng món, số lượng, "Thêm vào giỏ", "Thanh toán ngay" (thêm vào giỏ rồi tự mở hộp xác nhận đơn). Món có `HasOptions = 0` (vd. kem) chỉ hiện ghi chú + số lượng.
+- Giỏ hàng tách dòng theo tổ hợp tùy chọn (`lineKey`), cùng tổ hợp thì cộng dồn (tối đa 99).
+- Tùy chọn hiển thị ở giỏ, hộp xác nhận, bảng Quản lý đơn (tại quầy + giao hàng).
+- Trang Quản lý thực đơn: nút "Size & Topping" (Manager/Admin thêm/sửa giá/bật-tắt; Staff chỉ xem); form món thêm Mô tả, Link video, "Nổi bật", "Có tùy chọn".
+- KHÔNG làm: popup thanh toán của menuonline (theo yêu cầu); trừ kho theo size/topping (kho vẫn trừ theo công thức món như cũ).
+
+### 2. Cơ sở dữ liệu (BẮT BUỘC chạy migration)
+- `DATABASE/migration_menu_options.sql` (mới, chạy lại nhiều lần an toàn):
+  + `Products` thêm `Description NVARCHAR(500)`, `VideoUrl VARCHAR(255)`, `IsFeatured BIT`, `HasOptions BIT`.
+  + Bảng mới `MenuSizes(SizeID, SizeName, ExtraPrice, SortOrder, IsActive)`, `MenuToppings(ToppingID, ToppingName, Price, IsActive)`.
+  + `OrderDetails`: đổi khóa chính (OrderID, ProductID) -> `OrderDetailID IDENTITY` (1 đơn có thể có 2 dòng cùng món khác size), thêm `SizeName, IceLevel, SugarLevel, Toppings, Note`. Dữ liệu cũ giữ nguyên.
+- `DATABASE/BOMS_DATABASE.sql`: cập nhật CREATE TABLE tương ứng (cài mới). Đã thử cài mới trên DB tạm: 28 bảng, seed OrderDetails 4 dòng OK.
+
+### 3. File bị tác động / tạo mới
+- Model: `Product.java` (+description, videoUrl, featured, hasOptions), `OrderDetail.java` (+sizeName, iceLevel, sugarLevel, toppings, note, lineKey), `MenuSize.java`, `MenuTopping.java` (mới).
+- DAO: `MenuOptionDAO.java` (mới - CRUD size/topping), `ProductDAO.java` (cột mới + `getBestSellerProductIds`), `OrderDAO.java` (INSERT/SELECT chi tiết đơn có tùy chọn).
+- Service: `MenuOptionService.java` (mới, kiểm quyền Manager/Admin - E0239), `CartService.java` (tính giá = giá món + phụ thu size + topping; kiểm tra size/đá/đường/topping/ghi chú/số lượng; `lineKey`), `ProductService.java` (best seller, trường hiển thị, overload create/update), `OrderService.java` (map tùy chọn ra view).
+- Controller: `CartController.java` (đọc tùy chọn, `buyNow`, update/remove theo `lineKey`), `MenuController.java` (`MENU_SIZES`, `MENU_TOPPINGS`, `BEST_SELLER_IDS`, `ICE_LEVELS`, `SUGAR_LEVELS`, flash `OPEN_CHECKOUT`), `MenuManagementController.java` (6 action size/topping, trường hiển thị món).
+- `Constants.java`: mã S0230–S0235, E0230–E0241, DE0070–DE0071; `ICE_LEVELS`, `SUGAR_LEVELS`, giới hạn độ dài/số lượng, `BEST_SELLER_LIMIT`.
+- View: `web/WEB-INF/tags/itemOptions.tag` (mới - in tùy chọn 1 dòng món, dùng `<bx:itemOptions>`), `components/product_option_modal.jsp` (mới), `components/menu_option_modal.jsp` (mới), `menu.jsp`, `menu_management.jsp`, `components/product_form_modal.jsp`, `order_confirm_modal.jsp`, `standard_orders_table.jsp`, `delivery_orders_table.jsp`.
+- JS/CSS: `main.js` (mở popup, tính tổng, +/- số lượng, mua ngay, lọc "Bán chạy", mở modal Size & Topping), `order.css` (popup, sidebar danh mục, bottom-sheet trên điện thoại), `global.css` (nhãn tùy chọn, bảng quản lý size/topping).
+- i18n: khóa `option.*`, `options.*`, `menu.badge.featured`, `menu.filter.best_seller`, `menu.categories.title`, `menu.mgmt.label.*` và các mã lỗi mới ở cả `messages_vi` / `messages_en` (vi dạng `\uXXXX`, không hard code chữ).
+
+### 4. Bài học kinh nghiệm
+- **Form có `<input name="action">` thì `form.action` trong JS trả về ô input, không phải URL** -> dùng `form.getAttribute('action')`.
+- **Tag file (`.tag`) không kế thừa `fmt:setLocale/setBundle` của trang gọi** -> phải tự khai báo trong tag.
+- **Checkbox + input hidden cùng tên** (hidden "false" đặt trước): lấy giá trị CUỐI của `getParameterValues` để biết có tick hay không.
+- **sqlcmd:** dùng đường dẫn tương đối cho `-i` (đường dẫn có `~1` làm lỗi tham số) và thêm `-I` (bật QUOTED_IDENTIFIER, giống SSMS) - nếu không, index có `WHERE` (`UQ_AccountManager_UserID_Smart`) báo lỗi Msg 1934. Lỗi này có từ trước, chạy bằng SSMS không bị.
+- **Đổi khóa chính có tên tự sinh:** tra tên trong `sys.key_constraints` rồi `EXEC('ALTER TABLE ... DROP CONSTRAINT ' + @name)`.
+- **(Sửa sau phản hồi) Popup món:** thẻ popup để `overflow: hidden` + flex cột (ảnh cố định / `.option-scroll` cuộn / chân cố định) -> thanh cuộn chỉ nằm ở phần tùy chọn, không làm méo bo góc. Số tiền do JS tính phải định dạng theo `data-locale` của form (vi `47.000`, en `47,000`) để khớp với `fmt:formatNumber`. `<textarea>` không kế thừa font -> phải đặt `font-family` (trước bị hiện chữ monospace). Thêm hiệu ứng: ảnh phóng to nhẹ khi rê chuột, popup trượt lên, nút co lại khi bấm.
+
+## [2026-10-27] - Giao diện toàn dự án kiểu "POS cảm ứng" (mẫu D) - Đợt 1: Khung chung
+### 1. File bị tác động
+- `web/css/theme.css` (viết lại): thanh icon tối cố định bên trái (màn >= 1024px, rộng 76px, mục đang mở là ô cam, tên mục hiện dạng tooltip khi rê chuột - chữ lấy từ `<span><fmt:message/></span>` sẵn có, không thêm chữ mới); màn nhỏ vẫn là ngăn kéo (nút ☰) nhưng nền tối. Ánh xạ biến màu cũ của `global.css` (`--bg-primary`, `--text-primary`, `--color-primary`...) sang bảng màu mới để mọi trang đổi màu. Thành phần chung: nút to (cao 44px), tab `.tab-btn` thành chip tròn (chip đang chọn nền tối), thanh lọc/bảng/thẻ/modal bo góc 14-18px, bảng chỉ kẻ ngang, ô nhập viền cam khi focus, thông báo flash có nền nhạt.
+- `web/css/order.css`: tab Thực đơn/Giỏ hàng và chip nhóm món theo kiểu chip mới.
+- `web/hr_management.jsp`, `web/admin_dashboard.jsp`, `web/register.jsp`: bỏ khung `<!DOCTYPE>/<html>/<head>/<body>` tự mở (trái quy tắc header.jsp mở - footer.jsp đóng). Lỗi cũ này làm trình duyệt bỏ class `has-sidebar` của header -> trang Nhân sự không có sidebar; `register.jsp` còn include header bên trong `<head>`. Nay dùng `header.jsp` + `<main class="main-content">` + `footer.jsp` (footer nạp `main.js`). Trang Nhân sự giữ class `page-container` trên `<main>` vì `main.js` dùng nó cho tab.
+### 2. Chưa làm (Đợt 2)
+- Đổi bố cục từng trang: Quản lý đơn từ bảng sang thẻ như mẫu D, Điều phối, Kho, Nhân sự, Dashboard; các nút màu cũ (xanh dương/đỏ đặc) trong từng trang.
+### 3. Bài học
+- Trang tự mở thêm `<html>/<body>` rồi include `header.jsp`: thẻ `<body>` thứ 2 bị trình duyệt gộp, class đã có ở body đầu sẽ thắng -> CSS dựa vào class body (`has-sidebar`) không chạy.
+- Chọn input chung bằng `.main-content input[...]` có độ ưu tiên cao hơn CSS riêng của trang (vd. `.option-qty input`) -> chỉ áp kiểu chung cho `.form-group` và các class ô nhập có sẵn.
+
+## [2026-10-28] - Giao diện kiểu D - Đợt 2: Quản lý đơn dạng thẻ + gom màu nút
+### 1. File bị tác động
+- `web/components/standard_orders_table.jsp`, `web/components/delivery_orders_table.jsp`: bảng nhiều cột -> lưới thẻ `.order-card` (đầu thẻ `#mã · nguồn` + nhãn trạng thái; giờ tạo / bắt đầu nấu (đơn giao: SĐT, địa chỉ, khu vực, shipper); danh sách món `3× tên` + tùy chọn; tổng tiền; ô trạng thái + Cập nhật + Hủy). Giữ nguyên mọi form, class và `data-*` mà `main.js` dùng (`order-status-form`, `status-select-{id}`, `btn-status-save-{id}`, `btn-open-staff-cancel`, `cancelCountdownWrapper-{id}`, `cancel-countdown-timer`).
+- Sửa hardcode cũ: ô chọn trạng thái đơn giao hàng ghi chữ tiếng Anh cứng ("Prepared", "Delivering"...) -> dùng khóa có sẵn `order.status.*` / `status.*`. Bỏ cột loại đơn in thô `${order.orderType}` ("Counter").
+- `web/css/global.css`: thêm khối `.order-card*`; đổi màu xanh dương cũ (#2563eb, #3b82f6, #1d4ed8, #4338ca, #eef2ff, #dbeafe) sang biến cam thương hiệu.
+- `web/css/theme.css`: gom nút riêng của các trang về 4 kiểu (cam chính / trắng viền / viền đỏ nguy hiểm / xanh nhạt đồng ý); chip cho `.btn-mode-tab`, `.btn-image-tab`; nhãn bo tròn; bảng `.dispatch-table`, `.alert-*`, `.badge-info` của trang Điều phối/Shipper theo kiểu chung; đầu trang trên điện thoại gọn 1 hàng; thêm biến `--primary-color`.
+### 2. Bài học
+- Lưới `1fr` trên điện thoại bị nội dung bên trong đẩy rộng hơn màn hình -> dùng `minmax(0, 1fr)` / `minmax(min(320px, 100%), 1fr)` và `min-width: 0` cho thẻ.
+- Khi SQL Server tắt lúc Tomcat đang chạy, Controller giữ kết nối `null` (DAO lấy connection lúc khởi tạo) -> bật lại SQL Server xong phải reload ứng dụng (touch `build/web/WEB-INF/web.xml`).
+- Tomcat bật từ shell bị giới hạn mạng báo "Unable to establish loopback connection" -> phải bật từ NetBeans / Services.
+
+## [2026-10-28] - Giao diện kiểu D - Đợt 3: Đăng nhập, Đăng ký, Shipper
+### 1. File bị tác động
+- `web/login.jsp`: thẻ giữa màn hình (logo Bingxue + tên hệ thống, ô nhập lớn, nút đăng nhập phủ ngang). Chọn vai trò bằng chip (radio `name="ddlRole"`, `LoginController` không đổi). Tên vai trò trước viết cứng "Admin/Manager/Staff/Shipper" -> khóa mới `role.Admin`, `role.Manager`, `role.Staff`, `role.Shipper` (vi: Quản trị / Quản lý / Nhân viên / Giao hàng). Escape `param.txtUsername` bằng `fn:escapeXml` (trước in thô -> XSS).
+- `web/register.jsp`: cùng kiểu thẻ, ô nhập 2 cột trên màn rộng / 1 cột trên điện thoại; giữ nguyên `id`/`name` các ô; escape toàn bộ `param.*` đổ lại vào ô; locale đủ 3 tầng (session -> cookie -> vi).
+- `messages_vi.properties`, `messages_en.properties`: thêm 4 khóa `role.*`.
+- `web/css/global.css`: khối `.auth-*`.
+- `web/css/theme.css`: `.btn-link` (nút chữ, vd. "Đánh dấu tất cả đã đọc"); ẩn nút ☰ khi chưa đăng nhập (menu trống).
+- Trang Shipper (`shipper_dashboard.jsp`) không phải sửa: dùng chung `.dispatch-table`, `.btn-accept`, `.btn-reject` đã đổi ở Đợt 2 (đã kiểm tra bằng tài khoản `shipper1`).
+
+## [2026-10-28] - Giao diện - Đợt 4: Bộ icon SVG riêng, Dashboard, Trang chủ khách, Cài đặt, Hồ sơ
+### 1. Quyết định
+- Người dùng chọn **bộ icon SVG nét đen tự vẽ** (cùng kiểu thanh icon bên trái) thay cho emoji / icon màu. Không dùng Flaticon (cần tải từng file + bắt buộc ghi công tác giả). Chỗ nào icon không cần thiết thì bỏ hẳn (tiêu đề mục, lời chào, đồng hồ...).
+- Không bám bố cục cũ (do AI tạo tạm), thiết kế lại từng trang.
+### 2. File bị tác động
+- `web/components/icons.jsp`: thêm `ico-settings, ico-user, ico-logout, ico-lock, ico-calendar, ico-chart, ico-edit, ico-inbox, ico-chevron-right, ico-upload, ico-trash, ico-sun, ico-moon, ico-check, ico-key, ico-phone, ico-pin, ico-at`.
+- `web/index.jsp` (viết lại): khách = thẻ giới thiệu (logo, tiêu đề, mô tả, nút Đăng nhập / Đăng ký). Đã đăng nhập = hàng chào (avatar chữ cái, tên, chip vai trò lấy từ `role.*`, trạng thái làm việc dạng chấm màu) -> dải số liệu (đồng hồ máy chủ nền tối, ca hôm nay của Staff, thông báo chưa đọc, chờ duyệt & cảnh báo kho của Manager - bấm được) -> 2 cột: Lối tắt theo vai trò (icon SVG, bỏ Hồ sơ/Cài đặt/Đăng xuất vì đã có ở menu avatar) + Bảng tin thông báo (icon theo `type`, nội dung in qua `c:out` - trước in thô `${notif.message}`). Giữ `#serverClockDisplay`, `feedItem_{id}`, `data-action="mark-notification" / "mark-all-notifications" / "open-broadcast"`.
+- `web/settings.jsp` (viết lại): cột trái danh mục (giữ id `btnMenuProfile` / `btnMenuPassword`), cột phải thẻ form. Escape giá trị đổ lại; **bỏ việc in lại mật khẩu cũ/mới vào ô** sau khi gửi lỗi (trước đây `value="${param.txtOldPassword}"`).
+- `web/profile.jsp` (viết lại): thẻ đầu (ảnh vuông bo góc, tên, chip vai trò, nút chọn ảnh + cập nhật + xóa ảnh), lưới thông tin có icon, nút sang Cài đặt.
+- `web/components/theme_toggle.jsp`: emoji 🌓/☀️/🌙 -> 2 icon SVG, CSS tự đổi theo `body.dark-theme`; tiêu đề nút trước viết cứng "Sáng/Tối" -> khóa `theme.toggle.title`.
+- `web/components/notification_dropdown.jsp`: bỏ emoji 🔔 ở tiêu đề.
+- `web/js/main.js`: `notificationIconId(type)` trả id icon SVG cho ô chuông (thay `n.icon` emoji từ server); nút sáng/tối không còn đổi `innerHTML`; trang Cài đặt tô sáng mục đang chọn.
+- `web/css/global.css`: khối `.dash-*`, `.stat-tile`, `.shortcut*`, `.feed*`, `.guest-hero*`, `.settings-*`, `.profile-*`, `.page-heading`, `.page-msg`.
+- `messages_*.properties`: thêm `theme.toggle.title`; sửa lỗi chính tả `header.title` bản en ("Oporatior Manager System(BOMS)" -> "Operations Management System (BOMS)").
+### 3. Còn lại (Đợt 5-6)
+- Chấm công, Nhân sự, Kho, Quản lý thực đơn; Báo cáo (gửi/quản lý/chi tiết), Admin, các popup - còn emoji và bố cục cũ.
+- `NotificationService` vẫn gắn emoji vào trường `icon` (giao diện không dùng nữa); nội dung thông báo được tạo sẵn bằng tiếng Việt trong `Constants` rồi lưu DB nên chế độ English vẫn hiện tiếng Việt -> cần sửa backend (lưu mã + tham số).
+### 4. Bài học
+- Heredoc rất dài trong Git Bash có thể báo "unexpected EOF" -> ghi CSS ra file tạm bằng Write rồi `cat >>`.
+- Đổi `main.js`/CSS xong mà trình duyệt vẫn chạy bản cũ: tải lại với cache bỏ qua (Ctrl+F5).
+
+## [2026-10-28] - Sửa sau phản hồi Đợt 4: Header, Footer, Hồ sơ
+### 1. File bị tác động
+- `web/header.jsp`: bỏ dòng tên hệ thống dài (`header.title`) ở góc trái; thay bằng "Bingxue › tên mục đang mở" - tên mục chọn theo `navPath`, dùng lại khóa `header.sidebar.*` / `header.menu.*` có sẵn (không thêm chữ mới). Chưa đăng nhập: logo + "Bingxue". `header.title` vẫn dùng cho thẻ `<title>`. Nút ☰ đổi sang icon SVG `ico-menu` (thêm vào `icons.jsp`).
+- `web/footer.jsp`: 1 dòng chữ nhỏ căn trái, có kẻ trên; locale đủ 3 tầng (trước chỉ đọc cookie).
+- `footer.copyright` (vi/en): "© 2026 Bingxue · Nhóm 3 (Cóc Software)" / "© 2026 Bingxue · Group 3 (Coc Software)".
+- `web/profile.jsp` (viết lại lần 2): bỏ các ô vuông có icon; kiểu trang cá nhân thật - dải bìa màu phẳng + ảnh đại diện đè lên + tên/vai trò/nút đổi ảnh; bên dưới danh sách "nhãn - giá trị" có kẻ dòng (nhãn cắt dấu ":" bằng `fn:replace`).
+- `web/css/theme.css`: `.header-left`, `.header-crumb`, `.crumb-*` (điện thoại chỉ giữ tên mục); footer mới. `web/css/global.css`: `.profile-sheet`, `.profile-cover`, `.profile-top`, `.info-list`, `.info-row`; xóa CSS ô thông tin cũ.
+### 2. Bài học
+- Không nhét thông tin cá nhân vào lưới ô vuông có icon (nhìn như dashboard, không giống trang hồ sơ). Hồ sơ nên là danh sách nhãn - giá trị.
+- Tránh nền loang màu (radial-gradient) - người dùng chê "mùi AI"; dùng màu phẳng + 1 vạch màu thương hiệu.
+- `sed` trong Git Bash ăn mất `\u` khi thay chuỗi properties -> sửa properties bằng công cụ Edit.
+
+## [2026-10-28] - Giao diện - Đợt 5: Chấm công, Nhân sự, Kho, Quản lý thực đơn
+### 1. File bị tác động
+- `web/WEB-INF/tags/attStatus.tag` (mới): dịch trạng thái chấm công lưu trong DB (On Time, Late, Left Early, Pending OT/Early Approval, Approved, Rejected, Working, Overtime) sang khóa properties có sẵn -> hết cảnh in thô chữ tiếng Anh. Dùng `<bx:attStatus value="..."/>`.
+- `web/attendance.jsp` (viết lại): thẻ "Ca hôm nay" (tên ca, giờ, trạng thái, nút Vào/Ra ca lớn), ô đồng hồ nền tối + giờ vào/ra trong ngày, 5 ô số liệu tháng, thời khóa biểu tuần dạng lưới ô bo góc (ô hôm nay viền cam), lịch sử dạng bảng. Bỏ emoji 📅⏱🗓🟢🔴🔒; bỏ chữ cứng " hrs", "(OT)" (thêm khóa `attendance.btn.checkout_ot`); bỏ thẻ `</body></html>` thừa ở cuối file. Giữ `#btnOpenOtModal`, `#serverClockDisplay`, form checkIn/checkOut.
+- `web/hr_management.jsp` (viết lại): khung giờ ca dạng thẻ + thẻ "Thêm ca" (giữ `#btnOpenCreateShift`); ma trận tuần dùng chung kiểu lưới với thời khóa biểu (ô trống có nút + "phân ca nhanh", ô đã phân có nút ×); yêu cầu chờ duyệt dạng thẻ (giờ vào/ra + trạng thái + lý do + 2 nút Duyệt/Từ chối); tên vai trò qua `role.*`. Bỏ toàn bộ emoji (👥🗓⏱📊🕒➕✏📋🔍⚡✅❌📅🗑🔒⚠).
+- `web/inventory_managerment.jsp` (viết lại): 3 ô số liệu (tổng / sắp hết / hết hàng - đếm bằng JSTL), ô tìm kiếm có icon, bảng gộp tên + mã + nhóm, cột tồn kho có thanh `<meter>` (đầy = 3 lần ngưỡng; xanh/vàng/đỏ theo low/high) - không cần CSS inline; nút thao tác dạng icon có `title`. Locale đủ 3 tầng (trước chỉ đọc cookie).
+- `web/menu_management.jsp` (viết lại): chip lọc nhóm (link GET `filterCategory`, thay ô select), lưới thẻ món ảnh vuông + nhãn Nổi bật + trạng thái bán/kho; món ngừng bán hiện ảnh xám. Giữ mọi `data-*` của nút `edit-product` và form `toggleStatus`.
+- `web/components/icons.jsp`: thêm `ico-search`, `ico-image`, `ico-folder`, `ico-menu`.
+- `messages_*.properties`: `attendance.btn.checkout_ot`, `inventory.stats.total`, `inventory.threshold.short`, `menu.mgmt.count`.
+- `web/css/global.css`: khối Đợt 5 (`.page-top`, `.panel-top`, `.seg`, `.week-grid`, `.week-slot`, `.att-*`, `.shift-card`, `.approval-*`, `.search-bar`, `.inv-meter`, `.icon-btn`, `.chip-row`, `.chip`, `.mm-*`). `web/css/theme.css`: `.table-responsive` cuộn ngang.
+### 2. Bài học
+- `.table-responsive` trước đây không có `overflow-x: auto` -> bảng rộng đẩy cả trang tràn ngang trên điện thoại.
+- Muốn vẽ thanh mức (tồn kho...) mà không viết `style="width:..%"` (cấm CSS inline): dùng thẻ `<meter>` với `min/max/low/high/optimum`.
+- `.admin-table th { text-align:left }` mạnh hơn `.text-right` -> cần `.admin-table th.text-right`.
+- Kiểm tra lỗi biên dịch JSP nhanh: đăng nhập bằng `curl -c cookie` rồi gọi từng Controller, tìm chữ "Exception" trong HTML.
+
+## [2026-10-28] - Giao diện - Đợt 6: Báo cáo ẩn danh, Admin, Điều phối, Shipper, Popup (hoàn tất bỏ emoji toàn dự án)
+### 1. File bị tác động
+- `web/report.jsp` (viết lại): 2 cột - form gửi (ô bằng chứng dạng khung kéo-thả bọc `#evidenceFiles`, giữ data-* cho main.js) + thẻ "cam kết ẩn danh" nền tối; gửi xong hiện thẻ mã ticket lớn; tra cứu dùng ô tìm kiếm + danh sách nhãn - giá trị.
+- `web/report_management.jsp` (viết lại): bộ lọc 1 hàng + danh sách ticket, cả dòng bấm được (tiêu đề, mã · loại · ngày, số file, nhãn trạng thái màu). Số đếm dùng khóa `report.management.count` (trước định viết cứng "ticket").
+- `web/report_detail.jsp` (viết lại): trái = thông tin + mô tả + file bằng chứng (nhãn đuôi file) + phản hồi; phải = khung xử lý. Sửa khoảng trắng thừa do `white-space: pre-wrap` giữ xuống dòng của mã JSP.
+- `web/admin_dashboard.jsp` (viết lại): 4 ô số liệu (tổng / hoạt động / bị khóa / mã chưa dùng - đếm JSTL), 3 tab chip, bảng tài khoản có ô chữ cái + @username. Tên vai trò trong ô chọn trước viết cứng "Manager/Staff/Shipper" -> `role.*`. Khóa mới `admin.stats.total_users`, `admin.stats.unused_keys`.
+- `web/dispatch_dashboard.jsp`, `web/shipper_dashboard.jsp` (viết lại): bảng -> thẻ đơn giao (`.dl-card`). Shipper xếp "Đơn của tôi" lên đầu, SĐT khách là link `tel:` bấm gọi được, nút phủ ngang. Điều phối có cột phải "Shipper đang hoạt động" với thanh mức bận `<meter>`.
+- `web/WEB-INF/tags/deliveryInfo.tag` (mới): khối khách / SĐT / địa chỉ + khu vực / tiền dùng chung cho 2 trang trên.
+- Popup: nút đóng ✖/✕ -> icon SVG `ico-x` (+ `aria-label` từ `option.close`); bỏ emoji 📢📍🚚📌🗓📁🔗⚠🔒 trong `broadcast_modal`, `delivery_orders_table`, `standard_orders_table`, `hr_shift_modal`, `product_form_modal`, `revert_delivery_modal`; ô nhập trong `.modal-body` cùng kiểu chung. `language_switcher.jsp`: bỏ cờ emoji, nút hiện "VI"/"EN".
+- `web/js/main.js`: popup cảnh báo kho trước sinh chữ cứng "⚠️ Active" -> đọc `data-status-active` (khóa mới `alert.status.active`); bỏ ✔️; nút xóa dòng công thức dùng icon SVG. `inventory_alert_modal.jsp`: locale đủ 3 tầng.
+- Kết quả: `grep` không còn emoji nào trong `web/*.jsp`, `web/components/*.jsp`, `main.js`.
+### 2. Bài học
+- **Trang lỗi giữa chừng vẫn trả 200:** `DeliveryService` trả `totalAmount` là chuỗi đã định dạng ("50,000") -> `fmt:formatNumber` ném lỗi sau khi response đã gửi một phần, trang bị cắt mất phần dưới (mất nút) mà HTTP vẫn 200 và log không có chữ "Exception" trong HTML. Kiểm tra trang phải xem có đủ thẻ `</html>` ở cuối, không chỉ mã 200.
+- Trong tag file, kiểm tra kiểu giá trị bằng `${amount['class'].simpleName == 'String'}`.
+- `white-space: pre-wrap` + `c:choose` nhiều dòng bên trong -> in cả xuống dòng của mã; đặt `pre-wrap` chỉ quanh `c:out`.
+
+## [2026-10-28] - HOÀN TÁC GIAO DIỆN: giữ chức năng menu online, bỏ toàn bộ giao diện mới
+> **Lưu ý cho leader:** Các mục "Giao diện ... Giai đoạn 1" và "Đợt 1 → Đợt 6" ở trên **không còn hiệu lực**. Người dùng đánh giá bản giao diện mới vẫn bám bố cục AI tạm của bản cũ nên không đạt; yêu cầu "để lại mỗi chức năng, còn lại giao diện bỏ hết".
+### 1. Đã làm
+- Lưu toàn bộ bản trước khi hoàn tác vào nhánh **local** `backup/ui-redesign-2026-10-28` (commit `2fff9e8`, chưa push) - cần lấy lại phần nào thì `git show backup/ui-redesign-2026-10-28:<đường dẫn>`.
+- `git checkout HEAD -- web/` rồi xóa file chỉ phục vụ giao diện: `css/theme.css`, `css/order.css`, `components/icons.jsp`, `components/customer_head.jsp`, `WEB-INF/tags/attStatus.tag`, `WEB-INF/tags/deliveryInfo.tag`.
+- Gắn lại **chỉ phần chức năng** vào giao diện cũ (diff so với commit: thêm 600 dòng, chỉ sửa 15 dòng):
+  + `menu.jsp`: thanh lọc nhóm + "Bán chạy", nhãn "Nổi bật", thẻ món có `data-*` + nút mở popup chọn món (thay form thêm thẳng), giỏ hàng dùng `lineKey`, hiện tùy chọn dưới tên món (giỏ + đơn của bàn), include `product_option_modal.jsp`, `data-open-checkout` trên `<body>`.
+  + `menu_management.jsp`: nút "Size & Topping", `data-desc/video/featured/has-options` trên nút Sửa, include `menu_option_modal.jsp`.
+  + `product_form_modal.jsp`: ô Mô tả, Link video, tick Nổi bật / Có tùy chọn.
+  + `order_confirm_modal.jsp`, `standard_orders_table.jsp`, `delivery_orders_table.jsp`: dòng `<bx:itemOptions>`.
+  + `main.js`: chỉ thêm (lọc nhóm, mở popup, tính tiền, +/- số lượng, mua ngay, mở Size & Topping, điền trường hiển thị khi sửa món). Không còn đoạn nào của giao diện mới.
+  + `global.css`: chỉ thêm khối CSS tối thiểu cho các phần trên, dùng biến màu cũ (`--color-primary`, `--bg-secondary`...).
+- Giữ nguyên toàn bộ backend (Java, DB, migration) của chức năng menu online.
+- `messages_*.properties`: trả `footer.copyright` về câu gốc; xóa khóa chỉ dùng cho giao diện mới (`role.*`, `theme.toggle.title`, `sidebar.brand*`, `menu.hero.question`, `menu.counter.subtitle`, `menu.table_label`, `menu.empty_list`, `menu.categories.title`, `attendance.btn.checkout_ot`, `inventory.stats.total`, `inventory.threshold.short`, `menu.mgmt.count`, `report.management.count`, `admin.stats.*`, `alert.status.active`). Giữ sửa lỗi chính tả `header.title` bản en.
+### 2. Các sửa lỗi có từ trước đã làm trong lúc làm giao diện nay cũng bị bỏ theo (còn trong nhánh dự phòng, nên làm lại riêng nếu cần)
+- XSS: `login.jsp`, `register.jsp`, `settings.jsp` in thô `${param...}`; `index.jsp` in thô nội dung thông báo.
+- `settings.jsp` in lại mật khẩu cũ/mới vào ô sau khi gửi lỗi.
+- `hr_management.jsp`, `admin_dashboard.jsp`, `register.jsp` tự mở thêm khung `<html>` (trang Nhân sự mất class của body), `attendance.jsp` thừa `</body></html>`.
+- Chữ cứng tiếng Anh: trạng thái chấm công "On Time/Late" in thô, " hrs", "(OT)", tên vai trò ở login/admin, trạng thái trong ô chọn đơn giao hàng, "⚠️ Active" trong popup cảnh báo kho.
+- Locale chỉ đọc cookie ở `inventory_managerment.jsp`, `register.jsp`, `footer.jsp`, `inventory_alert_modal.jsp`.
+### 3. Bài học
+- Trước khi bỏ một khối lớn thay đổi chưa commit: tạo nhánh dự phòng bằng index tạm (`GIT_INDEX_FILE=... git read-tree HEAD; git add; git write-tree; git commit-tree; git branch`) - không đụng thư mục làm việc và index thật.
+- **Công cụ Edit có thể ghi `\uXXXX` thành ký tự thật** khi sửa file properties -> sau khi sửa phải kiểm `grep -P '[^\x00-\x7F]'`; muốn chép dòng gốc thì lấy từ `git show HEAD:<file>` và chèn bằng `sed -e 'Nr file' -e 'Nd'`. `sed`/`awk` thay chuỗi cũng làm mất dấu `\`.
+
+## [2026-10-28] - Bố cục nghiệp vụ mới - Lượt 1 (bản cơ bản): khung H, trang chủ E, Kanban đơn A, POS quầy C
+> Hướng mới sau khi hoàn tác giao diện: làm lại **bố cục** theo cách người dùng làm việc (không giữ chỗ đặt ô của bản cũ rồi tô màu). Người dùng chọn bộ khung đề xuất: H (khung phân hệ), E (việc cần làm), A (Kanban), B (danh sách + chi tiết), C (POS 3 vùng), D (lịch nguồn lực), F (khu vực + hàng chờ), G (điện thoại 1 việc 1 màn). Lượt 1 làm H, E, A, C ở mức cơ bản, màu trung tính (biến cũ của global.css).
+### 1. File bị tác động
+- `web/header.jsp` (viết lại): thanh trên = logo + tab phân hệ (Tổng quan / Bán hàng / Vận hành / Nhân sự / Quản trị, ẩn theo vai trò) + công cụ cũ; cột trái `#menuDoc.subnav` = menu con của phân hệ đang mở (phân hệ suy ra từ `navPath`). Giữ mọi id JS cũ (btnHamburger, menuDoc, btnDongMenuDoc, btnAvatar, menuTaiKhoan, chuông, cảnh báo, phát loa). Locale đủ 3 tầng. Thêm thẻ viewport.
+- `web/css/layout.css` (mới): CSS cho H/E/A/C; màn >= 1024px dùng CSS grid trên `body.has-shell` (topbar trên, menu con trái, `main` + footer phải) nên **không phải sửa footer.jsp**.
+- `web/index.jsp` (trang chủ đã đăng nhập): hàng số liệu + "Việc cần xử lý" (mỗi dòng: số, mô tả, nút làm ngay - duyệt chấm công, cảnh báo kho, vào ca, đơn giao, quản trị tài khoản, thông báo chưa đọc) + "Hoạt động gần đây" (nội dung thông báo in bằng `c:out`). Phần khách giữ nguyên.
+- `web/order_management.jsp` (viết lại) + `web/WEB-INF/tags/orderCard.tag` (mới): 5 cột Mới nhận / Đang pha chế / Giao hàng / Hoàn tất / Hủy-hoàn. Thẻ đơn có nút bước tiếp theo (Accepted -> Prepared; Prepared -> Paid hoặc Waiting for dispatch) + Hủy. Lọc loại đơn làm ở trình duyệt.
+- `web/menu.jsp` chỉ còn chọn màn: nhân viên -> `components/pos_counter.jsp` (mới, POS 3 vùng: nhóm dọc | lưới món | hóa đơn luôn hiện), khách -> `components/menu_customer.jsp` (màn khách cũ, sẽ làm lại theo G). Lưới món và thanh nhóm tách thành `components/menu_grid.jsp`, `components/menu_cats.jsp` dùng chung.
+- `web/js/main.js`: `handleStaffStatusSubmit` đọc `[name='newStatus']` (ô chọn hoặc ô ẩn); thêm `filterKanbanByType`.
+- `hr_management.jsp`, `admin_dashboard.jsp`, `register.jsp`: bỏ khung `<html>` tự mở (bắt buộc, nếu không `body.has-shell` bị mất); `attendance.jsp` bỏ `</body></html>` thừa.
+- `messages_*.properties`: khóa `app.brand`, `nav.*`, `home.todo.*`, `home.activity.title`, `order.kanban.*`, `pos.ticket.*` (vi tạo bằng trình chuyển `Esc` -> `\uXXXX`).
+### 2. Còn lại (lượt 2)
+- B (danh sách + chi tiết) cho Báo cáo / Kho / Nhân viên; D (lịch nguồn lực kéo thả) cho Phân ca; F (khu vực + hàng chờ) cho Điều phối; G (1 việc 1 màn) cho Shipper và màn khách QR. Các trang này hiện mới có khung H, nội dung vẫn bố cục cũ.
+### 3. Bài học
+- `jsp:include` từ file trong `components/` phải dùng đường dẫn tuyệt đối (`/components/...`), đường dẫn tương đối tính theo thư mục của file đang include.
+- Kiểm tra bằng curl ngay sau khi touch `web.xml`: ứng dụng có thể nạp lại trễ làm mất phiên giữa chừng -> chờ vài giây rồi đăng nhập lại trước khi kết luận lỗi.
+
+## [2026-10-28] - Bố cục nghiệp vụ mới - Lượt 2 (bản cơ bản): B, D, F, G
+### 1. File bị tác động
+- **B - Danh sách + chi tiết**
+  + `ReportManagementController.java`: tách `loadList()` (nạp danh sách + bộ lọc) dùng cho cả màn danh sách và màn chi tiết; chi tiết giờ forward về `report_management.jsp` (vẫn chỉ gọi service).
+  + `report_management.jsp` (viết lại): trái = lọc (tự gửi khi đổi) + danh sách ticket (giữ bộ lọc khi bấm sang ticket khác, dòng đang mở được tô); phải = `components/report_detail_panel.jsp` (mới, lấy từ nội dung `report_detail.jsp` cũ - file này đã xóa) hoặc lời nhắc chọn ticket.
+  + `inventory_managerment.jsp` (viết lại): trái = tìm kiếm + danh sách nguyên liệu (nút `data-action="pick-ingredient"` mang data-*); phải = khung chi tiết + Sửa / Cập nhật ngưỡng / Xóa. `main.js` `pickIngredient()` chép data-* sang khung chi tiết và sang 2 nút dùng lại handler cũ (`edit-ingredient`, `open-threshold`). Locale đủ 3 tầng.
+- **D - Lịch nguồn lực**: `hr_management.jsp` tab Phân ca xếp lại - ma trận nhân viên x ngày lên đầu (`.shift-calendar`), "Khung giờ ca" + "Phân ca theo ngày" xếp cạnh nhau bên dưới (`.shift-side`). Chưa có kéo thả (bản cơ bản dùng nút + ở ô trống như cũ).
+- **F - Khu vực + hàng chờ**: `dispatch_dashboard.jsp` (viết lại) - đơn chờ gán gom thành cột theo `areaName` (danh sách khu vực không trùng dựng bằng chuỗi `|A|B|` + `c:forTokens`), chọn shipper ngay trên thẻ; cột phải = tải từng shipper (`<meter>`) + đơn đã gán chờ shipper nhận (thu hồi). Chưa có kéo thả.
+- **G - Điện thoại**: `shipper_dashboard.jsp` (viết lại) - thẻ "Đang giao" (đơn chưa đóng đầu tiên: gọi khách `tel:`, Hoàn thành / Hoàn đơn) + 3 nhóm đơn + `.bottom-nav` dưới đáy (chỉ hiện <= 768px). Màn khách QR (`components/menu_customer.jsp`): thêm viewport + `layout.css`, class `qr-page`; trên điện thoại tab Thực đơn / Giỏ hàng / Đơn của bàn thành thanh đáy, lưới món 2 cột, ẩn nút giỏ nổi.
+- `web/css/layout.css`: khối B (`.md-*`), D (`.shift-calendar`, `.shift-side`), F (`.dispatch-board`, `.area-columns`, `.shipper-load`), G (`.ship-*`, `.bottom-nav`, `.qr-page`).
+- `messages_*.properties`: `md.pick.*`, `dispatch.area.none`, `ship.focus.*`, `ship.nav.*`.
+### 2. Chưa kiểm tra được bằng mắt
+- Cột theo khu vực ở Điều phối: DB hiện không có đơn giao nào đang chờ gán (chỉ kiểm tra trang chạy không lỗi).
+### 3. Bài học
+- Class tiện ích `w-100` = `width:100%`: trong bảng `table-layout: fixed` nó chiếm hết bề ngang, các cột khác bị ép về 0 -> phải đặt lại độ rộng cột cụ thể.
+- `git rm --cached` sẽ đưa thay đổi vào staging; khi chưa được yêu cầu commit thì chỉ xóa file ở thư mục làm việc (hoặc `git reset HEAD -- <file>` để bỏ staging).
+
+## [2026-10-28] - Giao diện mẫu E "Kraft + cam đất" + bộ icon Uicons + logo Bingxue
+### 1. File bị tác động
+- `web/css/layout.css`: khối theme E ở đầu file - biến `--kraft-*` (kraft nhạt hơn bản demo 1 bậc, nhấn cam đất `#B04B21`), ánh xạ lại biến màu cũ của `global.css` (`--bg-primary`, `--color-primary`...) để trang cũ đổi theo, chế độ tối `body.dark-theme`, font Be Vietnam Pro (nội dung) + Lora (tiêu đề), bo góc 2px. Cuối file: kiểu cho nút icon, icon menu con, `.qr-brand`, `.qr-credit`.
+- `web/header.jsp`: nạp Google Fonts + Uicons CDN + favicon; logo = `.brand-mark` (cắt phần gấu từ ảnh logo vuông) + chữ Bingxue; emoji ☰ 📢 ⚠️ 🔔 ✖ -> `fi-rr-menu-burger / megaphone / triangle-warning / bell / cross`; mỗi mục menu con có 1 icon.
+- Quét emoji ở trang cũ: icon trang trí trước tiêu đề/tab (📅 🗓️ 👥 📊 🔍 ⏱️ ...) **bỏ hẳn**; chỉ giữ icon có nghĩa: khóa (`fi-rr-lock`), thêm (`plus`), xóa (`trash`), duyệt/từ chối (`check-circle`/`cross-circle`), cảnh báo, giỏ hàng, nút đóng (`cross-small`), ảnh món mặc định (`mug-hot`), vào/ra ca (`sign-in-alt`/`sign-out-alt`).
+- `components/theme_toggle.jsp`: bỏ chữ cứng "Sáng/Tối" -> khóa `theme.toggle.title`; icon `fi-rr-moon` / `fi-rr-sun` (main.js đổi innerHTML).
+- `components/language_switcher.jsp`: bỏ cờ emoji -> `fi-rr-globe` + VI/EN.
+- `NotificationService.java`: trường `icon` trả về **tên icon Uicons** (`bell`, `megaphone`, `calendar`, `clock`, `triangle-warning`, `moped`) thay vì emoji; `main.js` dựng `<i class="fi fi-rr-...">`.
+- `footer.jsp`: locale đủ 3 tầng; thêm dòng ghi công "Uicons by Flaticon" (bắt buộc theo giấy phép miễn phí) - khóa `footer.icons.credit`. Màn QR có dòng ghi công riêng (`.qr-credit`).
+- `components/menu_customer.jsp`: font, Uicons, favicon, logo cạnh tên bàn; tên bàn in qua `c:out`.
+### 2. Phụ thuộc bên ngoài (cần leader biết)
+- Logo + favicon đã tải từ `bingxuevietnam.com/wp-content/uploads/2025/07/` và lưu trong dự án: `web/images/brand/bingxue-logo.png` (500x500, nền trong) và `bingxue-favicon-32.png`. Không còn phụ thuộc web hãng.
+- Uicons qua CDN `cdn-uicons.flaticon.com/4.0.0` (kiểu Regular Rounded `fi-rr-*`). Thêm icon mới: tra tên ở flaticon.com/uicons, dùng `<i class="fi fi-rr-TEN" aria-hidden="true"></i>`, không dùng emoji.
+### 3. Bài học
+- Không sửa file có tiếng Việt/emoji bằng perl/sed (dễ vỡ mã UTF-8 thành "Ã¡..."). Dùng công cụ Edit, hoặc chương trình Java đọc/ghi UTF-8 thay chuỗi nguyên văn.
+
+## [2026-10-28] - Đổi phong cách: sáng = mẫu C "Trắng + nét cam", tối = mẫu D "Nền tối + cam" (thay mẫu E)
+### 1. File bị tác động
+- `web/css/layout.css`: khối theme đầu file viết lại. Biến đổi tên `--kraft-*` -> `--bx-*` (trung tính, không gắn với 1 mẫu). Thêm biến cho nút/tab: `--bx-btn-bg/-ink/-line/-hover`, `--bx-tab-on-bg/-ink`.
+  + Sáng (C): nền trắng, chữ `#1F1F1F`, nút chính = **viền cam, nền trắng, chữ cam** `#B8461C`; tab đang chọn nền cam nhạt `#FFF1EA`.
+  + Tối (D, `body.dark-theme`): nền `#16130F`, chữ trắng ngà `#F2EAE2`, nút tô cam `#FF7A45` chữ tối `#1A120C`.
+  + Bỏ font Lora (C/D dùng chữ không chân) -> header.jsp, menu_customer.jsp chỉ nạp Be Vietnam Pro.
+  + Bo góc 4px.
+- Chữ đen trong chế độ tối: `button/input/select/textarea` không tự kế thừa màu chữ và có nền xám mặc định của trình duyệt -> ép `color` + `background-color` theo biến theme. Các rule cũ trong global.css "nền màu nhấn + chữ #fff" (`.menu-cat.active`, `.btn-update`, `.btn-option-buy`, `.badge-table`, `.badge-featured`...) được ghi đè theo cặp màu của theme.
+- Logo: bỏ khung + nền của `.brand-mark` (ảnh PNG vốn đã trong suốt; "nền trắng" là khung CSS).
+- Thẻ món: `.product-card` thành flex dọc, giá `margin-top:auto` -> giá + nút "Thêm vào giỏ" thẳng hàng dù tên món dài 1 hay 3 dòng.
+### 2. Cách kiểm tra đã dùng
+- Script trong trình duyệt quét mọi chữ đang hiện, tính tỉ lệ tương phản chữ/nền (< 3 là lỗi) cho từng trang ở cả 2 chế độ (Manager + Staff). Kết quả: 0 lỗi sau khi sửa.
+
+## [2026-10-28] - Thanh trên + cột menu trái tô cam tươi
+### 1. File bị tác động
+- `web/css/layout.css`:
+  + Màu nhấn tươi hơn: `--bx-acc #F26B2A`, chữ cam `--bx-acc-dark #C2410C`, nền cam nhạt `#FFF0E6`.
+  + Biến mới `--bx-bar-*` cho thanh trên và cột menu trái. Sáng: nền cam `#EB6324`, chữ trắng, mục đang chọn = ô trắng chữ cam. Tối (mẫu D): nền `#1E1A15`, mục đang chọn tô cam chữ tối.
+  + Khối cuối file đặt màu cho từng phần tử trên thanh (chữ thương hiệu, tab phân hệ, nút ngôn ngữ/chuông/cảnh báo, avatar, link menu con). **Không** đặt `color` cho cả `.topbar` để các dropdown (ngôn ngữ, tài khoản, thông báo) giữ màu chữ của chúng.
+  + Logo trên thanh cam đặt trong nền tròn trắng (logo cũng màu cam, để trong suốt thì chìm mất).
+### 2. Lưu ý
+- Chữ trắng trên cam tươi có tương phản ~3.3:1: đạt cho chữ đậm/cỡ lớn, chưa đạt 4.5:1 cho chữ thường. Nếu cần đạt chuẩn chặt hơn thì chỉ cần đổi `--bx-bar-bg` sang cam đậm hơn (vd. `#C2410C`).
+
+## [2026-10-28] - Chuyển sang mẫu G "Cột trái cam" (thay thanh trên cam)
+- `web/css/layout.css`: chế độ sáng theo mẫu G - nền trắng ấm `#FAF7F4`, chữ nâu đậm `#2B1A10`, nhấn `#C4501E`; **thanh trên nền trắng** (chữ thương hiệu cam, tab đang chọn = ô nâu đậm chữ trắng) dùng biến mới `--bx-top-*`; **cột trái cam đặc** `#B8461C` (mục đang chọn = ô trắng chữ cam) dùng `--bx-bar-*`; nút chính tô cam chữ trắng (không còn viền như mẫu C); số đếm cột Kanban là chấm cam đặc.
+- Chế độ tối vẫn là mẫu D (đã đặt đủ cả `--bx-top-*` và `--bx-bar-*`).
+- Đã quét tương phản chữ/nền 7 trang Manager ở cả 2 chế độ: 0 lỗi.
+
+## [2026-10-28] - Áp giao diện cho toàn hệ thống (đăng nhập, đăng ký, hồ sơ, cài đặt, khách)
+- `login.jsp`, `register.jsp`: thẻ giữa trang `.auth-card` (logo Bingxue trên cùng, ô nhập full ngang, nút cam, link đổi qua lại dưới thẻ). Form dùng class `form-card` (nhãn trên ô nhập, ẩn `<br>` cũ bằng CSS).
+- `profile.jsp`: 2 thẻ `.panel` (ảnh đại diện + bảng thông tin dòng kẻ mảnh, không dùng ô icon); avatar chữ cái nền cam.
+- `settings.jsp`: cột tab trái + thẻ form; `delivery_unauthorized.jsp` dùng `.unauthorized-message` dạng thẻ.
+- `index.jsp` (khách): thẻ hero có logo.
+- `layout.css` cuối file: kiểu chung cho ô nhập/focus, nút submit, `.msg-error/.msg-success/.alert-*`, và ghi đè các màu xanh cũ không phải trạng thái (`.btn-image-tab`, `.dashboard-avatar`...). Nhãn trạng thái (badge xanh/vàng/đỏ) giữ nguyên vì mang nghĩa.
+- Đã quét tương phản 9 trang ở cả 2 chế độ: 0 lỗi. Không đổi Java/properties.

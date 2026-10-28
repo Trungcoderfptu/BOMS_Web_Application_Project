@@ -13,7 +13,7 @@
 <c:if test="${totalCartQuantity > 0 or not empty CURRENT_TABLE}">
     <button type="button" id="btnFloatingCart" data-tab="tab-cart" class="floating-cart">
         <div class="cart-icon">
-            🛒
+            <i class="fi fi-rr-shopping-cart" aria-hidden="true"></i>
             <c:if test="${totalCartQuantity > 0}">
                 <span class="cart-badge">${totalCartQuantity}</span>
             </c:if>

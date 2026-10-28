@@ -78,6 +78,12 @@ public class ReportManagementController extends HttpServlet {
 
     private void showList(HttpServletRequest request, HttpServletResponse response, Map<String, String> userSession)
             throws ServletException, IOException {
+        loadList(request, userSession);
+        request.getRequestDispatcher("report_management.jsp").forward(request, response);
+    }
+
+    // Nạp danh sách + bộ lọc: dùng cho cả màn danh sách và màn chi tiết (bố cục danh sách + chi tiết trên cùng 1 trang)
+    private void loadList(HttpServletRequest request, Map<String, String> userSession) {
         String filterStatus = defaultIfEmpty(request.getParameter("filterStatus"), Constants.REPORT_STATUS_PENDING);
         String filterDate = defaultIfEmpty(request.getParameter("filterDate"), "");
         String filterCategory = defaultIfEmpty(request.getParameter("filterCategory"), "");
@@ -90,14 +96,14 @@ public class ReportManagementController extends HttpServlet {
         request.setAttribute("CURRENT_FILTER_STATUS", filterStatus);
         request.setAttribute("CURRENT_FILTER_DATE", filterDate);
         request.setAttribute("CURRENT_FILTER_CATEGORY", filterCategory);
-        request.getRequestDispatcher("report_management.jsp").forward(request, response);
     }
 
     private void showDetail(HttpServletRequest request, HttpServletResponse response, HttpSession session,
             String reportId, Map<String, String> userSession) throws ServletException, IOException {
         try {
             request.setAttribute("REPORT_DETAIL", reportService.getReportDetailForView(reportId, userSession));
-            request.getRequestDispatcher("report_detail.jsp").forward(request, response);
+            loadList(request, userSession);
+            request.getRequestDispatcher("report_management.jsp").forward(request, response);
         } catch (ValidationException e) {
             session.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
             response.sendRedirect(request.getContextPath() + "/ReportManagementController");

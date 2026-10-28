@@ -724,3 +724,11 @@
 
 
 
+
+## 🍹 GIAO DIỆN & CHỨC NĂNG THỰC ĐƠN KIỂU MENUONLINE (Nhánh `DuongCoderSuperPromtAI`)
+- [ ] **Task 29.1: [HOÀN TÁC 2026-10-28] Giao diện mới (Giai đoạn 1 + Đợt 1-6)** - người dùng không duyệt, đã bỏ toàn bộ phần giao diện, chỉ giữ chức năng. Bản giao diện cũ lưu ở nhánh local `backup/ui-redesign-2026-10-28`.
+- [x] **Task 29.2: [DONE] Nhóm món + Bán chạy + Nổi bật** - sidebar danh mục, nhóm "Bán chạy" (TOP 6 theo số lượng bán), cờ `IsFeatured`.
+- [x] **Task 29.3: [DONE] Popup tùy chọn món** - ảnh phóng to, mô tả, video, Size (bắt buộc), Đá, Đường, Topping, ghi chú, số lượng, Thêm giỏ / Thanh toán ngay.
+- [x] **Task 29.4: [DONE] Quản lý Size & Topping** - Manager/Admin CRUD, Staff chỉ xem.
+- [x] **Task 29.5: [DONE] Lưu tùy chọn vào đơn** - `OrderDetails` khóa chính mới `OrderDetailID`, hiển thị tùy chọn ở Quản lý đơn.
+- [ ] **Lưu ý cho team:** chạy `DATABASE/migration_menu_options.sql` 1 lần trong SSMS trước khi chạy code mới. Chưa trừ kho theo size/topping.

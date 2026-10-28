@@ -5,13 +5,19 @@
 package service;
 
 import dao.IngredientDAO;
+import dao.MenuOptionDAO;
 import dao.OrderDAO;
 import dao.ProductDAO;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import model.Ingredient;
+import model.MenuSize;
+import model.MenuTopping;
 import model.Order;
 import model.OrderDetail;
 import model.Product;
@@ -25,20 +31,36 @@ public class CartService {
     private ProductDAO productDAO;
     private OrderDAO orderDAO;
     private IngredientDAO ingredientDAO;
+    private MenuOptionDAO menuOptionDAO;
 
     public CartService() {
         this.productDAO = new ProductDAO();
         this.orderDAO = new OrderDAO();
         this.ingredientDAO = new IngredientDAO();
+        this.menuOptionDAO = new MenuOptionDAO();
     }
 
     // ==========================================
     // ========== 1. MAIN SERVICE (FACADE) ======
     // ==========================================
+    /**
+     * Thêm nhanh 1 phần với tuỳ chọn mặc định (size đầu tiên, 100% đá, 100% đường, không topping).
+     */
     public Object addProductToCart(Object sessionCart, int productId) throws ValidationException {
+        return addProductToCart(sessionCart, productId, "1", null, null, null, null, null);
+    }
+
+    /**
+     * Thêm món kèm tuỳ chọn từ popup chi tiết món (size, đá, đường, topping, ghi chú, số lượng).
+     * Cùng món + cùng tuỳ chọn thì cộng dồn số lượng; khác tuỳ chọn thì tách thành dòng mới.
+     */
+    public Object addProductToCart(Object sessionCart, int productId, String quantityStr, String sizeIdStr,
+            String iceLevel, String sugarLevel, String[] toppingIdStrs, String note) throws ValidationException {
         Product product = validateAndGetProduct(productId);
+        int quantity = validateQuantity(quantityStr);
+        OrderDetail newLine = buildCartLine(product, quantity, sizeIdStr, iceLevel, sugarLevel, toppingIdStrs, note);
         Order cart = getOrCreateCart(sessionCart);
-        addItemToCart(cart, product);
+        mergeOrAddLine(cart, newLine);
         recalculateTotal(cart);
         return cart;
     }
@@ -54,16 +76,22 @@ public class CartService {
         return generatedOrderId;
     }
 
-    public Object updateItemQuantity(Object sessionCart, int productId, int newQuantity) throws ValidationException {
+    /**
+     * Cập nhật số lượng 1 dòng giỏ hàng (xác định bằng lineKey). Số lượng <= 0 thì xóa dòng.
+     */
+    public Object updateItemQuantity(Object sessionCart, String lineKey, int newQuantity) throws ValidationException {
         Order cart = validateAndGetCart(sessionCart);
-        updateQuantityOrRemove(cart, productId, newQuantity);
+        if (newQuantity > Constants.MAX_ITEM_QUANTITY) {
+            throw new ValidationException(Constants.ERROR_INVALID_ITEM_QUANTITY);
+        }
+        updateQuantityOrRemove(cart, lineKey, newQuantity);
         recalculateTotal(cart);
         return cart;
     }
 
-    public Object removeItemFromCart(Object sessionCart, int productId) throws ValidationException {
+    public Object removeItemFromCart(Object sessionCart, String lineKey) throws ValidationException {
         Order cart = validateAndGetCart(sessionCart);
-        removeItemByProductId(cart, productId);
+        removeItemByLineKey(cart, lineKey);
         recalculateTotal(cart);
         return cart;
     }
@@ -83,23 +111,23 @@ public class CartService {
         return new Order();
     }
 
-    private void updateQuantityOrRemove(Order cart, int productId, int newQuantity) {
+    private void updateQuantityOrRemove(Order cart, String lineKey, int newQuantity) {
         if (newQuantity <= 0) {
-            removeItemByProductId(cart, productId);
+            removeItemByLineKey(cart, lineKey);
         } else {
-            setItemQuantity(cart, productId, newQuantity);
+            setItemQuantity(cart, lineKey, newQuantity);
         }
     }
 
-    private void setItemQuantity(Order cart, int productId, int newQuantity) {
-        OrderDetail item = findItemInCart(cart, productId);
+    private void setItemQuantity(Order cart, String lineKey, int newQuantity) {
+        OrderDetail item = findItemByLineKey(cart, lineKey);
         if (item != null) {
             item.setQuantity(newQuantity);
         }
     }
 
-    private void removeItemByProductId(Order cart, int productId) {
-        cart.getOrderDetails().removeIf(item -> item.getProductId() == productId);
+    private void removeItemByLineKey(Order cart, String lineKey) {
+        cart.getOrderDetails().removeIf(item -> item.getLineKey() != null && item.getLineKey().equals(lineKey));
     }
 
     private void clearCartDetails(Order cart) {
@@ -107,28 +135,157 @@ public class CartService {
         cart.setTotalAmount(0);
     }
 
-    private void addItemToCart(Order cart, Product product) {
-        OrderDetail existingItem = findItemInCart(cart, product.getProductId());
-        if (existingItem != null) {
-            existingItem.setQuantity(existingItem.getQuantity() + 1);
-        } else {
-            cart.getOrderDetails().add(createNewOrderDetail(product));
+    private void mergeOrAddLine(Order cart, OrderDetail newLine) throws ValidationException {
+        OrderDetail existing = findItemByLineKey(cart, newLine.getLineKey());
+        if (existing == null) {
+            cart.getOrderDetails().add(newLine);
+            return;
         }
+        int merged = existing.getQuantity() + newLine.getQuantity();
+        if (merged > Constants.MAX_ITEM_QUANTITY) {
+            throw new ValidationException(Constants.ERROR_INVALID_ITEM_QUANTITY);
+        }
+        existing.setQuantity(merged);
     }
 
-    private OrderDetail findItemInCart(Order cart, int productId) {
+    private OrderDetail findItemByLineKey(Order cart, String lineKey) {
+        if (lineKey == null) {
+            return null;
+        }
         for (OrderDetail item : cart.getOrderDetails()) {
-            if (item.getProductId() == productId) {
+            if (lineKey.equals(item.getLineKey())) {
                 return item;
             }
         }
         return null;
     }
 
-    private OrderDetail createNewOrderDetail(Product product) {
-        OrderDetail newItem = new OrderDetail(0, product.getProductId(), 1, product.getPrice());
-        newItem.setProduct(product);
-        return newItem;
+    // ==========================================
+    // ========== 2b. TUỲ CHỌN MÓN (SIZE/ĐÁ/ĐƯỜNG/TOPPING/GHI CHÚ)
+    // ==========================================
+    /**
+     * Dựng 1 dòng giỏ hàng: đơn giá = giá món + tiền size + tổng giá topping.
+     * Món không có tuỳ chọn (HasOptions = 0, ví dụ kem) chỉ nhận ghi chú.
+     */
+    private OrderDetail buildCartLine(Product product, int quantity, String sizeIdStr, String iceLevel,
+            String sugarLevel, String[] toppingIdStrs, String note) throws ValidationException {
+        OrderDetail line = new OrderDetail(0, product.getProductId(), quantity, product.getPrice());
+        line.setProduct(product);
+        String sizeKey = "";
+        String toppingKey = "";
+        if (product.isHasOptions()) {
+            MenuSize size = resolveSize(sizeIdStr);
+            if (size != null) {
+                line.setSizeName(size.getSizeName());
+                line.setUnitPrice(line.getUnitPrice() + size.getExtraPrice());
+                sizeKey = String.valueOf(size.getSizeId());
+            }
+            line.setIceLevel(resolveLevel(iceLevel, Constants.ICE_LEVELS, Constants.DEFAULT_ICE_LEVEL, Constants.ERROR_INVALID_ICE_LEVEL));
+            line.setSugarLevel(resolveLevel(sugarLevel, Constants.SUGAR_LEVELS, Constants.DEFAULT_SUGAR_LEVEL, Constants.ERROR_INVALID_SUGAR_LEVEL));
+            List<MenuTopping> toppings = resolveToppings(toppingIdStrs);
+            applyToppings(line, toppings);
+            toppingKey = buildToppingKey(toppings);
+        }
+        line.setNote(validateNote(note));
+        line.setLineKey(product.getProductId() + "|" + sizeKey + "|" + nullToEmpty(line.getIceLevel()) + "|"
+                + nullToEmpty(line.getSugarLevel()) + "|" + toppingKey + "|" + nullToEmpty(line.getNote()));
+        return line;
+    }
+
+    /**
+     * Size bắt buộc chọn nếu cửa hàng đang bán theo size. Không gửi size thì lấy size đầu tiên (thêm nhanh).
+     */
+    private MenuSize resolveSize(String sizeIdStr) throws ValidationException {
+        List<MenuSize> activeSizes = menuOptionDAO.getSizes(true);
+        if (activeSizes.isEmpty()) {
+            return null;
+        }
+        if (sizeIdStr == null || sizeIdStr.trim().isEmpty()) {
+            return activeSizes.get(0);
+        }
+        int sizeId = Validator.checkInteger(sizeIdStr, Constants.ERROR_INVALID_MENU_SIZE);
+        for (MenuSize s : activeSizes) {
+            if (s.getSizeId() == sizeId) {
+                return s;
+            }
+        }
+        throw new ValidationException(Constants.ERROR_INVALID_MENU_SIZE);
+    }
+
+    private String resolveLevel(String level, String[] allowed, String defaultLevel, String errorCode) throws ValidationException {
+        if (level == null || level.trim().isEmpty()) {
+            return defaultLevel;
+        }
+        for (String a : allowed) {
+            if (a.equals(level.trim())) {
+                return a;
+            }
+        }
+        throw new ValidationException(errorCode);
+    }
+
+    private List<MenuTopping> resolveToppings(String[] toppingIdStrs) throws ValidationException {
+        List<MenuTopping> result = new ArrayList<>();
+        if (toppingIdStrs == null) {
+            return result;
+        }
+        Set<Integer> seen = new TreeSet<>();
+        for (String idStr : toppingIdStrs) {
+            seen.add(Validator.checkInteger(idStr, Constants.ERROR_INVALID_MENU_TOPPING));
+        }
+        for (Integer toppingId : seen) {
+            MenuTopping topping = menuOptionDAO.getToppingById(toppingId);
+            if (topping == null || !topping.isActive()) {
+                throw new ValidationException(Constants.ERROR_INVALID_MENU_TOPPING);
+            }
+            result.add(topping);
+        }
+        return result;
+    }
+
+    private void applyToppings(OrderDetail line, List<MenuTopping> toppings) {
+        if (toppings.isEmpty()) {
+            return;
+        }
+        List<String> names = new ArrayList<>();
+        double toppingTotal = 0;
+        for (MenuTopping t : toppings) {
+            names.add(t.getToppingName());
+            toppingTotal += t.getPrice();
+        }
+        line.setToppings(String.join(Constants.TOPPING_SEPARATOR, names));
+        line.setUnitPrice(line.getUnitPrice() + toppingTotal);
+    }
+
+    private String buildToppingKey(List<MenuTopping> toppings) {
+        List<String> ids = new ArrayList<>();
+        for (MenuTopping t : toppings) {
+            ids.add(String.valueOf(t.getToppingId()));
+        }
+        return String.join(",", ids);
+    }
+
+    private String validateNote(String note) throws ValidationException {
+        if (note == null || note.trim().isEmpty()) {
+            return null;
+        }
+        Validator.checkMaxLength(note, Constants.MAX_ITEM_NOTE_LENG, Constants.ERROR_ITEM_NOTE_TOO_LONG);
+        return note.trim();
+    }
+
+    private int validateQuantity(String quantityStr) throws ValidationException {
+        if (quantityStr == null || quantityStr.trim().isEmpty()) {
+            return 1;
+        }
+        int quantity = Validator.checkInteger(quantityStr, Constants.ERROR_INVALID_ITEM_QUANTITY);
+        if (quantity < 1 || quantity > Constants.MAX_ITEM_QUANTITY) {
+            throw new ValidationException(Constants.ERROR_INVALID_ITEM_QUANTITY);
+        }
+        return quantity;
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     // ==========================================

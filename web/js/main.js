@@ -70,19 +70,19 @@ function initMainApp() {
 
         if (localStorage.getItem('theme') === 'dark') {
             body.classList.add('dark-theme');
-            btnDarkMode.innerHTML = '\u2600\uFE0F';
+            btnDarkMode.innerHTML = '<i class="fi fi-rr-sun" aria-hidden="true"></i>';
         } else {
-            btnDarkMode.innerHTML = '\uD83C\uDF19';
+            btnDarkMode.innerHTML = '<i class="fi fi-rr-moon" aria-hidden="true"></i>';
         }
 
         btnDarkMode.addEventListener('click', () => {
             body.classList.toggle('dark-theme');
             if (body.classList.contains('dark-theme')) {
                 localStorage.setItem('theme', 'dark');
-                btnDarkMode.innerHTML = '\u2600\uFE0F';
+                btnDarkMode.innerHTML = '<i class="fi fi-rr-sun" aria-hidden="true"></i>';
             } else {
                 localStorage.setItem('theme', 'light');
-                btnDarkMode.innerHTML = '\uD83C\uDF19';
+                btnDarkMode.innerHTML = '<i class="fi fi-rr-moon" aria-hidden="true"></i>';
             }
         });
     }
@@ -440,7 +440,8 @@ function closeShipperFailModal() {
 }
 
 function handleStaffStatusSubmit(event, form, orderId) {
-    const select = form.querySelector("select[name='newStatus']");
+    // newStatus có thể là ô chọn (bảng cũ) hoặc ô ẩn của nút "bước tiếp theo" trên thẻ Kanban
+    const select = form.querySelector("[name='newStatus']");
     if (!select) return true;
     const newStatus = select.value;
     const activeTabInput = form.querySelector("input[name='activeTab']");
@@ -1089,10 +1090,10 @@ function renderInventoryAlertsTable(alerts) {
         const isConfirmed = (a.status === 'Confirmed');
         const statusHtml = isConfirmed
             ? '<span class="badge-stock-ok">' + escapeHtml(lblBtnConfirmed) + (a.confirmedBy ? ' (' + escapeHtml(a.confirmedBy) + ')' : '') + '</span>'
-            : '<span class="badge-status-inactive">\u26A0\uFE0F Active</span>';
+            : '<span class="badge-status-inactive"><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i> Active</span>';
 
         const actionHtml = isConfirmed
-            ? '<span class="text-muted">\u2714\uFE0F ' + escapeHtml(lblBtnConfirmed) + '</span>'
+            ? '<span class="text-muted"><i class="fi fi-rr-check" aria-hidden="true"></i> ' + escapeHtml(lblBtnConfirmed) + '</span>'
             : '<button type="button" class="btn-action-edit" onclick="confirmInventoryAlert(' + a.alertId + ', this)">' + escapeHtml(lblBtnConfirm) + '</button>';
 
         tr.innerHTML = '<td><strong>' + escapeHtml(a.ingredientName || '-') + '</strong></td>'
@@ -1390,7 +1391,7 @@ function renderNotificationList(notifications) {
         li.className = 'notification-item' + (n.isRead ? '' : ' unread');
         li.id = 'notifItem_' + n.notificationId;
 
-        const icon = n.icon || '🔔';
+        const icon = '<i class="fi fi-rr-' + escapeHtml(n.icon || 'bell') + '" aria-hidden="true"></i>';
         const markReadHtml = n.isRead ? '' : '<button type="button" class="btn-mark-read-item" onclick="event.stopPropagation(); markNotificationAsRead(' + n.notificationId + ')">&#10003;</button>';
         const unreadDot = n.isRead ? '' : '<span class="notification-unread-dot"></span>';
 
@@ -1552,6 +1553,21 @@ document.addEventListener('click', function (e) {
     const btnDeliveryBack = e.target.closest('#btnDeliveryBack');
     if (btnDeliveryBack) {
         window.history.back();
+        return;
+    }
+    const menuFilterBtn = e.target.closest('[data-menu-filter]');
+    if (menuFilterBtn) {
+        filterMenuByCategory(menuFilterBtn);
+        return;
+    }
+    const pickIngredientBtn = e.target.closest('[data-action="pick-ingredient"]');
+    if (pickIngredientBtn) {
+        pickIngredient(pickIngredientBtn);
+        return;
+    }
+    const orderTypeBtn = e.target.closest('[data-order-filter]');
+    if (orderTypeBtn) {
+        filterKanbanByType(orderTypeBtn);
         return;
     }
     const tabBtn = e.target.closest('[data-tab]');
@@ -1722,6 +1738,7 @@ document.addEventListener('click', function (e) {
         }
         if (action === 'open-create-product') {
             if (typeof openCreateProductModal === 'function') openCreateProductModal();
+            fillProductDisplayFields('', '', false, true);
             return;
         }
         if (action === 'edit-product') {
@@ -1735,6 +1752,13 @@ document.addEventListener('click', function (e) {
             if (typeof openEditProductModal === 'function') {
                 openEditProductModal(id, name, catId, price, img, avail, recipe);
             }
+            fillProductDisplayFields(btnAction.getAttribute('data-desc'), btnAction.getAttribute('data-video'),
+                    btnAction.getAttribute('data-featured') === 'true', btnAction.getAttribute('data-has-options') !== 'false');
+            return;
+        }
+        if (action === 'open-menu-options') {
+            const optModal = document.getElementById('menuOptionModal');
+            if (optModal) optModal.classList.remove('d-none');
             return;
         }
         if (action === 'switch-image-tab') {
@@ -1874,3 +1898,204 @@ document.addEventListener('input', function (e) {
         return;
     }
 });
+
+// ===== Màn đặt món: lọc món theo nhóm (menu.jsp, thanh .menu-cats) =====
+function filterMenuByCategory(selectedBtn) {
+    const filter = selectedBtn.getAttribute('data-menu-filter');
+    document.querySelectorAll('.menu-cats [data-menu-filter]').forEach(function (btn) {
+        btn.classList.toggle('active', btn === selectedBtn);
+    });
+    document.querySelectorAll('.menu-grid .product-card').forEach(function (card) {
+        let matched = filter === 'all' || card.getAttribute('data-category') === filter;
+        if (filter === 'best') {
+            matched = card.getAttribute('data-bestseller') === 'true';
+        }
+        card.classList.toggle('d-none', !matched);
+    });
+}
+
+// ===== Màn đặt món: popup chi tiết món (size, đá, đường, topping, ghi chú, số lượng) =====
+function openProductOptionModal(card) {
+    const modal = document.getElementById('productOptionModal');
+    const form = document.getElementById('productOptionForm');
+    if (!modal || !form || !card) return;
+
+    form.reset();
+    document.getElementById('optModalProductId').value = card.getAttribute('data-product-id');
+    document.getElementById('optModalBuyNow').value = 'false';
+    document.getElementById('optModalQty').value = '1';
+    modal.setAttribute('data-base-price', card.getAttribute('data-price') || '0');
+
+    const name = card.getAttribute('data-name') || '';
+    document.getElementById('optModalName').textContent = name;
+
+    const img = document.getElementById('optModalImg');
+    const letter = document.getElementById('optModalLetter');
+    const imageSrc = card.getAttribute('data-image');
+    if (imageSrc) {
+        img.src = imageSrc;
+        img.alt = name;
+        img.classList.remove('d-none');
+        letter.classList.add('d-none');
+    } else {
+        img.classList.add('d-none');
+        letter.textContent = name.charAt(0);
+        letter.classList.remove('d-none');
+    }
+    modal.querySelector('.option-media').classList.remove('is-zoomed');
+    modal.querySelector('.option-scroll').scrollTop = 0;
+
+    const desc = document.getElementById('optModalDesc');
+    const descText = card.getAttribute('data-desc');
+    desc.textContent = descText || '';
+    desc.classList.toggle('d-none', !descText);
+
+    const video = document.getElementById('optModalVideo');
+    const videoUrl = card.getAttribute('data-video');
+    const safeVideo = videoUrl && /^https?:\/\//i.test(videoUrl);
+    video.href = safeVideo ? videoUrl : '#';
+    video.classList.toggle('d-none', !safeVideo);
+
+    // Món không có tuỳ chọn (ví dụ kem): ẩn và vô hiệu hoá phần size/đá/đường/topping
+    const hasOptions = card.getAttribute('data-has-options') !== 'false';
+    const choices = document.getElementById('optModalChoices');
+    choices.classList.toggle('d-none', !hasOptions);
+    choices.querySelectorAll('input').forEach(function (input) {
+        input.disabled = !hasOptions;
+    });
+
+    updateProductOptionTotal();
+    modal.classList.remove('d-none');
+}
+
+function updateProductOptionTotal() {
+    const modal = document.getElementById('productOptionModal');
+    const form = document.getElementById('productOptionForm');
+    if (!modal || !form) return;
+    let unit = Number(modal.getAttribute('data-base-price')) || 0;
+    form.querySelectorAll('input[data-extra]:checked:not(:disabled)').forEach(function (input) {
+        unit += Number(input.getAttribute('data-extra')) || 0;
+    });
+    const qty = Number(document.getElementById('optModalQty').value) || 1;
+    // Định dạng số theo ngôn ngữ đang chọn để khớp với giá size/topping do fmt:formatNumber in ra
+    const numberLocale = form.getAttribute('data-locale') === 'en' ? 'en-US' : 'vi-VN';
+    document.getElementById('optModalTotal').textContent = Math.round(unit * qty).toLocaleString(numberLocale);
+}
+
+function changeProductOptionQty(step) {
+    const qtyInput = document.getElementById('optModalQty');
+    if (!qtyInput) return;
+    const next = Math.min(99, Math.max(1, (Number(qtyInput.value) || 1) + step));
+    qtyInput.value = String(next);
+    updateProductOptionTotal();
+}
+
+// ===== Quản lý thực đơn: điền mô tả, video, nổi bật, có tuỳ chọn vào form món =====
+function fillProductDisplayFields(description, videoUrl, isFeatured, hasOptions) {
+    const descEl = document.getElementById('productDescInput');
+    const videoEl = document.getElementById('productVideoInput');
+    const featuredEl = document.getElementById('productFeaturedCheckbox');
+    const optionsEl = document.getElementById('productHasOptionsCheckbox');
+    if (descEl) descEl.value = (description && description !== 'null') ? description : '';
+    if (videoEl) videoEl.value = (videoUrl && videoUrl !== 'null') ? videoUrl : '';
+    if (featuredEl) featuredEl.checked = isFeatured === true;
+    if (optionsEl) optionsEl.checked = hasOptions !== false;
+}
+
+document.addEventListener('click', function (e) {
+    const openBtn = e.target.closest('[data-action="open-product-option"]');
+    if (openBtn) {
+        openProductOptionModal(openBtn.closest('.product-card'));
+        return;
+    }
+    const zoomBox = e.target.closest('[data-action="toggle-option-zoom"]');
+    if (zoomBox) {
+        zoomBox.classList.toggle('is-zoomed');
+        return;
+    }
+    const qtyBtn = e.target.closest('[data-action="opt-qty"]');
+    if (qtyBtn) {
+        changeProductOptionQty(Number(qtyBtn.getAttribute('data-step')) || 0);
+        return;
+    }
+    const buyNowBtn = e.target.closest('[data-action="opt-buy-now"]');
+    if (buyNowBtn) {
+        const form = document.getElementById('productOptionForm');
+        document.getElementById('optModalBuyNow').value = 'true';
+        if (form.reportValidity()) {
+            form.submit();
+        }
+    }
+});
+
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.closest && e.target.closest('#productOptionForm')) {
+        updateProductOptionTotal();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Vừa bấm "Thanh toán ngay" trong popup món: mở luôn hộp xác nhận đặt món
+    const orderPage = document.querySelector('[data-open-checkout="true"]');
+    if (orderPage && typeof openOrderConfirmModal === 'function') {
+        openOrderConfirmModal();
+    }
+    // Quay lại trang Quản lý thực đơn sau khi thêm/sửa size, topping: mở lại popup quản lý
+    if (new URLSearchParams(window.location.search).get('manageOptions') === 'true') {
+        const optionModal = document.getElementById('menuOptionModal');
+        if (optionModal) optionModal.classList.remove('d-none');
+    }
+});
+
+// ===== Quản lý đơn (Kanban): lọc thẻ theo loại đơn và đếm lại số thẻ từng cột =====
+function filterKanbanByType(selectedBtn) {
+    const type = selectedBtn.getAttribute('data-order-filter');
+    document.querySelectorAll('[data-order-filter]').forEach(function (btn) {
+        btn.classList.toggle('active', btn === selectedBtn);
+    });
+    document.querySelectorAll('.kanban-col').forEach(function (col) {
+        let visible = 0;
+        col.querySelectorAll('.kanban-card').forEach(function (card) {
+            const show = type === 'ALL' || card.getAttribute('data-order-type') === type;
+            card.classList.toggle('d-none', !show);
+            if (show) visible++;
+        });
+        const counter = col.querySelector('.kanban-count');
+        if (counter) counter.textContent = String(visible);
+    });
+}
+
+// ===== Kho (danh sách + chi tiết): chọn 1 dòng -> chép data-* sang khung chi tiết và các nút thao tác =====
+function pickIngredient(row) {
+    document.querySelectorAll('[data-action="pick-ingredient"]').forEach(function (r) {
+        r.classList.toggle('active', r === row);
+    });
+    const get = function (name) { return row.getAttribute('data-' + name) || ''; };
+    const setText = function (id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+    setText('invDName', get('name'));
+    setText('invDCat', get('cat-name'));
+    setText('invDQty', get('qty') + ' ' + get('unit'));
+    setText('invDThreshold', get('threshold') + ' ' + get('unit'));
+    setText('invDStatus', get('status-text'));
+    setText('invDPrice', Number(get('price') || 0).toLocaleString('vi-VN') + ' \u20AB');
+    setText('invDLoc', get('loc'));
+
+    // Nút Sửa / Cập nhật ngưỡng dùng lại handler cũ (edit-ingredient, open-threshold) nên mang đúng data-* của dòng
+    ['invDEdit', 'invDThresholdBtn'].forEach(function (id) {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        ['id', 'cat-id', 'name', 'unit', 'qty', 'price', 'loc', 'threshold'].forEach(function (attr) {
+            btn.setAttribute('data-' + attr, get(attr));
+        });
+    });
+    const deleteId = document.getElementById('invDDeleteId');
+    if (deleteId) deleteId.value = get('id');
+
+    const empty = document.getElementById('invDetailEmpty');
+    const body = document.getElementById('invDetailBody');
+    if (empty) empty.classList.add('d-none');
+    if (body) body.classList.remove('d-none');
+}

@@ -35,7 +35,7 @@
         <%-- Thẻ Thông tin Ca làm việc hôm nay --%>
         <div class="attendance-card">
             <h3 class="attendance-card-title">
-                📅 <fmt:message key="attendance.card.today_shift" />
+                <fmt:message key="attendance.card.today_shift" />
             </h3>
             <c:choose>
                 <c:when test="${TODAY_ATTENDANCE.hasShift}">
@@ -72,13 +72,13 @@
                                     <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="m-0">
                                         <input type="hidden" name="action" value="checkIn" />
                                         <button type="submit" class="btn-clock-in w-100">
-                                            🟢 <fmt:message key="attendance.btn.checkin" />
+                                            <i class="fi fi-rr-sign-in-alt" aria-hidden="true"></i> <fmt:message key="attendance.btn.checkin" />
                                         </button>
                                     </form>
                                 </c:when>
                                 <c:otherwise>
                                     <button type="button" class="btn-clock-in w-100 opacity-50 cursor-not-allowed" disabled>
-                                        🔒 <fmt:message key="attendance.btn.checkin_locked" /> (${TODAY_ATTENDANCE.startTime})
+                                        <i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="attendance.btn.checkin_locked" /> (${TODAY_ATTENDANCE.startTime})
                                     </button>
                                     <p class="font-xs text-muted text-center mt-5">
                                         <fmt:message key="attendance.hint.checkin_locked" />
@@ -91,7 +91,7 @@
                             <c:choose>
                                 <c:when test="${not TODAY_ATTENDANCE.canCheckOut}">
                                     <button type="button" class="btn-clock-out w-100 opacity-50 cursor-not-allowed" disabled>
-                                        🔒 <fmt:message key="attendance.btn.checkout_locked" /> (${TODAY_ATTENDANCE.endTime})
+                                        <i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="attendance.btn.checkout_locked" /> (${TODAY_ATTENDANCE.endTime})
                                     </button>
                                     <p class="font-xs text-muted text-center mt-5">
                                         <fmt:message key="attendance.hint.checkout_locked" />
@@ -99,14 +99,14 @@
                                 </c:when>
                                 <c:when test="${TODAY_ATTENDANCE.isOvertimeEligible}">
                                     <button type="button" id="btnOpenOtModal" class="btn-clock-out w-100">
-                                        🔴 <fmt:message key="attendance.btn.checkout" /> (OT)
+                                        <i class="fi fi-rr-sign-out-alt" aria-hidden="true"></i> <fmt:message key="attendance.btn.checkout" /> (OT)
                                     </button>
                                 </c:when>
                                 <c:otherwise>
                                     <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="m-0">
                                         <input type="hidden" name="action" value="checkOut" />
                                         <button type="submit" class="btn-clock-out w-100">
-                                            🔴 <fmt:message key="attendance.btn.checkout" />
+                                            <i class="fi fi-rr-sign-out-alt" aria-hidden="true"></i> <fmt:message key="attendance.btn.checkout" />
                                         </button>
                                     </form>
                                 </c:otherwise>
@@ -125,7 +125,7 @@
         <%-- Thẻ Đồng hồ đếm giờ máy chủ (Server Time) --%>
         <div class="attendance-card text-center">
             <h3 class="attendance-card-title">
-                ⏱️ <fmt:message key="attendance.card.clock" />
+                <fmt:message key="attendance.card.clock" />
             </h3>
             <div id="serverClockDisplay" class="clock-display" data-server-date="${TODAY_ATTENDANCE.serverCurrentDate}" data-server-time="${TODAY_ATTENDANCE.serverCurrentTime}">
                 ${TODAY_ATTENDANCE.serverCurrentTime}
@@ -160,7 +160,7 @@
         <div class="panel-header flex-between align-center mb-15">
             <div>
                 <h3 class="panel-title font-md m-0">
-                    🗓️ <fmt:message key="attendance.timetable.title" />
+                    <fmt:message key="attendance.timetable.title" />
                 </h3>
                 <span class="text-muted font-xs font-bold">${WEEKLY_TIMETABLE.weekLabel}</span>
             </div>
@@ -223,7 +223,7 @@
                                                                     <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="mt-5 m-0">
                                                                         <input type="hidden" name="action" value="checkOut" />
                                                                         <button type="submit" class="btn-clock-out btn-xs w-100">
-                                                                            🔴 <fmt:message key="attendance.btn.checkout" />
+                                                                            <i class="fi fi-rr-sign-out-alt" aria-hidden="true"></i> <fmt:message key="attendance.btn.checkout" />
                                                                         </button>
                                                                     </form>
                                                                 </c:if>
@@ -236,7 +236,7 @@
                                                                     <form action="${pageContext.request.contextPath}/AttendanceController" method="POST" class="mt-5 m-0">
                                                                         <input type="hidden" name="action" value="checkIn" />
                                                                         <button type="submit" class="btn-clock-in btn-xs w-100">
-                                                                            🟢 <fmt:message key="attendance.btn.checkin" />
+                                                                            <i class="fi fi-rr-sign-in-alt" aria-hidden="true"></i> <fmt:message key="attendance.btn.checkin" />
                                                                         </button>
                                                                     </form>
                                                                 </c:if>
@@ -392,5 +392,3 @@
 
 <jsp:include page="components/ot_reason_modal.jsp" />
 <jsp:include page="footer.jsp" />
-</body>
-</html>

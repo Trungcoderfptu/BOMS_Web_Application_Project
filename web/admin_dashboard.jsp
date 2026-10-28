@@ -5,15 +5,8 @@
 <fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
 
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Admin Dashboard - BOMS</title>
-        <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/css/global.css">
-    </head>
-    <body class="main-content">
-        <jsp:include page="header.jsp" />
+<jsp:include page="header.jsp" />
+<main class="main-content">
         <div class="dashboard-wrapper">
             <h2><fmt:message key="admin.dashbard.titile" /></h2>
             <c:if test="${not empty ERROR_MESSAGE}">
@@ -249,6 +242,5 @@
                 </div>
             </div>
         </div>
-        <script src="${pageContext.request.contextPath}/js/main.js"></script>
-    </body>
-</html>
+</main>
+<jsp:include page="footer.jsp" />

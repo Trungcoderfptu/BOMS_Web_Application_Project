@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
@@ -9,217 +10,112 @@
 <jsp:include page="components/shipper_complete_modal.jsp" />
 <jsp:include page="components/shipper_fail_modal.jsp" />
 
-<main class="main-content">
-    <div class="dispatch-container">
-        <h2 class="page-title"><fmt:message key="shipper.title" />: <c:out value="${sessionScope.USER_SESSION.fullName}" /></h2>
+<%-- Đơn đang giao đầu tiên (chưa đóng) -> thẻ tập trung trên cùng --%>
+<c:set var="focusTask" value="${null}" />
+<c:forEach var="t" items="${MY_TASKS}">
+    <c:if test="${empty focusTask and t.status != 'Delivered' and t.status != 'Returned'}"><c:set var="focusTask" value="${t}" /></c:if>
+</c:forEach>
 
-        <c:if test="${not empty ERROR_MESSAGE}">
-            <div class="alert alert-danger"><fmt:message key="${ERROR_MESSAGE}" /></div>
-        </c:if>
+<%-- Bố cục G: điện thoại, 1 việc 1 màn. Trên cùng: đơn đang giao (gọi khách, giao xong / thất bại);
+     dưới: các nhóm đơn; đáy: thanh điều hướng tới từng nhóm. Giữ nguyên action claimTask/acceptTask/rejectTask và 2 popup --%>
+<main class="main-content ship-page">
+    <c:if test="${not empty ERROR_MESSAGE}">
+        <div class="alert alert-danger"><fmt:message key="${ERROR_MESSAGE}" /></div>
+    </c:if>
+    <c:if test="${not empty SUCCESS_MESSAGE}">
+        <div class="alert alert-success"><fmt:message key="${SUCCESS_MESSAGE}" /></div>
+    </c:if>
 
-        <c:if test="${not empty SUCCESS_MESSAGE}">
-            <div class="alert alert-success"><fmt:message key="${SUCCESS_MESSAGE}" /></div>
-        </c:if>
+    <c:if test="${not empty focusTask}">
+        <section class="panel ship-focus">
+            <p class="subnav-title"><fmt:message key="ship.focus.title" /></p>
+            <div class="kanban-card-head"><span>${focusTask.orderCode}</span><span>${focusTask.totalAmount} đ</span></div>
+            <p class="ship-focus-name"><c:out value="${focusTask.customerName}" /></p>
+            <p class="muted"><c:out value="${focusTask.customerAddress}" /> <c:if test="${not empty focusTask.areaName}">· <c:out value="${focusTask.areaName}" /></c:if></p>
+            <c:if test="${not empty focusTask.customerPhone}">
+                <a href="tel:${fn:escapeXml(focusTask.customerPhone)}" class="btn-plain ship-call"><fmt:message key="ship.focus.call" /> <c:out value="${focusTask.customerPhone}" /></a>
+            </c:if>
+            <div class="ship-focus-actions">
+                <button type="button" class="btn-next btn-open-complete-modal" data-task-id="${focusTask.taskId}" data-order-code="${focusTask.orderCode}"><fmt:message key="shipper.btn.complete" /></button>
+                <button type="button" class="btn-plain btn-open-fail-modal" data-task-id="${focusTask.taskId}" data-order-code="${focusTask.orderCode}"><fmt:message key="shipper.btn.fail" /></button>
+            </div>
+        </section>
+    </c:if>
 
-        <!-- BẢNG 1: ĐƠN HÀNG MỚI CHỜ TIẾP NHẬN TRONG KHU VỰC -->
-        <div class="task-section available-section">
-            <h3 class="section-title"><fmt:message key="shipper.available.title" /></h3>
-            <table class="table dispatch-table">
-                <thead>
-                    <tr>
-                        <th><fmt:message key="shipper.table.ordercode" /></th>
-                        <th><fmt:message key="shipper.table.customer" /></th>
-                        <th><fmt:message key="shipper.table.address" /></th>
-                        <th><fmt:message key="shipper.table.amount" /></th>
-                        <th><fmt:message key="shipper.table.action" /></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:choose>
-                        <c:when test="${empty AVAILABLE_TASKS}">
-                            <tr>
-                                <td colspan="5" class="text-center empty-msg"><fmt:message key="shipper.available.empty" /></td>
-                            </tr>
-                        </c:when>
-                        <c:otherwise>
-                            <c:forEach var="task" items="${AVAILABLE_TASKS}">
-                                <tr>
-                                    <td><strong>${task.orderCode}</strong></td>
-                                    <td>
-                                        <c:out value="${task.customerName}" />
-                                        <c:if test="${not empty task.customerPhone}">
-                                            <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
-                                        </c:if>
-                                    </td>
-                                    <td>
-                                        <c:out value="${task.customerAddress}" />
-                                        <c:if test="${not empty task.areaName}">
-                                            <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
-                                        </c:if>
-                                    </td>
-                                    <td>${task.totalAmount} đ</td>
-                                    <td class="action-cell">
-                                        <form action="ShipperController" method="POST" class="inline-form">
-                                            <input type="hidden" name="action" value="claimTask">
-                                            <input type="hidden" name="txtTaskId" value="${task.taskId}">
-                                            <button type="submit" class="btn btn-claim"><fmt:message key="shipper.btn.claim" /></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            </c:forEach>
-                        </c:otherwise>
-                    </c:choose>
-                </tbody>
-            </table>
-        </div>
+    <section id="ship-mine" class="ship-section">
+        <h3 class="panel-title"><fmt:message key="shipper.mytasks.title" /> (${fn:length(MY_TASKS)})</h3>
+        <c:choose>
+            <c:when test="${empty MY_TASKS}"><p class="panel todo-empty"><fmt:message key="shipper.mytasks.empty" /></p></c:when>
+            <c:otherwise>
+                <c:forEach var="task" items="${MY_TASKS}">
+                    <article class="kanban-card">
+                        <div class="kanban-card-head"><span>${task.orderCode}</span><span class="muted"><fmt:message key="status.${task.status}" /></span></div>
+                        <div><c:out value="${task.customerName}" /> · <c:out value="${task.customerAddress}" /></div>
+                        <c:if test="${task.status != 'Delivered' && task.status != 'Returned' && task.taskId != focusTask.taskId}">
+                            <div class="ship-focus-actions">
+                                <button type="button" class="btn-next btn-open-complete-modal" data-task-id="${task.taskId}" data-order-code="${task.orderCode}"><fmt:message key="shipper.btn.complete" /></button>
+                                <button type="button" class="btn-plain btn-open-fail-modal" data-task-id="${task.taskId}" data-order-code="${task.orderCode}"><fmt:message key="shipper.btn.fail" /></button>
+                            </div>
+                        </c:if>
+                    </article>
+                </c:forEach>
+            </c:otherwise>
+        </c:choose>
+    </section>
 
-        <hr class="section-divider" />
+    <section id="ship-pending" class="ship-section">
+        <h3 class="panel-title"><fmt:message key="shipper.pending.title" /> (${fn:length(PENDING_TASKS)})</h3>
+        <c:choose>
+            <c:when test="${empty PENDING_TASKS}"><p class="panel todo-empty"><fmt:message key="shipper.pending.empty" /></p></c:when>
+            <c:otherwise>
+                <c:forEach var="task" items="${PENDING_TASKS}">
+                    <article class="kanban-card">
+                        <div class="kanban-card-head"><span>${task.orderCode}</span><span>${task.totalAmount} đ</span></div>
+                        <div><c:out value="${task.customerName}" /> · <c:out value="${task.customerAddress}" /></div>
+                        <div class="ship-focus-actions">
+                            <form action="ShipperController" method="POST" class="m-0">
+                                <input type="hidden" name="action" value="acceptTask">
+                                <input type="hidden" name="txtTaskId" value="${task.taskId}">
+                                <button type="submit" class="btn-next"><fmt:message key="shipper.btn.accept" /></button>
+                            </form>
+                            <form action="ShipperController" method="POST" class="m-0 form-reject-task" data-confirm-msg="<fmt:message key="shipper.confirm.reject" />">
+                                <input type="hidden" name="action" value="rejectTask">
+                                <input type="hidden" name="txtTaskId" value="${task.taskId}">
+                                <button type="submit" class="btn-plain"><fmt:message key="shipper.btn.reject" /></button>
+                            </form>
+                        </div>
+                    </article>
+                </c:forEach>
+            </c:otherwise>
+        </c:choose>
+    </section>
 
-        <!-- BẢNG 2: ĐƠN ĐƯỢC ĐIỀU PHỐI GIAO (CHỜ XÁC NHẬN) -->
-        <div class="task-section pending-section">
-            <h3 class="section-title"><fmt:message key="shipper.pending.title" /></h3>
-            <table class="table dispatch-table">
-                <thead>
-                    <tr>
-                        <th><fmt:message key="shipper.table.ordercode" /></th>
-                        <th><fmt:message key="shipper.table.customer" /></th>
-                        <th><fmt:message key="shipper.table.address" /></th>
-                        <th><fmt:message key="shipper.table.amount" /></th>
-                        <th><fmt:message key="shipper.table.action" /></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:choose>
-                        <c:when test="${empty PENDING_TASKS}">
-                            <tr>
-                                <td colspan="5" class="text-center empty-msg"><fmt:message key="shipper.pending.empty" /></td>
-                            </tr>
-                        </c:when>
-                        <c:otherwise>
-                            <c:forEach var="task" items="${PENDING_TASKS}">
-                                <tr>
-                                    <td><strong>${task.orderCode}</strong></td>
-                                    <td>
-                                        <c:out value="${task.customerName}" />
-                                        <c:if test="${not empty task.customerPhone}">
-                                            <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
-                                        </c:if>
-                                    </td>
-                                    <td>
-                                        <c:out value="${task.customerAddress}" />
-                                        <c:if test="${not empty task.areaName}">
-                                            <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
-                                        </c:if>
-                                    </td>
-                                    <td>${task.totalAmount} đ</td>
-                                    <td class="action-cell">
-                                        <!-- Nút Nhận Đơn -->
-                                        <form action="ShipperController" method="POST" class="inline-form">
-                                            <input type="hidden" name="action" value="acceptTask">
-                                            <input type="hidden" name="txtTaskId" value="${task.taskId}">
-                                            <button type="submit" class="btn btn-accept"><fmt:message key="shipper.btn.accept" /></button>
-                                        </form>
+    <section id="ship-new" class="ship-section">
+        <h3 class="panel-title"><fmt:message key="shipper.available.title" /> (${fn:length(AVAILABLE_TASKS)})</h3>
+        <c:choose>
+            <c:when test="${empty AVAILABLE_TASKS}"><p class="panel todo-empty"><fmt:message key="shipper.available.empty" /></p></c:when>
+            <c:otherwise>
+                <c:forEach var="task" items="${AVAILABLE_TASKS}">
+                    <article class="kanban-card">
+                        <div class="kanban-card-head"><span>${task.orderCode}</span><span>${task.totalAmount} đ</span></div>
+                        <div><c:out value="${task.customerName}" /> · <c:out value="${task.customerAddress}" /></div>
+                        <form action="ShipperController" method="POST" class="m-0 ship-focus-actions">
+                            <input type="hidden" name="action" value="claimTask">
+                            <input type="hidden" name="txtTaskId" value="${task.taskId}">
+                            <button type="submit" class="btn-next"><fmt:message key="shipper.btn.claim" /></button>
+                        </form>
+                    </article>
+                </c:forEach>
+            </c:otherwise>
+        </c:choose>
+    </section>
 
-                                        <!-- Nút Từ Chối (Đã tích hợp hộp thoại xác nhận JS) -->
-                                        <form action="ShipperController" method="POST" class="inline-form form-reject-task" data-confirm-msg="<fmt:message key="shipper.confirm.reject" />">
-                                            <input type="hidden" name="action" value="rejectTask">
-                                            <input type="hidden" name="txtTaskId" value="${task.taskId}">
-                                            <button type="submit" class="btn btn-reject"><fmt:message key="shipper.btn.reject" /></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            </c:forEach>
-                        </c:otherwise>
-                    </c:choose>
-                </tbody>
-            </table>
-        </div>
-
-        <hr class="section-divider" />
-
-        <!-- BẢNG 3: ĐƠN HÀNG CỦA TÔI -->
-        <div class="task-section my-tasks-section">
-            <h3 class="section-title"><fmt:message key="shipper.mytasks.title" /></h3>
-            <table class="table dispatch-table">
-                <thead>
-                    <tr>
-                        <th><fmt:message key="shipper.table.ordercode" /></th>
-                        <th><fmt:message key="shipper.table.customer" /></th>
-                        <th><fmt:message key="shipper.table.address" /></th>
-                        <th><fmt:message key="shipper.table.amount" /></th>
-                        <th><fmt:message key="shipper.table.status" /></th>
-                        <th><fmt:message key="shipper.table.action" /></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:choose>
-                        <c:when test="${empty MY_TASKS}">
-                            <tr>
-                                <td colspan="6" class="text-center empty-msg"><fmt:message key="shipper.mytasks.empty" /></td>
-                            </tr>
-                        </c:when>
-                        <c:otherwise>
-                            <c:forEach var="task" items="${MY_TASKS}">
-                                <tr>
-                                    <td><strong>${task.orderCode}</strong></td>
-                                    <td>
-                                        <c:out value="${task.customerName}" />
-                                        <c:if test="${not empty task.customerPhone}">
-                                            <br><small class="text-muted"><c:out value="${task.customerPhone}" /></small>
-                                        </c:if>
-                                    </td>
-                                    <td>
-                                        <c:out value="${task.customerAddress}" />
-                                        <c:if test="${not empty task.areaName}">
-                                            <br><small class="badge badge-info"><c:out value="${task.areaName}" /></small>
-                                        </c:if>
-                                    </td>
-                                    <td>${task.totalAmount} đ</td>
-                                    <td class="status-cell">
-                                        <c:choose>
-                                            <c:when test="${task.status == 'Waiting for dispatch'}">
-                                                <span class="order-badge order-badge-dispatch"><fmt:message key="status.Waiting for dispatch" /></span>
-                                            </c:when>
-                                            <c:when test="${task.status == 'Waiting for delivery'}">
-                                                <span class="order-badge order-badge-prepared"><fmt:message key="status.Waiting for delivery" /></span>
-                                            </c:when>
-                                            <c:when test="${task.status == 'Delivering'}">
-                                                <span class="order-badge order-badge-delivering"><fmt:message key="status.Delivering" /></span>
-                                            </c:when>
-                                            <c:when test="${task.status == 'Delivered'}">
-                                                <span class="order-badge order-badge-delivered"><fmt:message key="status.Delivered" /></span>
-                                            </c:when>
-                                            <c:when test="${task.status == 'Returned'}">
-                                                <span class="order-badge order-badge-cancelled"><fmt:message key="status.Returned" /></span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="order-badge"><fmt:message key="status.${task.status}" /></span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-                                    <td class="action-cell">
-                                        <c:if test="${task.status != 'Delivered' && task.status != 'Returned'}">
-                                            <div class="inline-form">
-                                                <button type="button" class="btn btn-accept btn-open-complete-modal" data-task-id="${task.taskId}" data-order-code="${task.orderCode}">
-                                                    <fmt:message key="shipper.btn.complete" />
-                                                </button>
-                                                <button type="button" class="btn btn-reject btn-open-fail-modal" data-task-id="${task.taskId}" data-order-code="${task.orderCode}">
-                                                    <fmt:message key="shipper.btn.fail" />
-                                                </button>
-                                            </div>
-                                        </c:if>
-                                        <c:if test="${task.status == 'Delivered' || task.status == 'Returned'}">
-                                            <span class="text-muted"><fmt:message key="shipper.text.closed" /></span>
-                                        </c:if>
-                                    </td>
-                                </tr>
-                            </c:forEach>
-                        </c:otherwise>
-                    </c:choose>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <%-- Thanh điều hướng đáy màn hình (chỉ hiện trên điện thoại) --%>
+    <nav class="bottom-nav" aria-label="<fmt:message key="nav.modules" />">
+        <a href="#ship-mine"><fmt:message key="ship.nav.mine" /> (${fn:length(MY_TASKS)})</a>
+        <a href="#ship-pending"><fmt:message key="ship.nav.pending" /> (${fn:length(PENDING_TASKS)})</a>
+        <a href="#ship-new"><fmt:message key="ship.nav.new" /> (${fn:length(AVAILABLE_TASKS)})</a>
+    </nav>
 </main>
 
 <jsp:include page="footer.jsp" />

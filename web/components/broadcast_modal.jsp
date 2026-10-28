@@ -11,7 +11,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 class="modal-title font-md font-bold m-0">
-                📢 <fmt:message key="broadcast.modal.title" />
+                <fmt:message key="broadcast.modal.title" />
             </h3>
             <button type="button" class="btn-close-modal" data-close-modal="broadcastModal">&times;</button>
         </div>
@@ -36,7 +36,7 @@
                     <fmt:message key="broadcast.btn.cancel" />
                 </button>
                 <button type="submit" class="btn-primary">
-                    📢 <fmt:message key="broadcast.btn.send" />
+                    <i class="fi fi-rr-paper-plane" aria-hidden="true"></i> <fmt:message key="broadcast.btn.send" />
                 </button>
             </div>
         </form>

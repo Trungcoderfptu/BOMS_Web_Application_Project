@@ -2,6 +2,7 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
+<%@taglib prefix="bx" tagdir="/WEB-INF/tags"%>
 <fmt:setLocale value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setBundle basename="resources.messages" />
 
@@ -79,6 +80,7 @@
                                             <div class="order-item-info">
                                                 <strong><c:out value="${detail.productName}" /></strong> x${detail.quantity} 
                                                 (<fmt:formatNumber value="${detail.unitPrice}" pattern="#,###" /> ₫)
+                                                <bx:itemOptions sizeName="${detail.sizeName}" iceLevel="${detail.iceLevel}" sugarLevel="${detail.sugarLevel}" toppings="${detail.toppings}" note="${detail.note}" />
                                             </div>
                                         </li>
                                     </c:forEach>
@@ -131,10 +133,10 @@
                                 <div class="order-action-group">
                                     <c:choose>
                                         <c:when test="${order.isDeliveryUnderShipper}">
-                                            <span class="badge-locked text-sm">🔒 <fmt:message key="order.management.action.under_shipper" /></span>
+                                            <span class="badge-locked text-sm"><i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="order.management.action.under_shipper" /></span>
                                         </c:when>
                                         <c:when test="${order.isClosedStatus}">
-                                            <span class="text-secondary text-sm">🔒 <fmt:message key="order.management.action.closed" /></span>
+                                            <span class="text-secondary text-sm"><i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="order.management.action.closed" /></span>
                                         </c:when>
                                         <c:otherwise>
                                             <form action="${pageContext.request.contextPath}/OrderManagementController" method="POST" class="m-0 flex-align-center order-status-form"

@@ -8,7 +8,9 @@
 
 <jsp:include page="header.jsp" />
 
-<main class="main-content">
+<main class="main-content auth-page">
+  <div class="auth-card">
+    <img class="auth-logo" src="${pageContext.request.contextPath}/images/brand/bingxue-logo.png" alt="" />
     <h2><fmt:message key="login.heading" /></h2>
 
     <c:if test="${not empty SUCCESS_MESSAGE}">
@@ -33,7 +35,7 @@
         </c:when>
     </c:choose>
 
-    <form action="LoginController" method="POST">
+    <form action="LoginController" method="POST" class="form-card">
         <label><fmt:message key="login.label.username" /></label><br>
         <input type="text" name="txtUsername" value="${param.txtUsername}" required /><br><br>
 
@@ -51,8 +53,8 @@
         <input type="submit" value="<fmt:message key='login.btn.submit' />" />
     </form>
 
-    <br>
-    <a href="register.jsp"><fmt:message key="login.link.register" /></a>
+    <p class="auth-switch"><a href="register.jsp"><fmt:message key="login.link.register" /></a></p>
+  </div>
 </main>
 
 <jsp:include page="footer.jsp" />

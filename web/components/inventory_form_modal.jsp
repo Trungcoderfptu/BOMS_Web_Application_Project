@@ -12,7 +12,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 id="inventoryModalTitle" class="m-0"><fmt:message key="inventory.modal.title.add" /></h3>
-            <button type="button" class="btn-modal-close" data-close-modal="inventoryModal">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="inventoryModal"><i class="fi fi-rr-cross-small" aria-hidden="true"></i></button>
         </div>
 
         <form id="inventoryForm" action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="m-0">
@@ -100,7 +100,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 class="m-0"><fmt:message key="inventory.modal.title.threshold" /></h3>
-            <button type="button" class="btn-modal-close" data-close-modal="thresholdModal">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="thresholdModal"><i class="fi fi-rr-cross-small" aria-hidden="true"></i></button>
         </div>
 
         <form id="thresholdForm" action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="m-0">
@@ -138,7 +138,7 @@
     <div class="modal-card modal-card-md">
         <div class="modal-header">
             <h3 class="m-0"><fmt:message key="inventory.category.modal.title" /></h3>
-            <button type="button" class="btn-modal-close" data-close-modal="inventoryCategoryModal">✕</button>
+            <button type="button" class="btn-modal-close" data-close-modal="inventoryCategoryModal"><i class="fi fi-rr-cross-small" aria-hidden="true"></i></button>
         </div>
 
         <div class="modal-body">

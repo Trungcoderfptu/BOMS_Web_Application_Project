@@ -12,7 +12,10 @@
         <h2 class="m-0"><fmt:message key="menu.mgmt.heading" /></h2>
         <div class="d-flex gap-10">
             <button type="button" class="btn-login btn-secondary" data-action="open-menu-category">
-                📁 <fmt:message key="menu.category.btn.manage" />
+                <fmt:message key="menu.category.btn.manage" />
+            </button>
+            <button type="button" class="btn-login btn-secondary" data-action="open-menu-options">
+                <fmt:message key="menu.mgmt.btn.options" />
             </button>
             <button type="button" class="btn-login" data-action="open-create-product">
                 + <fmt:message key="menu.mgmt.btn.add" />
@@ -94,7 +97,7 @@
                                         </c:choose>
                                     </c:when>
                                     <c:otherwise>
-                                        <div class="menu-thumb-placeholder">☕</div>
+                                        <div class="menu-thumb-placeholder"><i class="fi fi-rr-mug-hot" aria-hidden="true"></i></div>
                                     </c:otherwise>
                                 </c:choose>
                             </td>
@@ -137,7 +140,11 @@
                                             data-price="${product.price}"
                                             data-img="${fn:escapeXml(product.imageUrl)}"
                                             data-avail="${product.isAvailable}"
-                                            data-recipe="${fn:escapeXml(product.recipeData)}">
+                                            data-recipe="${fn:escapeXml(product.recipeData)}"
+                                            data-desc="${fn:escapeXml(product.description)}"
+                                            data-video="${fn:escapeXml(product.videoUrl)}"
+                                            data-featured="${product.featured}"
+                                            data-has-options="${product.hasOptions}">
                                         <fmt:message key="menu.mgmt.btn.edit" />
                                     </button>
 
@@ -168,6 +175,7 @@
     </c:choose>
 
     <jsp:include page="components/product_form_modal.jsp" />
+    <jsp:include page="components/menu_option_modal.jsp" />
 </main>
 
 <jsp:include page="footer.jsp" />

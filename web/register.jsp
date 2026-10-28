@@ -3,16 +3,10 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
 <fmt:setBundle basename="resources.messages" />
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title><fmt:message key="register.banner" /></title>
-        <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/css/global.css">
-        <jsp:include page="header.jsp" />
-    </head>
-    <body class="main-content">
-        <div class="register-wrapper">
+<jsp:include page="header.jsp" />
+<main class="main-content auth-page">
+        <div class="register-wrapper auth-card auth-card-wide">
+            <img class="auth-logo" src="${pageContext.request.contextPath}/images/brand/bingxue-logo.png" alt="" />
             <h2 class="register-title"><fmt:message key="register.banner" /></h2>
             <c:if test="${not empty ERROR_MESSAGE}">
                 <p class="msg-error"><fmt:message key="${ERROR_MESSAGE}" /></p>
@@ -21,7 +15,7 @@
                 <p class="msg-success"><fmt:message key="${SUCCESS_MESSAGE}" /></p>
             </c:if>
 
-            <form id="frmRegister" class="register-layout" action="RegisterController" method="POST">
+            <form id="frmRegister" class="register-layout form-card" action="RegisterController" method="POST">
                 <label for="txtRegFullName"><fmt:message key="register.label.fullname" /></label><br>
                 <input type="text" id="txtRegFullName" name="txtFullName" value="${param.txtFullName}" required /><br><br>
                 <label for="txtRegUser"><fmt:message key="register.label.username" /></label><br>
@@ -49,9 +43,7 @@
 
             </form>
 
-            <br>
-            <a href="login.jsp" class="register-nav-link"><fmt:message key="register.link.register" /></a>
+            <p class="auth-switch"><a href="login.jsp" class="register-nav-link"><fmt:message key="register.link.register" /></a></p>
         </div>
-        <script src="${pageContext.request.contextPath}/js/main.js"></script>
-    </body>
-</html>
+</main>
+<jsp:include page="footer.jsp" />

@@ -2,6 +2,7 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
+<%@taglib prefix="bx" tagdir="/WEB-INF/tags"%>
 <c:set var="currentLang" value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
@@ -41,13 +42,13 @@
                             <td>
                                 <div><c:out value="${order.deliveryAddress}" /></div>
                                 <c:if test="${not empty order.areaName}">
-                                    <div class="mt-5"><span class="badge-table">📍 <c:out value="${order.areaName}" /></span></div>
+                                    <div class="mt-5"><span class="badge-table"><i class="fi fi-rr-marker" aria-hidden="true"></i> <c:out value="${order.areaName}" /></span></div>
                                 </c:if>
                             </td>
                             <td>
                                 <c:choose>
                                     <c:when test="${not empty order.shipperName}">
-                                        <span class="badge-stock-ok">🚚 <c:out value="${order.shipperName}" /></span>
+                                        <span class="badge-stock-ok"><i class="fi fi-rr-truck-side" aria-hidden="true"></i> <c:out value="${order.shipperName}" /></span>
                                     </c:when>
                                     <c:otherwise>
                                         <span class="text-secondary"><em><fmt:message key="order.management.shipper.unassigned" /></em></span>
@@ -62,6 +63,7 @@
                                             <div class="order-item-info">
                                                 <strong><c:out value="${detail.productName}" /></strong> x${detail.quantity} 
                                                 (<fmt:formatNumber value="${detail.unitPrice}" pattern="#,###" /> ₫)
+                                                <bx:itemOptions sizeName="${detail.sizeName}" iceLevel="${detail.iceLevel}" sugarLevel="${detail.sugarLevel}" toppings="${detail.toppings}" note="${detail.note}" />
                                             </div>
                                         </li>
                                     </c:forEach>
@@ -117,10 +119,10 @@
                                 <div class="order-action-group">
                                     <c:choose>
                                         <c:when test="${order.isDeliveryUnderShipper}">
-                                            <span class="badge-locked text-sm">🔒 <fmt:message key="order.management.action.under_shipper" /></span>
+                                            <span class="badge-locked text-sm"><i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="order.management.action.under_shipper" /></span>
                                         </c:when>
                                         <c:when test="${order.isClosedStatus}">
-                                            <span class="text-secondary text-sm">🔒 <fmt:message key="order.management.action.closed" /></span>
+                                            <span class="text-secondary text-sm"><i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="order.management.action.closed" /></span>
                                         </c:when>
                                         <c:otherwise>
                                             <form action="${pageContext.request.contextPath}/OrderManagementController" method="POST" class="m-0 flex-align-center order-status-form"

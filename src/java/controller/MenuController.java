@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
+import service.MenuOptionService;
 import service.OrderService;
 import service.ProductService;
 import utility.Constants;
@@ -28,11 +29,13 @@ public class MenuController extends HttpServlet {
 
     private ProductService productService;
     private OrderService orderService;
+    private MenuOptionService menuOptionService;
 
     @Override
     public void init() throws ServletException {
         productService = new ProductService();
         orderService = new OrderService();
+        menuOptionService = new MenuOptionService();
     }
 
     @Override
@@ -45,6 +48,11 @@ public class MenuController extends HttpServlet {
             request.setAttribute(Constants.LAST_ORDER_ID, session.getAttribute(Constants.LAST_ORDER_ID));
             session.removeAttribute(Constants.LAST_ORDER_ID);
         }
+        // Cờ "Thanh toán ngay" (flash 1 lần): View tự mở hộp xác nhận đặt món
+        if (session.getAttribute(Constants.OPEN_CHECKOUT) != null) {
+            request.setAttribute(Constants.OPEN_CHECKOUT, Boolean.TRUE);
+            session.removeAttribute(Constants.OPEN_CHECKOUT);
+        }
         resolveActiveTab(request, session);
         handleTableSession(request, session);
         loadTableOrders(request, session);
@@ -52,6 +60,12 @@ public class MenuController extends HttpServlet {
         try {
             List<Map<String, Object>> menuList = productService.getAllProductsForView();
             request.setAttribute("MENU_LIST", menuList);
+            request.setAttribute("MENU_CATEGORIES", productService.getAllCategoriesForView());
+            request.setAttribute("BEST_SELLER_IDS", productService.getBestSellerIdsForView());
+            request.setAttribute("MENU_SIZES", menuOptionService.getSizesForView(true));
+            request.setAttribute("MENU_TOPPINGS", menuOptionService.getToppingsForView(true));
+            request.setAttribute("ICE_LEVELS", Constants.ICE_LEVELS);
+            request.setAttribute("SUGAR_LEVELS", Constants.SUGAR_LEVELS);
         } catch (ValidationException e) {
             request.setAttribute(Constants.ERROR_MESSAGE, e.getMessage());
         }

@@ -2632,3 +2632,349 @@ text-link-success {
 
 
 
+
+/* ===== CHỨC NĂNG MENU ONLINE: tùy chọn món, ô tick form món, quản lý size/topping ===== */
+.item-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.item-opt {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--text-primary);
+}
+
+.item-opt.item-note {
+    background: transparent;
+    border-style: dashed;
+    font-style: italic;
+}
+
+/* Form món: các ô tick Nổi bật / Có tuỳ chọn */
+.product-flag-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.product-flag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Popup quản lý size ly & topping */
+.option-admin-heading {
+    margin: 18px 0 8px;
+    font-size: 15px;
+}
+
+.option-admin-heading:first-of-type {
+    margin-top: 4px;
+}
+
+.option-admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.option-admin-row,
+.option-admin-edit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.option-admin-row .filter-input {
+    width: 120px;
+}
+
+.option-admin-row .option-admin-sort {
+    width: 64px;
+}
+
+.option-admin-new {
+    padding: 10px;
+    margin-bottom: 8px;
+    border: 1px dashed var(--border-light);
+    border-radius: 8px;
+}
+
+.option-admin-head {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.option-admin-head span,
+.option-admin-row > span {
+    min-width: 110px;
+}
+
+.option-admin-row.is-inactive {
+    opacity: 0.55;
+}
+
+.option-admin-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.btn-option-toggle {
+    border: 1px solid var(--border-light);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+
+/* Thanh lọc nhóm món + nhóm "Bán chạy" (menu.jsp) */
+.menu-cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.menu-cat {
+    padding: 6px 14px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.menu-cat.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #ffffff;
+}
+
+/* Nhãn "Nổi bật" trên ảnh món */
+.product-img-placeholder {
+    position: relative;
+}
+
+.badge-featured {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 1;
+    background: var(--color-primary);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* Popup chi tiết món: ảnh trên, phần tùy chọn cuộn, chân popup (số lượng + nút) cố định */
+.option-modal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    max-height: 92vh;
+    padding: 0;
+}
+
+.option-modal-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+}
+
+.option-media {
+    position: relative;
+    flex-shrink: 0;
+    height: 200px;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: zoom-in;
+}
+
+.option-media.is-zoomed {
+    height: 60vh;
+    cursor: zoom-out;
+}
+
+.option-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.option-media.is-zoomed .option-img {
+    object-fit: contain;
+}
+
+.option-img-letter {
+    font-size: 56px;
+    font-weight: bold;
+    color: var(--text-muted);
+}
+
+.option-zoom-hint {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #ffffff;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.option-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+}
+
+.option-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 16px;
+}
+
+.option-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.option-name {
+    margin: 0 0 4px;
+}
+
+.option-desc {
+    margin: 0 0 6px;
+    color: var(--text-muted);
+}
+
+.option-video {
+    color: var(--color-primary);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.option-group {
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    margin: 10px 0 0;
+    padding: 8px 12px;
+    min-width: 0;
+}
+
+.option-group legend {
+    font-weight: bold;
+    padding: 0 4px;
+}
+
+.option-required {
+    color: var(--color-danger);
+    font-size: 12px;
+}
+
+.option-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.option-choice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    cursor: pointer;
+}
+
+.option-choice-name {
+    flex: 1;
+}
+
+.option-choice-price {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.option-note {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.option-footer {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-primary);
+}
+
+.option-qty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.option-qty input {
+    width: 44px;
+    text-align: center;
+}
+
+.btn-option-add,
+.btn-option-buy {
+    padding: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btn-option-add {
+    border: 1px solid var(--color-primary);
+    background: var(--bg-primary);
+    color: var(--color-primary);
+}
+
+.btn-option-buy {
+    grid-column: 1 / -1;
+    border: none;
+    background: var(--color-primary);
+    color: #ffffff;
+}
+
+@media (max-width: 600px) {
+    .option-modal {
+        width: 100%;
+        max-height: 94vh;
+        align-self: flex-end;
+    }
+}

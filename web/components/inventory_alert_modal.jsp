@@ -16,7 +16,7 @@
             <h3 class="m-0">
                 <fmt:message key="alert.modal.title" />
             </h3>
-            <button type="button" class="btn-modal-close" data-close-modal="inventoryAlertModal">✖</button>
+            <button type="button" class="btn-modal-close" data-close-modal="inventoryAlertModal"><i class="fi fi-rr-cross-small" aria-hidden="true"></i></button>
         </div>
         <div class="modal-body">
             <div id="alertEmptyState" class="empty-cart-container d-none">

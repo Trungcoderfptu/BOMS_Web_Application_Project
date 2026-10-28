@@ -63,6 +63,13 @@ public class Constants {
     public static final String SUCCESS_REVERT_DELIVERY_ORDER = "S0212";
     public static final String SUCCESS_CREATE_MENU_CATEGORY = "S0213";
     public static final String SUCCESS_DELETE_MENU_CATEGORY = "S0214";
+    // Dải S023X: Tuỳ chọn món (size, topping) - quản lý thực đơn
+    public static final String SUCCESS_CREATE_MENU_SIZE = "S0230";
+    public static final String SUCCESS_UPDATE_MENU_SIZE = "S0231";
+    public static final String SUCCESS_TOGGLE_MENU_SIZE = "S0232";
+    public static final String SUCCESS_CREATE_MENU_TOPPING = "S0233";
+    public static final String SUCCESS_UPDATE_MENU_TOPPING = "S0234";
+    public static final String SUCCESS_TOGGLE_MENU_TOPPING = "S0235";
 
     // Dải S070X: Quản lý Nhân sự & Chấm công (Time Attendance & HR - Task 10)
     public static final String SUCCESS_CREATE_SHIFT = "S0701";
@@ -179,6 +186,19 @@ public class Constants {
     public static final String ERROR_MENU_CATEGORY_IN_USE = "E0220";
     public static final String ERROR_DELIVERY_CONTROLLED_BY_SHIPPER = "E0224";
     public static final String ERROR_ORDER_CLOSED_STATUS = "E0225";
+    // Dải E023X: Tuỳ chọn món khi đặt (size, đá, đường, topping, ghi chú) và quản lý size/topping
+    public static final String ERROR_INVALID_MENU_SIZE = "E0230";
+    public static final String ERROR_INVALID_ICE_LEVEL = "E0231";
+    public static final String ERROR_INVALID_SUGAR_LEVEL = "E0232";
+    public static final String ERROR_INVALID_MENU_TOPPING = "E0233";
+    public static final String ERROR_ITEM_NOTE_TOO_LONG = "E0234";
+    public static final String ERROR_INVALID_ITEM_QUANTITY = "E0235";
+    public static final String ERROR_MENU_OPTION_NAME = "E0236";
+    public static final String ERROR_MENU_OPTION_EXISTS = "E0237";
+    public static final String ERROR_MENU_OPTION_PRICE = "E0238";
+    public static final String ERROR_MENU_OPTION_FORBIDDEN = "E0239";
+    public static final String ERROR_PRODUCT_DESCRIPTION_TOO_LONG = "E0240";
+    public static final String ERROR_PRODUCT_VIDEO_URL = "E0241";
 
     // Dải E070X: Quản lý Nhân sự & Chấm công (HR & Shift Management - Task 10)
     public static final String ERROR_SHIFT_NAME_EMPTY = "E0701";
@@ -303,6 +323,25 @@ public class Constants {
     // Nhóm Thông báo & Phát thanh (Notification DAO - Task 11)
     public static final String ERROR_DATABASE_GET_NOTIFICATION = "DE0061";
     public static final String ERROR_DATABASE_UPDATE_NOTIFICATION = "DE0062";
+    public static final String ERROR_DATABASE_MENU_OPTION = "DE0070";
+    public static final String ERROR_DATABASE_BEST_SELLER = "DE0071";
+
+    // =========================================================================
+    // TUỲ CHỌN MÓN KHI ĐẶT (kiểu menu online)
+    // Mã mức đá / đường được lưu vào OrderDetails; chữ hiển thị nằm trong properties
+    // (option.ice.ICE_100, option.sugar.SUGAR_70 ...)
+    // =========================================================================
+    public static final String[] ICE_LEVELS = {"ICE_100", "ICE_50", "ICE_0"};
+    public static final String[] SUGAR_LEVELS = {"SUGAR_100", "SUGAR_70", "SUGAR_0"};
+    public static final String DEFAULT_ICE_LEVEL = "ICE_100";
+    public static final String DEFAULT_SUGAR_LEVEL = "SUGAR_100";
+    public static final int MAX_ITEM_NOTE_LENG = 200;
+    public static final int MAX_ITEM_QUANTITY = 99;
+    public static final int MAX_PRODUCT_DESCRIPTION_LENG = 500;
+    public static final int MAX_MENU_OPTION_NAME_LENG = 50;
+    public static final int BEST_SELLER_LIMIT = 6;
+    public static final String TOPPING_SEPARATOR = ", ";
+    public static final String OPEN_CHECKOUT = "OPEN_CHECKOUT";
     // Nhóm Báo cáo ẩn danh & Thông báo (Report DAO, Notification DAO)
     public static final String ERROR_DATABASE_GET_REPORT = "DE0030";
     public static final String ERROR_DATABASE_INSERT_REPORT = "DE0031";

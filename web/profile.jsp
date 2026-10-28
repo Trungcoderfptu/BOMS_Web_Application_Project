@@ -20,8 +20,8 @@
         <c:remove var="ERROR_MESSAGE" scope="session" />
     </c:if>
 
-    <div class="d-flex gap-30">
-        <div class="profile-avatar-col">
+    <div class="d-flex gap-30 profile-layout">
+        <div class="profile-avatar-col panel">
             <h3><fmt:message key="profile.avatar.title" /></h3>
             <c:choose>
                 <c:when test="${not empty USER_PROFILE.avatar}">
@@ -47,7 +47,7 @@
             </form>
         </div>
 
-        <div class="flex-grow-1 profile-detail-col">
+        <div class="flex-grow-1 profile-detail-col panel">
             <h2><fmt:message key="profile.info.title" /></h2>
             <table class="profile-table">
                 <tr>

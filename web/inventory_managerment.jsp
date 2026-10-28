@@ -2,27 +2,25 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
-<fmt:setLocale value="${not empty cookie.LANG.value ? cookie.LANG.value : 'vi'}" />
+<fmt:setLocale value="${not empty sessionScope.LANG ? sessionScope.LANG : (not empty cookie.LANG.value ? cookie.LANG.value : 'vi')}" />
 <fmt:setBundle basename="resources.messages" />
 
 <jsp:include page="header.jsp" />
+<c:set var="ctx" value="${pageContext.request.contextPath}" />
 
+<%-- Bố cục B: danh sách + chi tiết. Trái: tìm kiếm + danh sách nguyên liệu (bấm 1 dòng);
+     phải: chi tiết + thao tác của dòng đang chọn (main.js pickIngredient chép data-* của dòng sang khung chi tiết) --%>
 <main class="main-content">
-    <div class="flex-between mt-15 mb-20">
-        <h2 class="m-0"><fmt:message key="inventory.heading" /></h2>
+    <div class="page-head">
+        <h2><fmt:message key="inventory.heading" /></h2>
         <c:if test="${IS_MANAGER}">
             <div class="d-flex gap-10">
-                <button type="button" class="btn-login btn-secondary" data-action="open-inventory-category">
-                    📁 <fmt:message key="inventory.category.btn.manage" />
-                </button>
-                <button type="button" class="btn-login" data-action="open-create-ingredient">
-                    + <fmt:message key="inventory.btn.add" />
-                </button>
+                <button type="button" class="btn-plain" data-action="open-inventory-category"><fmt:message key="inventory.category.btn.manage" /></button>
+                <button type="button" class="btn-next" data-action="open-create-ingredient">+ <fmt:message key="inventory.btn.add" /></button>
             </div>
         </c:if>
     </div>
 
-    <%-- Flash Message Thông Báo Một Lần (Chuẩn PRG) --%>
     <c:if test="${not empty sessionScope.ERROR_MESSAGE}">
         <p class="msg-error text-center"><fmt:message key="${sessionScope.ERROR_MESSAGE}" /></p>
         <c:remove var="ERROR_MESSAGE" scope="session" />
@@ -30,7 +28,6 @@
     <c:if test="${not empty ERROR_MESSAGE}">
         <p class="msg-error text-center"><fmt:message key="${ERROR_MESSAGE}" /></p>
     </c:if>
-
     <c:if test="${not empty sessionScope.SUCCESS_MESSAGE}">
         <p class="msg-success text-center"><fmt:message key="${sessionScope.SUCCESS_MESSAGE}" /></p>
         <c:remove var="SUCCESS_MESSAGE" scope="session" />
@@ -39,122 +36,81 @@
         <p class="msg-success text-center"><fmt:message key="${SUCCESS_MESSAGE}" /></p>
     </c:if>
 
-    <%-- Thanh Tìm Kiếm Nguyên Liệu --%>
-    <form action="${pageContext.request.contextPath}/InventoryManagementController" method="GET" class="order-filter-panel mb-20">
-        <div class="filter-item flex-grow-1">
-            <label for="searchIngredient"><fmt:message key="inventory.table.name" />:</label>
-            <input type="text" id="searchIngredient" name="search" value="${fn:escapeXml(SEARCH_TERM)}"
-                   placeholder="<fmt:message key="inventory.search.placeholder" />"
-                   class="filter-input flex-grow-1" />
-        </div>
-        <button type="submit" class="btn-login"><fmt:message key="inventory.btn.search" /></button>
-        <c:if test="${not empty SEARCH_TERM}">
-            <a href="${pageContext.request.contextPath}/InventoryManagementController" class="btn-modal-cancel">
-                <fmt:message key="inventory.btn.clear_search" />
-            </a>
-        </c:if>
-    </form>
+    <div class="md-layout">
+        <section class="panel md-list">
+            <form action="${ctx}/InventoryManagementController" method="GET" class="md-filter">
+                <input type="text" id="searchIngredient" name="search" value="${fn:escapeXml(SEARCH_TERM)}" class="filter-input"
+                       placeholder="<fmt:message key="inventory.search.placeholder" />" aria-label="<fmt:message key="inventory.table.name" />" />
+                <button type="submit" class="btn-plain"><fmt:message key="inventory.btn.search" /></button>
+                <c:if test="${not empty SEARCH_TERM}">
+                    <a href="${ctx}/InventoryManagementController" class="btn-plain"><fmt:message key="inventory.btn.clear_search" /></a>
+                </c:if>
+            </form>
 
-    <%-- Bảng Danh Sách Nguyên Liệu Kho --%>
-    <c:choose>
-        <c:when test="${empty INGREDIENT_LIST}">
-            <div class="empty-cart-container">
-                <h3 class="msg-info"><fmt:message key="inventory.empty" /></h3>
+            <c:choose>
+                <c:when test="${empty INGREDIENT_LIST}">
+                    <p class="todo-empty"><fmt:message key="inventory.empty" /></p>
+                </c:when>
+                <c:otherwise>
+                    <ul class="md-rows">
+                        <c:forEach var="item" items="${INGREDIENT_LIST}">
+                            <c:choose>
+                                <c:when test="${item.stockStatus == 'OUT_OF_STOCK'}"><c:set var="stKey" value="inventory.status.out_of_stock" /><c:set var="stCls" value="badge-status-inactive" /></c:when>
+                                <c:when test="${item.stockStatus == 'LOW_STOCK'}"><c:set var="stKey" value="inventory.status.low_stock" /><c:set var="stCls" value="badge-stock-out" /></c:when>
+                                <c:otherwise><c:set var="stKey" value="inventory.status.in_stock" /><c:set var="stCls" value="badge-stock-ok" /></c:otherwise>
+                            </c:choose>
+                            <fmt:message key="${stKey}" var="stText" />
+                            <li>
+                                <button type="button" class="md-row" data-action="pick-ingredient"
+                                        data-id="${item.ingredientId}"
+                                        data-cat-id="${item.categoryId}"
+                                        data-cat-name="${fn:escapeXml(item.categoryName)}"
+                                        data-name="${fn:escapeXml(item.ingredientName)}"
+                                        data-unit="${fn:escapeXml(item.unit)}"
+                                        data-qty="${item.quantity}"
+                                        data-price="${item.price}"
+                                        data-loc="${fn:escapeXml(item.storageLocation)}"
+                                        data-threshold="${item.warningThreshold}"
+                                        data-status-text="${fn:escapeXml(stText)}">
+                                    <span class="md-row-top">
+                                        <strong><c:out value="${item.ingredientName}" /></strong>
+                                        <span class="${stCls}">${stText}</span>
+                                    </span>
+                                    <span class="muted"><c:out value="${item.categoryName}" /> · <fmt:formatNumber value="${item.quantity}" maxFractionDigits="2" /> <c:out value="${item.unit}" /></span>
+                                </button>
+                            </li>
+                        </c:forEach>
+                    </ul>
+                </c:otherwise>
+            </c:choose>
+        </section>
+
+        <section id="invDetail" class="panel md-detail">
+            <p id="invDetailEmpty" class="md-placeholder"><fmt:message key="md.pick.ingredient" /></p>
+            <div id="invDetailBody" class="d-none">
+                <h3 id="invDName" class="panel-title"></h3>
+                <table class="admin-table report-info-table">
+                    <tr><th><fmt:message key="inventory.table.category" /></th><td id="invDCat"></td></tr>
+                    <tr><th><fmt:message key="inventory.table.quantity" /></th><td id="invDQty"></td></tr>
+                    <tr><th><fmt:message key="inventory.table.threshold" /></th><td id="invDThreshold"></td></tr>
+                    <tr><th><fmt:message key="inventory.table.status" /></th><td id="invDStatus"></td></tr>
+                    <tr><th><fmt:message key="inventory.table.price" /></th><td id="invDPrice"></td></tr>
+                    <tr><th><fmt:message key="inventory.table.location" /></th><td id="invDLoc"></td></tr>
+                </table>
+                <c:if test="${IS_MANAGER}">
+                    <div class="kanban-actions mt-15">
+                        <button type="button" id="invDEdit" class="btn-next" data-action="edit-ingredient"><fmt:message key="inventory.btn.edit" /></button>
+                        <button type="button" id="invDThresholdBtn" class="btn-plain" data-action="open-threshold"><fmt:message key="inventory.btn.update_threshold" /></button>
+                        <form action="${ctx}/InventoryManagementController" method="POST" class="m-0" data-confirm="<fmt:message key="inventory.confirm.delete" />">
+                            <input type="hidden" name="action" value="delete" />
+                            <input type="hidden" id="invDDeleteId" name="ingredientId" value="" />
+                            <button type="submit" class="btn-plain"><fmt:message key="inventory.btn.delete" /></button>
+                        </form>
+                    </div>
+                </c:if>
             </div>
-        </c:when>
-        <c:otherwise>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th><fmt:message key="inventory.table.id" /></th>
-                        <th><fmt:message key="inventory.table.name" /></th>
-                        <th><fmt:message key="inventory.table.category" /></th>
-                        <th><fmt:message key="inventory.table.quantity" /></th>
-                        <th><fmt:message key="inventory.table.unit" /></th>
-                        <th><fmt:message key="inventory.table.price" /></th>
-                        <th><fmt:message key="inventory.table.location" /></th>
-                        <th><fmt:message key="inventory.table.threshold" /></th>
-                        <th><fmt:message key="inventory.table.status" /></th>
-                        <c:if test="${IS_MANAGER}">
-                            <th><fmt:message key="inventory.table.action" /></th>
-                        </c:if>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach var="item" items="${INGREDIENT_LIST}">
-                        <tr>
-                            <td><strong>#${item.ingredientId}</strong></td>
-                            <td><strong><c:out value="${item.ingredientName}" /></strong></td>
-                            <td><span class="badge-category"><c:out value="${item.categoryName}" /></span></td>
-                            <td class="font-bold">
-                                <fmt:formatNumber value="${item.quantity}" maxFractionDigits="2" />
-                            </td>
-                            <td><c:out value="${item.unit}" /></td>
-                            <td class="font-bold text-nowrap">
-                                <fmt:formatNumber value="${item.price}" pattern="#,###" /> ₫
-                            </td>
-                            <td><c:out value="${item.storageLocation}" /></td>
-                            <td>
-                                <fmt:formatNumber value="${item.warningThreshold}" maxFractionDigits="2" /> <c:out value="${item.unit}" />
-                            </td>
-                            <td>
-                                <c:choose>
-                                    <c:when test="${item.stockStatus == 'OUT_OF_STOCK'}">
-                                        <span class="badge-status-inactive">
-                                            <fmt:message key="inventory.status.out_of_stock" />
-                                        </span>
-                                    </c:when>
-                                    <c:when test="${item.stockStatus == 'LOW_STOCK'}">
-                                        <span class="badge-stock-out">
-                                            <fmt:message key="inventory.status.low_stock" />
-                                        </span>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="badge-stock-ok">
-                                            <fmt:message key="inventory.status.in_stock" />
-                                        </span>
-                                    </c:otherwise>
-                                </c:choose>
-                            </td>
-                            <c:if test="${IS_MANAGER}">
-                                <td>
-                                    <div class="menu-action-buttons">
-                                        <button type="button" class="btn-action-edit"
-                                                data-action="edit-ingredient"
-                                                data-id="${item.ingredientId}"
-                                                data-cat-id="${item.categoryId}"
-                                                data-name="${fn:escapeXml(item.ingredientName)}"
-                                                data-unit="${fn:escapeXml(item.unit)}"
-                                                data-qty="${item.quantity}"
-                                                data-price="${item.price}"
-                                                data-loc="${fn:escapeXml(item.storageLocation)}"
-                                                data-threshold="${item.warningThreshold}">
-                                            <fmt:message key="inventory.btn.edit" />
-                                        </button>
-                                        <button type="button" class="btn-action-toggle-resume"
-                                                data-action="open-threshold"
-                                                data-id="${item.ingredientId}"
-                                                data-name="${fn:escapeXml(item.ingredientName)}"
-                                                data-threshold="${item.warningThreshold}">
-                                            <fmt:message key="inventory.btn.update_threshold" />
-                                        </button>
-                                        <form action="${pageContext.request.contextPath}/InventoryManagementController" method="POST" class="m-0 d-inline"
-                                              data-confirm="<fmt:message key="inventory.confirm.delete" />">
-                                            <input type="hidden" name="action" value="delete" />
-                                            <input type="hidden" name="ingredientId" value="${item.ingredientId}" />
-                                            <button type="submit" class="btn-action-toggle-stop">
-                                                <fmt:message key="inventory.btn.delete" />
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </c:if>
-                        </tr>
-                    </c:forEach>
-                </tbody>
-            </table>
-        </c:otherwise>
-    </c:choose>
+        </section>
+    </div>
 
     <jsp:include page="components/inventory_form_modal.jsp" />
 </main>

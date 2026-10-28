@@ -6,22 +6,13 @@
 <fmt:setLocale value="${currentLang}" />
 <fmt:setBundle basename="resources.messages" />
 
-<!DOCTYPE html>
-<html lang="${currentLang}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><fmt:message key="hr.page.title" /> - BOMS</title>
-    <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/css/global.css">
-</head>
-<body class="page-container">
     <jsp:include page="header.jsp" />
 
-    <main class="main-content">
+    <main class="main-content page-container">
         <div class="content-header flex-between align-center mb-20">
             <div>
                 <h1 class="page-main-title">
-                    👥 <fmt:message key="hr.page.title" />
+                    <fmt:message key="hr.page.title" />
                 </h1>
                 <p class="text-muted mt-5 font-sm">
                     <fmt:message key="hr.page.subtitle" />
@@ -32,14 +23,14 @@
         <%-- ================= FLASH MESSAGES ================= --%>
         <c:if test="${not empty SUCCESS_MESSAGE}">
             <div class="alert-box alert-success mb-20 flex-between align-center">
-                <span>✅ <fmt:message key="${SUCCESS_MESSAGE}" /></span>
+                <span><i class="fi fi-rr-check-circle" aria-hidden="true"></i> <fmt:message key="${SUCCESS_MESSAGE}" /></span>
                 <span class="close-alert cursor-pointer" data-dismiss="alert">&times;</span>
             </div>
             <c:remove var="SUCCESS_MESSAGE" scope="session" />
         </c:if>
         <c:if test="${not empty ERROR_MESSAGE}">
             <div class="alert-box alert-danger mb-20 flex-between align-center">
-                <span>⚠️ <fmt:message key="${ERROR_MESSAGE}" /></span>
+                <span><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i> <fmt:message key="${ERROR_MESSAGE}" /></span>
                 <span class="close-alert cursor-pointer" data-dismiss="alert">&times;</span>
             </div>
             <c:remove var="ERROR_MESSAGE" scope="session" />
@@ -48,86 +39,28 @@
         <%-- ================= NAVIGATION TABS ================= --%>
         <div class="tab-header mb-20">
             <button type="button" class="tab-btn ${ACTIVE_TAB == 'shifts' ? 'active' : ''}" data-hr-tab="tab-shifts">
-                🗓️ <fmt:message key="hr.tab.shifts" />
+                <fmt:message key="hr.tab.shifts" />
             </button>
             <button type="button" class="tab-btn ${ACTIVE_TAB == 'tracking' ? 'active' : ''}" data-hr-tab="tab-tracking">
-                ⏱️ <fmt:message key="hr.tab.tracking" />
+                <fmt:message key="hr.tab.tracking" />
                 <c:if test="${not empty PENDING_APPROVALS}">
                     <span class="badge-pending-count ml-5">${PENDING_APPROVALS.size()}</span>
                 </c:if>
             </button>
             <button type="button" class="tab-btn ${ACTIVE_TAB == 'summary' ? 'active' : ''}" data-hr-tab="tab-summary">
-                📊 <fmt:message key="hr.tab.summary" />
+                <fmt:message key="hr.tab.summary" />
             </button>
         </div>
 
         <%-- ================= TAB 1: PHÂN CA & KHUNG GIỜ ================= --%>
         <div id="tab-shifts" class="tab-content ${ACTIVE_TAB == 'shifts' ? 'active' : 'd-none'}">
-            <div class="panel-card mb-25">
-                <div class="panel-header flex-between align-center mb-15">
-                    <h2 class="panel-title font-md">
-                        🕒 <fmt:message key="hr.shifts.section_title" />
-                    </h2>
-                    <button type="button" id="btnOpenCreateShift" class="btn-primary btn-sm">
-                        ➕ <fmt:message key="hr.btn.add_shift" />
-                    </button>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th><fmt:message key="hr.shift.label.name" /></th>
-                                <th><fmt:message key="hr.shift.label.time_range" /></th>
-                                <th><fmt:message key="hr.shift.label.status" /></th>
-                                <th class="text-center"><fmt:message key="hr.table.action" /></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <c:choose>
-                                <c:when test="${not empty SHIFTS}">
-                                    <c:forEach var="shift" items="${SHIFTS}" varStatus="loop">
-                                        <tr>
-                                             <td>${loop.index + 1}</td>
-                                            <td class="font-bold">${shift.shiftName}</td>
-                                            <td>${shift.timeRange}</td>
-                                            <td>
-                                                <c:choose>
-                                                    <c:when test="${shift.isAssigned}">
-                                                        <span class="status-badge badge-active"><fmt:message key="hr.shift.status.in_use" /></span>
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="status-badge badge-neutral"><fmt:message key="hr.shift.status.available" /></span>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </td>
-                                            <td class="text-center">
-                                                <button type="button" class="btn-secondary btn-xs" data-action="edit-shift" data-shift-id="${shift.shiftId}" data-shift-name="${shift.shiftName}" data-start-time="${shift.startTime}" data-end-time="${shift.endTime}">
-                                                    ✏️ <fmt:message key="hr.btn.edit" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </c:forEach>
-                                </c:when>
-                                <c:otherwise>
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted p-20">
-                                            <fmt:message key="hr.empty.shifts" />
-                                        </td>
-                                    </tr>
-                                </c:otherwise>
-                            </c:choose>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
+            <%-- Bố cục D: lịch nguồn lực (hàng = nhân viên, cột = ngày) là khung chính; bấm ô trống để phân ca nhanh --%>
             <%-- ================= BẢNG MA TRẬN PHÂN CA TUẦN CHO QUẢN LÝ (TASK 14.3) ================= --%>
-            <div class="panel-card mb-25">
+            <div class="panel-card mb-25 shift-calendar">
                 <div class="panel-header flex-between align-center mb-15">
                     <div>
                         <h2 class="panel-title font-md">
-                            🗓️ <fmt:message key="hr.matrix.title" />
+                            <fmt:message key="hr.matrix.title" />
                         </h2>
                         <span class="text-muted font-xs font-bold">${MANAGER_MATRIX.weekLabel}</span>
                     </div>
@@ -144,7 +77,7 @@
                             </a>
                         </div>
                         <button type="button" class="btn-primary btn-sm btn-open-assign-shift">
-                            ➕ <fmt:message key="hr.btn.assign_shift" />
+                            <i class="fi fi-rr-plus" aria-hidden="true"></i> <fmt:message key="hr.btn.assign_shift" />
                         </button>
                     </div>
                 </div>
@@ -182,7 +115,7 @@
                                                                 <div class="font-xxs text-muted">${cell.timeRange}</div>
                                                                 <c:choose>
                                                                     <c:when test="${cell.isLocked}">
-                                                                        <span class="badge-sub-status text-success font-xxs">🔒 <fmt:message key="hr.status.locked" /></span>
+                                                                        <span class="badge-sub-status text-success font-xxs"><i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="hr.status.locked" /></span>
                                                                     </c:when>
                                                                     <c:otherwise>
                                                                         <form action="${pageContext.request.contextPath}/HrManagementController" method="POST" class="m-0 d-inline" data-confirm="<fmt:message key="hr.confirm.delete_assignment" />">
@@ -217,12 +150,70 @@
                     </table>
                 </div>
             </div>
-
+            <div class="shift-side">
+            <div class="panel-card mb-25">
+                <div class="panel-header flex-between align-center mb-15">
+                    <h2 class="panel-title font-md">
+                        <fmt:message key="hr.shifts.section_title" />
+                    </h2>
+                    <button type="button" id="btnOpenCreateShift" class="btn-primary btn-sm">
+                        <i class="fi fi-rr-plus" aria-hidden="true"></i> <fmt:message key="hr.btn.add_shift" />
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th><fmt:message key="hr.shift.label.name" /></th>
+                                <th><fmt:message key="hr.shift.label.time_range" /></th>
+                                <th><fmt:message key="hr.shift.label.status" /></th>
+                                <th class="text-center"><fmt:message key="hr.table.action" /></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <c:choose>
+                                <c:when test="${not empty SHIFTS}">
+                                    <c:forEach var="shift" items="${SHIFTS}" varStatus="loop">
+                                        <tr>
+                                             <td>${loop.index + 1}</td>
+                                            <td class="font-bold">${shift.shiftName}</td>
+                                            <td>${shift.timeRange}</td>
+                                            <td>
+                                                <c:choose>
+                                                    <c:when test="${shift.isAssigned}">
+                                                        <span class="status-badge badge-active"><fmt:message key="hr.shift.status.in_use" /></span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="status-badge badge-neutral"><fmt:message key="hr.shift.status.available" /></span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn-secondary btn-xs" data-action="edit-shift" data-shift-id="${shift.shiftId}" data-shift-name="${shift.shiftName}" data-start-time="${shift.startTime}" data-end-time="${shift.endTime}">
+                                                    <fmt:message key="hr.btn.edit" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted p-20">
+                                            <fmt:message key="hr.empty.shifts" />
+                                        </td>
+                                    </tr>
+                                </c:otherwise>
+                            </c:choose>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             <div class="panel-card">
                 <div class="panel-header flex-between align-center mb-15">
                     <div>
                         <h2 class="panel-title font-md">
-                            📋 <fmt:message key="hr.assignment.section_title" />
+                            <fmt:message key="hr.assignment.section_title" />
                         </h2>
                     </div>
                     <div class="flex-center gap-10">
@@ -230,11 +221,11 @@
                             <input type="hidden" name="tab" value="shifts" />
                             <input type="date" name="date" class="form-input form-input-sm" value="${FILTER_DATE}" data-auto-submit="true" />
                             <button type="submit" class="btn-secondary btn-sm">
-                                🔍 <fmt:message key="hr.btn.view" />
+                                <fmt:message key="hr.btn.view" />
                             </button>
                         </form>
                         <button type="button" class="btn-primary btn-sm btn-open-assign-shift">
-                            ➕ <fmt:message key="hr.btn.assign_shift" />
+                            <i class="fi fi-rr-plus" aria-hidden="true"></i> <fmt:message key="hr.btn.assign_shift" />
                         </button>
                     </div>
                 </div>
@@ -284,12 +275,12 @@
                                                             <input type="hidden" name="tab" value="shifts" />
                                                             <input type="hidden" name="filterDate" value="${FILTER_DATE}" />
                                                             <button type="submit" class="btn-danger btn-xs">
-                                                                🗑️ <fmt:message key="hr.btn.remove" />
+                                                                <i class="fi fi-rr-trash" aria-hidden="true"></i> <fmt:message key="hr.btn.remove" />
                                                             </button>
                                                         </form>
                                                     </c:when>
                                                     <c:otherwise>
-                                                        <span class="text-muted font-xs">🔒 <fmt:message key="hr.status.locked" /></span>
+                                                        <span class="text-muted font-xs"><i class="fi fi-rr-lock" aria-hidden="true"></i> <fmt:message key="hr.status.locked" /></span>
                                                     </c:otherwise>
                                                 </c:choose>
                                             </td>
@@ -308,6 +299,7 @@
                     </table>
                 </div>
             </div>
+            </div>
         </div>
 
         <%-- ================= TAB 2: THEO DÕI ĐIỂM DANH & DUYỆT OT ================= --%>
@@ -316,7 +308,7 @@
             <div class="panel-card mb-25 border-warning">
                 <div class="panel-header mb-15">
                     <h2 class="panel-title font-md text-warning">
-                        ⚡ <fmt:message key="hr.tracking.pending_title" />
+                        <fmt:message key="hr.tracking.pending_title" />
                     </h2>
                 </div>
                 <div class="table-responsive">
@@ -366,7 +358,7 @@
                                                             <input type="hidden" name="tab" value="tracking" />
                                                             <input type="hidden" name="filterDate" value="${FILTER_DATE}" />
                                                             <button type="submit" class="btn-primary btn-xs" title="<fmt:message key="hr.btn.approve_ot" />">
-                                                                ✅ <fmt:message key="hr.btn.approve" />
+                                                                <i class="fi fi-rr-check-circle" aria-hidden="true"></i> <fmt:message key="hr.btn.approve" />
                                                             </button>
                                                         </form>
                                                         <form action="${pageContext.request.contextPath}/HrManagementController" method="POST" class="m-0">
@@ -375,7 +367,7 @@
                                                             <input type="hidden" name="tab" value="tracking" />
                                                             <input type="hidden" name="filterDate" value="${FILTER_DATE}" />
                                                             <button type="submit" class="btn-danger btn-xs" title="<fmt:message key="hr.btn.reject_ot" />">
-                                                                ❌ <fmt:message key="hr.btn.reject" />
+                                                                <i class="fi fi-rr-cross-circle" aria-hidden="true"></i> <fmt:message key="hr.btn.reject" />
                                                             </button>
                                                         </form>
                                                     </c:if>
@@ -386,7 +378,7 @@
                                                             <input type="hidden" name="tab" value="tracking" />
                                                             <input type="hidden" name="filterDate" value="${FILTER_DATE}" />
                                                             <button type="submit" class="btn-primary btn-xs" title="<fmt:message key="hr.btn.approve_early" />">
-                                                                ✅ <fmt:message key="hr.btn.approve_early" />
+                                                                <i class="fi fi-rr-check-circle" aria-hidden="true"></i> <fmt:message key="hr.btn.approve_early" />
                                                             </button>
                                                         </form>
                                                         <form action="${pageContext.request.contextPath}/HrManagementController" method="POST" class="m-0">
@@ -395,7 +387,7 @@
                                                             <input type="hidden" name="tab" value="tracking" />
                                                             <input type="hidden" name="filterDate" value="${FILTER_DATE}" />
                                                             <button type="submit" class="btn-danger btn-xs" title="<fmt:message key="hr.btn.reject_early" />">
-                                                                ❌ <fmt:message key="hr.btn.reject" />
+                                                                <i class="fi fi-rr-cross-circle" aria-hidden="true"></i> <fmt:message key="hr.btn.reject" />
                                                             </button>
                                                         </form>
                                                     </c:if>
@@ -407,7 +399,7 @@
                                 <c:otherwise>
                                     <tr>
                                         <td colspan="9" class="text-center text-muted p-20">
-                                            ✅ <fmt:message key="hr.empty.pending" />
+                                            <i class="fi fi-rr-check-circle" aria-hidden="true"></i> <fmt:message key="hr.empty.pending" />
                                         </td>
                                     </tr>
                                 </c:otherwise>
@@ -421,13 +413,13 @@
             <div class="panel-card">
                 <div class="panel-header flex-between align-center mb-15">
                     <h2 class="panel-title font-md">
-                        📅 <fmt:message key="hr.tracking.daily_title" /> (${FILTER_DATE})
+                        <fmt:message key="hr.tracking.daily_title" /> (${FILTER_DATE})
                     </h2>
                     <form action="${pageContext.request.contextPath}/HrManagementController" method="GET" class="filter-form m-0">
                         <input type="hidden" name="tab" value="tracking" />
                         <input type="date" name="date" class="form-input form-input-sm" value="${FILTER_DATE}" data-auto-submit="true" />
                         <button type="submit" class="btn-secondary btn-sm">
-                            🔍 <fmt:message key="hr.btn.view" />
+                            <fmt:message key="hr.btn.view" />
                         </button>
                     </form>
                 </div>
@@ -468,10 +460,10 @@
                                                         <span class="status-badge badge-warning"><fmt:message key="hr.status.pending_early" /></span>
                                                     </c:when>
                                                     <c:when test="${row.checkInStatus == 'Approved'}">
-                                                        <span class="status-badge badge-active">✅ <fmt:message key="hr.status.approved" /></span>
+                                                        <span class="status-badge badge-active"><i class="fi fi-rr-check-circle" aria-hidden="true"></i> <fmt:message key="hr.status.approved" /></span>
                                                     </c:when>
                                                     <c:when test="${row.checkInStatus == 'Rejected'}">
-                                                        <span class="status-badge badge-danger">❌ <fmt:message key="hr.status.rejected" /></span>
+                                                        <span class="status-badge badge-danger"><i class="fi fi-rr-cross-circle" aria-hidden="true"></i> <fmt:message key="hr.status.rejected" /></span>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <span class="status-badge badge-neutral">-</span>
@@ -491,10 +483,10 @@
                                                         <span class="status-badge badge-warning"><fmt:message key="attendance.badge.pending_ot" /></span>
                                                     </c:when>
                                                     <c:when test="${row.checkOutStatus == 'Approved'}">
-                                                        <span class="status-badge badge-active">✅ <fmt:message key="hr.status.approved" /></span>
+                                                        <span class="status-badge badge-active"><i class="fi fi-rr-check-circle" aria-hidden="true"></i> <fmt:message key="hr.status.approved" /></span>
                                                     </c:when>
                                                     <c:when test="${row.checkOutStatus == 'Rejected'}">
-                                                        <span class="status-badge badge-danger">❌ <fmt:message key="hr.status.rejected" /></span>
+                                                        <span class="status-badge badge-danger"><i class="fi fi-rr-cross-circle" aria-hidden="true"></i> <fmt:message key="hr.status.rejected" /></span>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <span class="status-badge badge-neutral">-</span>
@@ -525,7 +517,7 @@
             <div class="panel-card">
                 <div class="panel-header flex-between align-center mb-15">
                     <h2 class="panel-title font-md">
-                        📊 <fmt:message key="hr.summary.section_title" /> (${CURRENT_MONTH}/${CURRENT_YEAR})
+                        <fmt:message key="hr.summary.section_title" /> (${CURRENT_MONTH}/${CURRENT_YEAR})
                     </h2>
                     <form action="${pageContext.request.contextPath}/HrManagementController" method="GET" class="filter-form m-0">
                         <input type="hidden" name="tab" value="summary" />
@@ -542,7 +534,7 @@
                             </c:forEach>
                         </select>
                         <button type="submit" class="btn-primary btn-sm ml-10">
-                            🔍 <fmt:message key="hr.btn.view" />
+                            <fmt:message key="hr.btn.view" />
                         </button>
                     </form>
                 </div>
@@ -596,5 +588,3 @@
 
     <jsp:include page="components/hr_shift_modal.jsp" />
     <jsp:include page="footer.jsp" />
-</body>
-</html>

@@ -7,7 +7,7 @@
 <div id="revertDeliveryModal" class="modal-overlay d-none">
     <div class="modal-card">
         <div class="modal-header">
-            <h3 class="m-0 msg-error">⚠️ <fmt:message key="order.revert.modal.title" /></h3>
+            <h3 class="m-0 msg-error"><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i> <fmt:message key="order.revert.modal.title" /></h3>
             <button type="button" class="btn-modal-close" data-close-modal="revertDeliveryModal">&times;</button>
         </div>
         <div class="modal-body">

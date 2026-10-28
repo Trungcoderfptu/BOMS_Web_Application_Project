@@ -7,7 +7,7 @@
 
 <jsp:include page="header.jsp" />
 
-<main class="main-content d-flex gap-20">
+<main class="main-content d-flex gap-20 settings-layout">
 
     <div class="settings-sidebar">
         <h3><fmt:message key="settings.sidebar.title" /></h3>
@@ -17,7 +17,7 @@
         </ul>
     </div>
 
-    <div class="flex-grow-1">
+    <div class="flex-grow-1 panel">
 
         <c:if test="${not empty ERROR_MESSAGE}">
             <p class="msg-error"><fmt:message key="${ERROR_MESSAGE}" /></p>
@@ -27,7 +27,7 @@
         </c:if>
         <div id="tabProfile" class="tabContent ${empty ACTIVE_TAB || ACTIVE_TAB == 'updateProfile' ? '' : 'd-none'}">
             <h2><fmt:message key="settings.profile.heading" /></h2>
-            <form action="SettingsController" method="POST">
+            <form action="SettingsController" method="POST" class="form-card">
                 <input type="hidden" name="action" value="updateProfile" />
                 <label><fmt:message key="settings.label.email" /></label><br>
                 <input type="text" name="txtEmail" value="${not empty param.txtEmail ? param.txtEmail : USER_PROFILE.email}" /><br><br>
@@ -43,7 +43,7 @@
         </div>
         <div id="tabPassword" class="tabContent ${ACTIVE_TAB == 'changePassword' ? '' : 'd-none'}">
             <h2><fmt:message key="settings.password.heading" /></h2>
-            <form action="SettingsController" method="POST">
+            <form action="SettingsController" method="POST" class="form-card">
                 <input type="hidden" name="action" value="changePassword" />
                 <label><fmt:message key="settings.label.oldpass" /></label><br>
                 <input type="password" name="txtOldPassword" value="${param.txtOldPassword}" required /><br><br>

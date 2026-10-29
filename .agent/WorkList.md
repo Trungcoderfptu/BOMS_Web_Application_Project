@@ -732,3 +732,19 @@
 - [x] **Task 29.4: [DONE] Quản lý Size & Topping** - Manager/Admin CRUD, Staff chỉ xem.
 - [x] **Task 29.5: [DONE] Lưu tùy chọn vào đơn** - `OrderDetails` khóa chính mới `OrderDetailID`, hiển thị tùy chọn ở Quản lý đơn.
 - [ ] **Lưu ý cho team:** chạy `DATABASE/migration_menu_options.sql` 1 lần trong SSMS trước khi chạy code mới. Chưa trừ kho theo size/topping.
+
+## 🇯🇵 TASK 30: ĐA NGÔN NGỮ TIẾNG NHẬT (JAPANESE I18N SUPPORT)
+**Actor:** Developer & All Users
+**Mô tả:** Triển khai hỗ trợ tiếng Nhật toàn diện cho hệ thống: tạo `messages_ja.properties` ánh xạ 1:1 đủ 1051 keys với `messages_en.properties` và `messages_vi.properties`, mã hóa 100% Unicode Escape (`\uXXXX`), mở rộng `LanguageController` và giao diện `language_switcher.jsp`.
+
+- [x] **Task 30.1: [DONE] Xây dựng Từ điển Tiếng Nhật `messages_ja.properties` (1051 Keys 1:1):**
+  - Dịch toàn bộ thông báo thành công (`SXXX`), ngoại lệ (`EXXX`), lỗi CSDL (`DEXXX`), Admin Dashboard, POS, Menu, Giao hàng, Nhân sự & Theme sang tiếng Nhật tự nhiên, chuẩn văn phong doanh nghiệp F&B.
+  - Tuân thủ nghiêm ngặt 100% quy chuẩn Unicode Escape (`\uXXXX`) thuần ASCII theo `Rule_BOMS.md` (0 ký tự Unicode thô).
+  - Đối chiếu tự động xác nhận 1051/1051 keys đối xứng 1-1 không lệch bất kỳ key nào so với `messages_en.properties` và `messages_vi.properties`.
+- [x] **Task 30.2: [DONE] Mở rộng Controller & Hằng số Hệ thống (`Constants.java`, `LanguageController.java`):**
+  - Khai báo các hằng số mã ngôn ngữ `LANG_VI = "vi"`, `LANG_EN = "en"`, `LANG_JA = "ja"` trong `Constants.java`.
+  - Bổ sung hàm kiểm tra `isValidLanguage(lang)` trong `LanguageController.java` tiếp nhận mã `"ja"`, lưu vào `Session` & `Cookie` (30 ngày) và chuyển hướng an toàn.
+- [x] **Task 30.3: [DONE] Cập nhật Giao diện Bộ Chuyển Đổi Ngôn Ngữ (`language_switcher.jsp`):**
+  - Bổ sung tùy chọn `日本語` vào menu dropdown.
+  - Hiển thị badge `JA` khi người dùng kích hoạt tiếng Nhật.
+  - Biên dịch toàn dự án bằng Apache Ant với JDK 17 đạt `BUILD SUCCESSFUL` (0 lỗi).

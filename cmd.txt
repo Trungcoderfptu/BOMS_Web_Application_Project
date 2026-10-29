@@ -1,1 +1,6 @@
 npx repomix
+ngrok http 8080
+
+====fix port=====
+netstat -ano | findstr 8005
+taskkill /F /PID 4321

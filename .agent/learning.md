@@ -1,5 +1,26 @@
 # BOMS LEARNING & PROGRESS LOG
 
+## [2026-10-30] - TRIỂN KHAI PHÂN HỆ ĐA NGÔN NGỮ TIẾNG NHẬT (JAPANESE I18N SUPPORT)
+### 1. Phân tích & Chuẩn hóa Tài nguyên:
+- **Tạo tệp ngôn ngữ `src/java/resources/messages_ja.properties`:** Dịch toàn diện 1051 keys nghiệp vụ, mã lỗi, thông báo thành công và nhãn giao diện từ `messages_en.properties` sang tiếng Nhật chuẩn tự nhiên.
+- **Tuân thủ 100% Quy chuẩn Unicode Escape (`Rule_BOMS.md`):** Toàn bộ các ký tự tiếng Nhật (Kanji, Hiragana, Katakana, ký hiệu đặc biệt) được mã hóa hoàn toàn sang định dạng `\uXXXX` thuần ASCII. File đạt 0 non-ASCII bytes, tương thích tuyệt đối với NetBeans 17, Tomcat 10 và các môi trường Windows (`Cp1252`), loại bỏ hoàn toàn nguy cơ vỡ font (Mojibake).
+- **Đối xứng 1-1 Tuyệt đối (Zero Missing Keys):** Kiểm tra đối chiếu tự động xác nhận cả 3 tệp `messages_en.properties`, `messages_vi.properties`, và `messages_ja.properties` khớp chính xác 1-1 toàn bộ 1051 keys (0 thiếu, 0 thừa).
+
+### 2. Tầng Controller & Kiến trúc:
+- **Mở rộng `LanguageController.java`:** Bổ sung phương thức SRP `isValidLanguage(String lang)` chấp nhận mã `"ja"`, ghi nhận `Session` và `Cookie` 30 ngày rồi chuyển tiếp Referer.
+- **Quy hoạch Hằng số trong `Constants.java`:** Bổ sung `Constants.LANG_VI = "vi"`, `Constants.LANG_EN = "en"`, `Constants.LANG_JA = "ja"`. Triệt tiêu hoàn toàn hardcode string.
+- **Cập nhật Giao diện Chuyển đổi Ngôn ngữ `web/components/language_switcher.jsp`:** Bổ sung tùy chọn `日本語` vào dropdown menu và hiển thị badge `JA` khi ngôn ngữ hiện tại là tiếng Nhật.
+
+### 3. File tác động & Trạng thái:
+- `src/java/resources/messages_ja.properties` (Tạo mới, 1051 keys, 100% Unicode Escape)
+- `src/java/controller/LanguageController.java` (Cập nhật hỗ trợ mã `ja`)
+- `src/java/utility/Constants.java` (Khai báo hằng số `LANG_VI`, `LANG_EN`, `LANG_JA`)
+- `web/components/language_switcher.jsp` (Bổ sung nút và nhãn tiếng Nhật)
+- `.agent/learning.md` (Ghi nhận tiến độ)
+- **Trạng thái Build:** Apache Ant (`ant clean compile` với JDK 17) đạt **BUILD SUCCESSFUL (0 errors, 78 source files, 3 properties files copied)**.
+
+---
+
 ## [2026-10-24] - TỔNG KẾT BẢN PHÁT HÀNH RELEASE 1.0: BẢO MẬT, LUỒNG ĐIỀU PHỐI, KHÓA STATE MACHINE & TỔNG KIỂM TOÁN TĨNH
 
 ### 1. Phân hệ Bảo mật & Upload Avatar:

@@ -40,7 +40,7 @@
         <header class="app-header topbar">
             <div class="topbar-left">
                 <c:if test="${not empty sessionScope.USER_SESSION}">
-                    <button id="btnHamburger" type="button" aria-label="<fmt:message key='nav.menu' />"><i class="fi fi-rr-menu-burger" aria-hidden="true"></i></button>
+                    <button id="btnHamburger" type="button" aria-label="<fmt:message key='nav.menu' />" aria-controls="menuDoc" aria-expanded="false"><i class="fi fi-rr-menu-burger" aria-hidden="true"></i></button>
                 </c:if>
                 <a href="${ctx}/DashboardController" class="topbar-brand">
                     <span class="brand-mark"><img src="${ctx}/images/brand/bingxue-logo.png" alt="" /></span>
@@ -150,4 +150,6 @@
                     </c:choose>
                 </ul>
             </aside>
+            <%-- Lớp phủ tối phía sau menu trái khi mở trên màn hẹp, chạm vào để đóng --%>
+            <div id="menuDocBackdrop" class="menu-backdrop"></div>
         </c:if>

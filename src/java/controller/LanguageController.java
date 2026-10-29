@@ -11,7 +11,7 @@ import jakarta.servlet.http.HttpSession;
 import utility.Constants;
 
 /**
- * Điều phối chuyển đổi ngôn ngữ hiển thị (i18n: vi / en).
+ * Điều phối chuyển đổi ngôn ngữ hiển thị (i18n: vi / en / ja).
  * Tuân thủ Rule_BOMS.md.
  * 
  * @author AD
@@ -23,7 +23,7 @@ public class LanguageController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String lang = request.getParameter("lang");
-        if (lang != null && (lang.equals("vi") || lang.equals("en"))) {
+        if (isValidLanguage(lang)) {
             HttpSession session = request.getSession();
             session.setAttribute(Constants.LANG, lang);
             Cookie cookie = new Cookie(Constants.LANG, lang);
@@ -37,5 +37,17 @@ public class LanguageController extends HttpServlet {
         } else {
             response.sendRedirect(request.getContextPath() + "/login.jsp");
         }
+    }
+
+    /**
+     * Kiểm tra tính hợp lệ của mã ngôn ngữ theo danh sách cho phép (SRP).
+     *
+     * @param lang Mã ngôn ngữ đầu vào
+     * @return true nếu thuộc danh sách hỗ trợ (vi, en, ja)
+     */
+    private boolean isValidLanguage(String lang) {
+        return Constants.LANG_VI.equals(lang)
+                || Constants.LANG_EN.equals(lang)
+                || Constants.LANG_JA.equals(lang);
     }
 }

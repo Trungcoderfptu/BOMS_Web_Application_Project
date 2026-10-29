@@ -33,6 +33,9 @@ public class Constants {
     public static final String LAST_ORDER_ID = "LAST_ORDER_ID";
     public static final String PLACED_ORDER_IDS = "PLACED_ORDER_IDS";
     public static final String LANG = "LANG";
+    public static final String LANG_VI = "vi";
+    public static final String LANG_EN = "en";
+    public static final String LANG_JA = "ja";
     public static final String LAST_TICKET_ID = "LAST_TICKET_ID";
 
     // =========================================================================

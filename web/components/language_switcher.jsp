@@ -4,10 +4,11 @@
 
 <div class="lang-switcher-wrapper">
     <button id="btnLangToggle" type="button" class="lang-btn">
-        <i class="fi fi-rr-globe" aria-hidden="true"></i> ${currentLang == 'en' ? 'EN' : 'VI'}
+        <i class="fi fi-rr-globe" aria-hidden="true"></i> ${currentLang == 'en' ? 'EN' : (currentLang == 'ja' ? 'JA' : 'VI')}
     </button>
     <ul id="langDropdown" class="lang-dropdown-menu d-none">
         <li><a href="${pageContext.request.contextPath}/LanguageController?lang=vi">Tiếng Việt</a></li>
         <li><a href="${pageContext.request.contextPath}/LanguageController?lang=en">English</a></li>
+        <li><a href="${pageContext.request.contextPath}/LanguageController?lang=ja">日本語</a></li>
     </ul>
 </div>

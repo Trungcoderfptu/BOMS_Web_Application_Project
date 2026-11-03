@@ -8,17 +8,39 @@ function initMainApp() {
     const btnDongMenuDoc = document.getElementById('btnDongMenuDoc');
     const menuDoc = document.getElementById('menuDoc');
 
-    if (btnHamburger) {
+    // Menu trái dạng ngăn kéo trên điện thoại/máy tính bảng: bật class menu-open trên body (CSS lo hiệu ứng trượt + lớp phủ)
+    const menuDocBackdrop = document.getElementById('menuDocBackdrop');
+
+    function setMenuDocOpen(isOpen) {
+        document.body.classList.toggle('menu-open', isOpen);
+        if (btnHamburger) {
+            btnHamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+    }
+
+    if (btnHamburger && menuDoc) {
         btnHamburger.addEventListener('click', function () {
-            menuDoc.style.display = 'block';
+            setMenuDocOpen(!document.body.classList.contains('menu-open'));
         });
     }
 
     if (btnDongMenuDoc) {
         btnDongMenuDoc.addEventListener('click', function () {
-            menuDoc.style.display = 'none';
+            setMenuDocOpen(false);
         });
     }
+
+    if (menuDocBackdrop) {
+        menuDocBackdrop.addEventListener('click', function () {
+            setMenuDocOpen(false);
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && document.body.classList.contains('menu-open')) {
+            setMenuDocOpen(false);
+        }
+    });
 
     const btnAvatar = document.getElementById('btnAvatar');
     const menuTaiKhoan = document.getElementById('menuTaiKhoan');

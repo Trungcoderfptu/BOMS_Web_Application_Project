@@ -2212,3 +2212,12 @@ video {
         gap: 8px;
     }
 }
+
+/* Chữ trạng thái trong bảng: chỉ giữ màu chữ, bỏ kiểu hộp thông báo */
+.admin-table .msg-success,
+.admin-table .msg-error {
+    padding: 0;
+    border-left: none;
+    border-radius: 0;
+    background: none;
+}

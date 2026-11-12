@@ -471,3 +471,21 @@ SELECT * FROM Notifications WHERE RecipientID = 2 AND IsRead = 0 ORDER BY Create
     ('T09', 'QR-T09'),
     ('T10', 'QR-T10');
     GO
+
+    USE BOMS;
+GO
+
+-- Thêm 10 món kem mới vào danh mục Kem (CategoryID = 1)
+INSERT INTO Products (CategoryID, ProductName, Price, Description, IsFeatured, HasOptions) 
+VALUES
+    (1, N'Kem Vani Madagascar', 25000, N'Kem Vani truyền thống thơm béo, ngọt thanh', 1, 1),
+    (1, N'Kem Socola Bỉ', 25000, N'Kem Socola đắng đậm vị cacao nguyên chất', 1, 1),
+    (1, N'Kem Matcha Nhật Bản', 30000, N'Kem trà xanh Matcha thanh mát, đậm vị', 1, 1),
+    (1, N'Kem Sầu Riêng Tươi', 35000, N'Kem sầu riêng tươi nguyên chất thơm lừng', 1, 1),
+    (1, N'Kem Dừa Côn Đảo', 35000, N'Kem dừa bùi béo ăn kèm dừa sấy giòn', 1, 1),
+    (1, N'Kem Bạc Hà Choco Chip', 30000, N'Kem bạc hà the mát kết hợp vụn socola giòn rụm', 0, 1),
+    (1, N'Kem Xoài Nhiệt Đới', 25000, N'Kem xoài chua ngọt giải nhiệt mùa hè cực đã', 0, 1),
+    (1, N'Kem Khoai Môn Dẻo', 25000, N'Kem khoai môn dẻo mịn, thơm bùi vị cốt dừa', 0, 1),
+    (1, N'Bingsu Dâu Tây Tuyết', 65000, N'Kem tuyết Bingsu kiểu Hàn Quốc phủ ngập dâu tây tươi', 1, 1),
+    (1, N'Lẩu Kem Tự Chọn (5 Viên)', 120000, N'Set lẩu kem lớn gồm 5 viên tự chọn kèm sốt socola nóng chảy', 1, 0);
+GO
